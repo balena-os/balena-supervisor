@@ -996,7 +996,7 @@ describe('compose/application-manager', () => {
 			},
 		);
 
-		// A start step should happen for the depended service first
+		// A start step should happen for the dependant service first
 		expect(startStep).to.have.property('action').that.equals('start');
 		expect(startStep)
 			.to.have.property('target')

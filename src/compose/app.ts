@@ -45,6 +45,7 @@ export interface UpdateState {
 	containerIds: Dictionary<string>;
 	downloading: string[];
 	locksTaken: LocksTakenMap;
+	force: boolean;
 }
 
 interface ChangingPair<T> {
@@ -111,8 +112,15 @@ export class App {
 		// Check to see if we need to polyfill in some "new" data for legacy services
 		this.migrateLegacy(target);
 
-		// Check for changes in the volumes. We don't remove any volumes until we remove an
-		// entire app
+		let steps: CompositionStep[] = [];
+
+		// Any services which have died get a remove step
+		for (const service of this.services) {
+			if (service.status === 'Dead') {
+				steps.push(generateStep('remove', { current: service }));
+			}
+		}
+
 		const volumeChanges = this.compareComponents(
 			this.volumes,
 			target.volumes,
@@ -123,15 +131,6 @@ export class App {
 			target.networks,
 			true,
 		);
-
-		let steps: CompositionStep[] = [];
-
-		// Any services which have died get a remove step
-		for (const service of this.services) {
-			if (service.status === 'Dead') {
-				steps.push(generateStep('remove', { current: service }));
-			}
-		}
 
 		const { removePairs, installPairs, updatePairs } = this.compareServices(
 			this.services,
@@ -571,7 +570,12 @@ export class App {
 				current.isEqualConfig(target, context.containerIds)
 			) {
 				// Update service metadata or start/stop a service
-				return this.generateContainerStep(current, target, context.locksTaken);
+				return this.generateContainerStep(
+					current,
+					target,
+					context.locksTaken,
+					context.force,
+				);
 			}
 
 			let strategy: string;
@@ -664,6 +668,7 @@ export class App {
 		current: Service,
 		target: Service,
 		locksTaken: LocksTakenMap,
+		force: boolean,
 	) {
 		// Update container metadata if service release has changed
 		if (current.commit !== target.commit) {
@@ -679,6 +684,7 @@ export class App {
 			return generateStep('takeLock', {
 				appId: target.appId,
 				services: [target.serviceName],
+				force,
 			});
 		} else if (target.config.running !== current.config.running) {
 			if (target.config.running) {

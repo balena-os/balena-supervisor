@@ -17,7 +17,7 @@ import {
 	ContractViolationError,
 	InternalInconsistencyError,
 } from '../lib/errors';
-import { getServicesLockedByAppId, lock } from '../lib/update-lock';
+import { getServicesLockedByAppId } from '../lib/update-lock';
 import { checkTruthy } from '../lib/validation';
 
 import App from './app';
@@ -64,7 +64,6 @@ export function resetTimeSpentFetching(value: number = 0) {
 }
 
 const actionExecutors = getExecutors({
-	lockFn: lock,
 	callbacks: {
 		fetchStart: () => {
 			fetchesInProgress += 1;
@@ -120,6 +119,7 @@ export async function getRequiredSteps(
 	targetApps: InstancedAppState,
 	keepImages?: boolean,
 	keepVolumes?: boolean,
+	force: boolean = false,
 ): Promise<CompositionStep[]> {
 	// get some required data
 	const [downloading, availableImages, { localMode, delta }] =
@@ -146,6 +146,7 @@ export async function getRequiredSteps(
 		// Volumes are not removed when stopping an app when going to local mode
 		keepVolumes,
 		delta,
+		force,
 		downloading,
 		availableImages,
 		containerIdsByAppId,
@@ -161,6 +162,7 @@ export async function inferNextSteps(
 		keepImages = false,
 		keepVolumes = false,
 		delta = true,
+		force = false,
 		downloading = [] as UpdateState['downloading'],
 		availableImages = [] as UpdateState['availableImages'],
 		containerIdsByAppId = {} as {
@@ -219,6 +221,7 @@ export async function inferNextSteps(
 							containerIds: containerIdsByAppId[id],
 							downloading,
 							locksTaken,
+							force,
 						},
 						targetApps[id],
 					),
@@ -233,6 +236,7 @@ export async function inferNextSteps(
 						downloading,
 						containerIds: containerIdsByAppId[id],
 						locksTaken,
+						force,
 					}),
 				);
 			}
@@ -257,6 +261,7 @@ export async function inferNextSteps(
 							containerIds: containerIdsByAppId[id] ?? {},
 							downloading,
 							locksTaken,
+							force,
 						},
 						targetApps[id],
 					),
@@ -299,17 +304,6 @@ export async function inferNextSteps(
 	}
 
 	return steps;
-}
-
-export async function stopAll({ force = false, skipLock = false } = {}) {
-	const services = await serviceManager.getAll();
-	await Promise.all(
-		services.map(async (s) => {
-			return lock(s.appId, { force, skipLock }, async () => {
-				await serviceManager.kill(s, { removeContainer: false, wait: true });
-			});
-		}),
-	);
 }
 
 // The following two function may look pretty odd, but after the move to uuids,
@@ -501,7 +495,7 @@ function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 // intermediate targets to perform changes
 export async function executeStep(
 	step: CompositionStep,
-	{ force = false, skipLock = false } = {},
+	{ force = false } = {},
 ): Promise<void> {
 	if (!validActions.includes(step.action)) {
 		return Promise.reject(
@@ -515,7 +509,6 @@ export async function executeStep(
 	await actionExecutors[step.action]({
 		...step,
 		force,
-		skipLock,
 	} as any);
 }
 

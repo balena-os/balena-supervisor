@@ -81,7 +81,11 @@ async function dispose(
  * Composition step used by Supervisor compose module.
  * Take all locks for an appId | appUuid, creating directories if they don't exist.
  */
-export async function takeLock(appId: number, services: string[]) {
+export async function takeLock(
+	appId: number,
+	services: string[],
+	force: boolean = false,
+) {
 	const release = await takeGlobalLockRW(appId);
 	try {
 		const actuallyLocked: string[] = [];
@@ -93,7 +97,7 @@ export async function takeLock(appId: number, services: string[]) {
 		);
 		for (const service of servicesWithoutLock) {
 			await mkdirp(pathOnRoot(lockPath(appId, service)));
-			await lockService(appId, service);
+			await lockService(appId, service, force);
 			actuallyLocked.push(service);
 		}
 		return actuallyLocked;
@@ -193,17 +197,14 @@ export function getServicesLockedByAppId(): LocksTakenMap {
  * all existing lockfiles before performing the operation
  *
  * TODO: convert to native Promises and async/await. May require native implementation of Bluebird's dispose / using
- *
- * TODO: Remove skipLock as it's not a good interface. If lock is called it should try to take the lock
- * without an option to skip.
  */
 export async function lock<T>(
 	appId: number | number[],
-	{ force = false, skipLock = false }: { force: boolean; skipLock?: boolean },
+	{ force = false }: { force: boolean },
 	fn: () => Resolvable<T>,
 ): Promise<T> {
 	const appIdsToLock = Array.isArray(appId) ? appId : [appId];
-	if (skipLock || !appId || !appIdsToLock.length) {
+	if (!appId || !appIdsToLock.length) {
 		return fn();
 	}
 

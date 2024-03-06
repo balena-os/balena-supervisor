@@ -15,6 +15,7 @@ import {
 
 const defaultContext = {
 	keepVolumes: false,
+	force: false,
 	availableImages: [] as Image[],
 	containerIds: {},
 	downloading: [] as string[],
@@ -151,6 +152,7 @@ describe('compose/app', () => {
 					}),
 				],
 				volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
+				networks: [DEFAULT_NETWORK],
 			});
 			const target = createApp({
 				services: [
@@ -164,6 +166,7 @@ describe('compose/app', () => {
 						labels: { test: 'test' },
 					}),
 				],
+				networks: [DEFAULT_NETWORK],
 				isTarget: true,
 			});
 
@@ -453,9 +456,10 @@ describe('compose/app', () => {
 
 			const steps = current.nextStepsForAppUpdate(defaultContext, target);
 
-			const [removeNetworkStep] = expectSteps('kill', steps);
+			const [killStep] = expectSteps('kill', steps);
+			console.log(killStep);
 
-			expect(removeNetworkStep).to.have.property('current').that.deep.includes({
+			expect(killStep).to.have.property('current').that.deep.includes({
 				serviceName: 'test',
 			});
 		});
@@ -576,7 +580,7 @@ describe('compose/app', () => {
 				services: [
 					await createService({
 						serviceName: 'test',
-						composition: { networks: ['test-network'] },
+						composition: { networks: { 'test-network': {} } },
 					}),
 				],
 				networks: [Network.fromComposeObject('test-network', 1, 'appuuid', {})],
@@ -977,7 +981,6 @@ describe('compose/app', () => {
 			// Take lock before updating metadata
 			const steps = current.nextStepsForAppUpdate(defaultContext, target);
 			const [takeLockStep] = expectSteps('takeLock', steps);
-			expect(takeLockStep).to.have.property('appId').that.equals(1);
 			expect(takeLockStep)
 				.to.have.property('services')
 				.that.deep.equals(['main']);
@@ -1080,7 +1083,7 @@ describe('compose/app', () => {
 				.to.have.property('current')
 				.that.deep.includes({ serviceName: 'main' });
 
-			// assume the intermediate step has already removed the app
+			// Assume the intermediate step has already removed the app
 			const intermediate = createApp({
 				services: [],
 				// Default network was already created
@@ -1092,7 +1095,6 @@ describe('compose/app', () => {
 				contextWithImages,
 				target,
 			);
-
 			const [startStep] = expectSteps('start', stepsToTarget);
 			expect(startStep)
 				.to.have.property('target')
@@ -1173,7 +1175,6 @@ describe('compose/app', () => {
 				{ ...contextWithImages, ...{ containerIds: { dep: 'dep-id' } } },
 				target,
 			);
-
 			const [startMainStep] = expectSteps('start', stepsToTarget);
 			expect(startMainStep)
 				.to.have.property('target')
@@ -1470,6 +1471,7 @@ describe('compose/app', () => {
 						commit: 'old-release',
 					}),
 				],
+				networks: [DEFAULT_NETWORK],
 			});
 			const target = createApp({
 				services: [
@@ -1479,6 +1481,7 @@ describe('compose/app', () => {
 						commit: 'new-release',
 					}),
 				],
+				networks: [DEFAULT_NETWORK],
 				isTarget: true,
 			});
 

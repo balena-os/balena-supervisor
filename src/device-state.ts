@@ -574,11 +574,7 @@ export async function shutdown({
 // should happen via intermediate targets
 export async function executeStepAction(
 	step: DeviceStateStep<PossibleStepTargets>,
-	{
-		force,
-		initial,
-		skipLock,
-	}: { force?: boolean; initial?: boolean; skipLock?: boolean },
+	{ force, initial }: { force?: boolean; initial?: boolean },
 ) {
 	if (deviceConfig.isValidAction(step.action)) {
 		await deviceConfig.executeStepAction(step as deviceConfig.ConfigStep, {
@@ -587,7 +583,6 @@ export async function executeStepAction(
 	} else if (applicationManager.validActions.includes(step.action)) {
 		return applicationManager.executeStep(step as any, {
 			force,
-			skipLock,
 		});
 	} else {
 		switch (step.action) {
@@ -613,11 +608,9 @@ export async function applyStep(
 	{
 		force,
 		initial,
-		skipLock,
 	}: {
 		force?: boolean;
 		initial?: boolean;
-		skipLock?: boolean;
 	},
 ) {
 	if (shuttingDown) {
@@ -627,7 +620,6 @@ export async function applyStep(
 		await executeStepAction(step, {
 			force,
 			initial,
-			skipLock,
 		});
 		emitAsync('step-completed', null, step);
 	} catch (e: any) {
@@ -685,7 +677,6 @@ export const applyTarget = async ({
 	force = false,
 	initial = false,
 	intermediate = false,
-	skipLock = false,
 	nextDelay = 200,
 	retryCount = 0,
 	keepVolumes = undefined as boolean | undefined,
@@ -724,6 +715,7 @@ export const applyTarget = async ({
 				// the value
 				intermediate || undefined,
 				keepVolumes,
+				force,
 			);
 
 			if (_.isEmpty(appSteps)) {
@@ -769,16 +761,13 @@ export const applyTarget = async ({
 		}
 
 		try {
-			await Promise.all(
-				steps.map((s) => applyStep(s, { force, initial, skipLock })),
-			);
+			await Promise.all(steps.map((s) => applyStep(s, { force, initial })));
 
 			await setTimeout(nextDelay);
 			await applyTarget({
 				force,
 				initial,
 				intermediate,
-				skipLock,
 				nextDelay,
 				retryCount,
 				keepVolumes,
@@ -884,11 +873,7 @@ export function triggerApplyTarget({
 
 export async function applyIntermediateTarget(
 	intermediate: InstancedDeviceState,
-	{
-		force = false,
-		skipLock = false,
-		keepVolumes = undefined as boolean | undefined,
-	} = {},
+	{ force = false, keepVolumes = undefined as boolean | undefined } = {},
 ) {
 	return pausingApply(async () => {
 		// TODO: Make sure we don't accidentally overwrite this
@@ -897,7 +882,6 @@ export async function applyIntermediateTarget(
 		return applyTarget({
 			intermediate: true,
 			force,
-			skipLock,
 			keepVolumes,
 		}).then(() => {
 			intermediateTarget = null;
