@@ -1,4 +1,34 @@
 - commits:
+    - subject: Remove dependency on @balena/happy-eyeballs
+      hash: 08727ed2b5f67c55b2469d3ee5c5e2857119521b
+      body: >
+        Node 20 now implements the happy eyeballs algorithm as part of its core
+
+        `net` module, with the
+        [autoSelectFamily](https://nodejs.org/docs/latest-v20.x/api/net.html#netgetdefaultautoselectfamily)
+        option of `socket.connect`. This option defaults to `true`, meaning that
+        a separate
+
+        implementation of happy eyeballs is no longer needed.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Update Node to v20
+      hash: b77dba20462df90ca720dae3fcacb84628fd5069
+      body: |
+        This updates the supervisor runtime to latest Node LTS version. There
+        are no breaking changes related to this bump.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.1.3
+  title: ""
+  date: 2024-03-07T16:10:24.150Z
+- commits:
     - subject: Update typescript to v5
       hash: 6217546894e25c8216d305f231876fc888a6e407
       body: |
