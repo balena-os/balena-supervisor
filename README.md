@@ -45,7 +45,7 @@ Here's a few guidelines to make the process easier for everyone involved.
 
 These are the system requirements for developing and testing the balenaSupervisor on a local machine
 
-- [Node.js](https://nodejs.org/en) v18 or latest
+- [Node.js](https://nodejs.org/en) v20 or latest
 - [Rust](https://www.rust-lang.org/) v1.64 or latest for installing the [@balena/systemd](https://www.npmjs.com/package/@balena/systemd) NPM package.
 - If developing on an architecture not supported by default by [node-sqlite3](https://github.com/TryGhost/node-sqlite3#prebuilt-binaries), a C++ compiler and linker are also required, plus the libsqlite development headers.
 
@@ -195,7 +195,7 @@ To run type checks, and unit tests, you can use:
 npm run test
 ```
 
-The supervisor runs on Node v12.16.2, so using that specific
+The supervisor runs on Node v20, so using that specific
 version will ensure tests run in the same environment as
 production.
 

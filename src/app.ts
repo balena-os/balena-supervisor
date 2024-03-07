@@ -142,7 +142,6 @@ async function mdnsLookup(
 	};
 })();
 
-import '@balena/happy-eyeballs/eye-patch';
 import Supervisor from './supervisor';
 import process from 'process';
 import log from './lib/supervisor-console';
