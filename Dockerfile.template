@@ -1,5 +1,5 @@
 ARG ARCH=%%BALENA_ARCH%%
-ARG FATRW_VERSION=0.2.9
+ARG FATRW_VERSION=0.2.21
 ARG NODE="nodejs~=20"
 ARG NPM="npm~=10"
 ARG ALPINE_VERSION="3.19"
@@ -13,8 +13,7 @@ ARG ARCH
 ARG NODE
 ARG NPM
 ARG FATRW_VERSION
-ARG FATRW_ARCHIVE="fatrw-${ARCH}.tar.gz"
-ARG FATRW_LOCATION="https://github.com/balena-os/fatrw/releases/download/v${FATRW_VERSION}/${FATRW_ARCHIVE}"
+ARG FATRW_RELEASES="https://github.com/balena-os/fatrw/releases/download/v${FATRW_VERSION}"
 
 WORKDIR /usr/src/app
 
@@ -30,11 +29,14 @@ RUN apk add --update --no-cache \
 	rust
 
 COPY package*.json ./
+COPY ./build-utils/rust-arch.sh /
 
 RUN strip "$(which node)"
 
 # Install fatrw
-RUN curl -SLO "${FATRW_LOCATION}" && \
+RUN FATRW_ARCHIVE="fatrw-$(/rust-arch.sh).tar.gz" && \
+		FATRW_LOCATION="${FATRW_RELEASES}/${FATRW_ARCHIVE}" && \
+		curl -SLO "${FATRW_LOCATION}" && \
 		ls -la "${FATRW_ARCHIVE}" && \
 		tar -xzf "${FATRW_ARCHIVE}" -C /usr/local/bin && \
 		rm -f "${FATRW_ARCHIVE}"
