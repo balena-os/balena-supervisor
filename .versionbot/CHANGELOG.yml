@@ -1,4 +1,21 @@
 - commits:
+    - subject: Update balena-register-device and its deps
+      hash: 790f6b71e4c127a6c6078e3f3797992e78995d3b
+      body: |
+        This bumps the related dependencies
+
+        - balena-register-device
+        - balena-request
+        - balena-auth
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.1.4
+  title: ""
+  date: 2024-03-08T14:10:19.423Z
+- commits:
     - subject: Remove dependency on @balena/happy-eyeballs
       hash: 08727ed2b5f67c55b2469d3ee5c5e2857119521b
       body: >
