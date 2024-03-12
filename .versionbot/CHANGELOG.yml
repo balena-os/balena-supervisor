@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update fatrw to v0.2.21
+      hash: 772702793c3ebf9bf3ac8119934436f2caa44bef
+      body: |
+        Update fatrw from 0.2.9 to 0.2.21
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.1.5
+  title: ""
+  date: 2024-03-12T13:33:05.116Z
+- commits:
     - subject: Update balena-register-device and its deps
       hash: 790f6b71e4c127a6c6078e3f3797992e78995d3b
       body: |
