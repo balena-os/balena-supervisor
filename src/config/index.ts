@@ -56,7 +56,7 @@ export async function get<T extends SchemaTypeKey>(
 ): Promise<SchemaReturn<T>> {
 	const $db = trx || db.models;
 
-	if (Object.prototype.hasOwnProperty.call(Schema.schema, key)) {
+	if (Object.hasOwn(Schema.schema, key)) {
 		const schemaKey = key as Schema.SchemaKey;
 
 		return getSchema(schemaKey, $db).then((value) => {
@@ -82,7 +82,7 @@ export async function get<T extends SchemaTypeKey>(
 			// the type system happy
 			return checkValueDecode(decoded, key, value) && decoded.right;
 		});
-	} else if (Object.prototype.hasOwnProperty.call(FnSchema.fnSchema, key)) {
+	} else if (Object.hasOwn(FnSchema.fnSchema, key)) {
 		const fnKey = key as FnSchema.FnSchemaKey;
 		// Cast the promise as something that produces an unknown, and this means that
 		// we can validate the output of the function as well, ensuring that the type matches
@@ -269,7 +269,7 @@ function validateConfigMap<T extends SchemaTypeKey>(
 	// throw if any value fails verification
 	return _.mapValues(configMap, (value, key) => {
 		if (
-			!Object.prototype.hasOwnProperty.call(Schema.schema, key) ||
+			!Object.hasOwn(Schema.schema, key) ||
 			!Schema.schema[key as Schema.SchemaKey].mutable
 		) {
 			throw new Error(

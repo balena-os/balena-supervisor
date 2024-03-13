@@ -1,34 +1,44 @@
-import { promises as fs, unlinkSync, rmdirSync } from 'fs';
+import { promises as fs } from 'fs';
+import type { Stats, Dirent } from 'fs';
 import os from 'os';
 import { dirname } from 'path';
 
 import { exec } from './fs-utils';
+import { isENOENT, isEISDIR, isEPERM } from './errors';
 
 // Equivalent to `drwxrwxrwt`
 const STICKY_WRITE_PERMISSIONS = 0o1777;
 
-/**
- * Internal lockfile manager to track files in memory
- */
-// Track locksTaken, so that the proper locks can be cleaned up on process exit
-const locksTaken: { [lockName: string]: boolean } = {};
-
-// Returns all current locks taken, as they've been stored in-memory.
+// Returns all current locks taken under a directory (default: /tmp)
 // Optionally accepts filter function for only getting locks that match a condition.
-export const getLocksTaken = (
-	lockFilter: (path: string) => boolean = () => true,
-): string[] => Object.keys(locksTaken).filter(lockFilter);
-
-// Try to clean up any existing locks when the process exits
-process.on('exit', () => {
-	for (const lockName of getLocksTaken()) {
-		try {
-			unlockSync(lockName);
-		} catch (e) {
-			// Ignore unlocking errors
+// A file is counted as a lock by default if it ends with `.lock`.
+export const getLocksTaken = async (
+	rootDir: string = '/tmp',
+	lockFilter: (path: string, stat: Stats) => boolean = (p) =>
+		p.endsWith('.lock'),
+): Promise<string[]> => {
+	const locksTaken: string[] = [];
+	let filesOrDirs: Dirent[] = [];
+	try {
+		filesOrDirs = await fs.readdir(rootDir, { withFileTypes: true });
+	} catch (err) {
+		// If lockfile directory doesn't exist, no locks are taken
+		if (isENOENT(err)) {
+			return locksTaken;
 		}
 	}
-});
+	for (const fileOrDir of filesOrDirs) {
+		const lockPath = `${rootDir}/${fileOrDir.name}`;
+		// A lock is taken if it's a file or directory within rootDir that passes filter fn
+		if (lockFilter(lockPath, await fs.stat(lockPath))) {
+			locksTaken.push(lockPath);
+			// Otherwise, if non-lock directory, seek locks recursively within directory
+		} else if (fileOrDir.isDirectory()) {
+			locksTaken.push(...(await getLocksTaken(lockPath, lockFilter)));
+		}
+	}
+	return locksTaken;
+};
 
 interface ChildProcessError {
 	code: number;
@@ -77,8 +87,6 @@ export async function lock(path: string, uid: number = os.userInfo().uid) {
 	try {
 		// Lock the file using binary
 		await exec(`lockfile -r 0 ${path}`, { uid });
-		// Store a lock in memory as taken
-		locksTaken[path] = true;
 	} catch (error) {
 		// Code 73 refers to EX_CANTCREAT (73) in sysexits.h, or:
 		// A (user specified) output file cannot be created.
@@ -110,7 +118,7 @@ export async function unlock(path: string): Promise<void> {
 	// Removing the lockfile releases the lock
 	await fs.unlink(path).catch((e) => {
 		// if the error is EPERM|EISDIR, the file is a directory
-		if (e.code === 'EPERM' || e.code === 'EISDIR') {
+		if (isEPERM(e) || isEISDIR(e)) {
 			return fs.rmdir(path).catch(() => {
 				// if the directory is not empty or something else
 				// happens, ignore
@@ -119,17 +127,4 @@ export async function unlock(path: string): Promise<void> {
 		// If the file does not exist or some other error
 		// happens, then ignore the error
 	});
-	// Remove lockfile's in-memory tracking of a file
-	delete locksTaken[path];
-}
-
-export function unlockSync(path: string) {
-	try {
-		return unlinkSync(path);
-	} catch (e: any) {
-		if (e.code === 'EPERM' || e.code === 'EISDIR') {
-			return rmdirSync(path);
-		}
-		throw e;
-	}
 }

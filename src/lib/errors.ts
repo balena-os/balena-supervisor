@@ -40,23 +40,27 @@ export class BadRequestError extends StatusError {
 export const isBadRequestError = (e: unknown): e is BadRequestError =>
 	isStatusError(e) && e.statusCode === 400;
 
+export class DeviceNotFoundError extends TypedError {}
+
 interface CodedSysError extends Error {
 	code?: string;
 }
 
-export class DeviceNotFoundError extends TypedError {}
+const isCodedSysError = (e: unknown): e is CodedSysError =>
+	// See https://mdn.io/hasOwn
+	e != null && e instanceof Error && Object.hasOwn(e, 'code');
 
-export function ENOENT(err: CodedSysError): boolean {
-	return err.code === 'ENOENT';
-}
+export const isENOENT = (e: unknown): e is CodedSysError =>
+	isCodedSysError(e) && e.code === 'ENOENT';
 
-export function EEXIST(err: CodedSysError): boolean {
-	return err.code === 'EEXIST';
-}
+export const isEEXIST = (e: unknown): e is CodedSysError =>
+	isCodedSysError(e) && e.code === 'EEXIST';
 
-export function EISDIR(err: CodedSysError): boolean {
-	return err.code === 'EISDIR';
-}
+export const isEISDIR = (e: unknown): e is CodedSysError =>
+	isCodedSysError(e) && e.code === 'EISDIR';
+
+export const isEPERM = (e: unknown): e is CodedSysError =>
+	isCodedSysError(e) && e.code === 'EPERM';
 
 export function UnitNotLoadedError(err: string[]): boolean {
 	return endsWith(err[0], 'not loaded.');

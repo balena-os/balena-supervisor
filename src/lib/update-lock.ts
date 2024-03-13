@@ -1,9 +1,10 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import type { Stats } from 'fs';
 import { isRight } from 'fp-ts/lib/Either';
 
 import {
-	ENOENT,
+	isENOENT,
 	UpdatesLockedError,
 	InternalInconsistencyError,
 } from './errors';
@@ -65,10 +66,10 @@ async function dispose(
 	appIdentifier: string | number,
 	release: () => void,
 ): Promise<void> {
-	const locks = lockfile.getLocksTaken((p: string) =>
-		p.includes(`${BASE_LOCK_DIR}/${appIdentifier}`),
-	);
 	try {
+		const locks = await getLocksTaken(
+			pathOnRoot(`${BASE_LOCK_DIR}/${appIdentifier}`),
+		);
 		// Try to unlock all locks taken
 		await Promise.all(locks.map((l) => lockfile.unlock(l)));
 	} finally {
@@ -89,11 +90,12 @@ export async function takeLock(
 	const release = await takeGlobalLockRW(appId);
 	try {
 		const actuallyLocked: string[] = [];
+		const locksTaken = await getServicesLockedByAppId();
 		// Filter out services that already have Supervisor-taken locks.
 		// This needs to be done after taking the appId write lock to avoid
 		// race conditions with locking.
 		const servicesWithoutLock = services.filter(
-			(svc) => !getServicesLockedByAppId().isLocked(appId, svc),
+			(svc) => !locksTaken.isLocked(appId, svc),
 		);
 		for (const service of servicesWithoutLock) {
 			await mkdirp(pathOnRoot(lockPath(appId, service)));
@@ -116,17 +118,18 @@ export async function releaseLock(appId: number) {
 }
 
 /**
- * Given a lockfile path `p`, return a tuple [appId, serviceName] of that path.
+ * Given a lockfile path `p`, return an array [appId, serviceName, filename] of that path.
  * Paths are assumed to end in the format /:appId/:serviceName/(resin-)updates.lock.
  */
 function getIdentifiersFromPath(p: string) {
 	const parts = p.split('/');
-	if (parts.pop()?.match(/updates\.lock/) === null) {
+	const filename = parts.pop();
+	if (filename?.match(/updates\.lock/) === null) {
 		return [];
 	}
 	const serviceName = parts.pop();
 	const appId = parts.pop();
-	return [appId, serviceName];
+	return [appId, serviceName, filename];
 }
 
 type LockedEntity = { appId: number; services: string[] };
@@ -175,19 +178,62 @@ export class LocksTakenMap extends Map<number, Set<string>> {
 	}
 }
 
+// A wrapper function for lockfile.getLocksTaken that filters for Supervisor-taken locks.
+// Exported for tests only; getServicesLockedByAppId is the intended public interface.
+export async function getLocksTaken(
+	rootDir: string = pathOnRoot(BASE_LOCK_DIR),
+): Promise<string[]> {
+	return await lockfile.getLocksTaken(
+		rootDir,
+		(p: string, s: Stats) =>
+			p.endsWith('updates.lock') && s.uid === LOCKFILE_UID,
+	);
+}
+
 /**
  * Return a list of services that are locked by the Supervisor under each appId.
+ * Both `resin-updates.lock` and `updates.lock` should be present per
+ * [appId, serviceName] pair for a service to be considered locked.
  */
-export function getServicesLockedByAppId(): LocksTakenMap {
-	const locksTaken = lockfile.getLocksTaken();
-	const servicesByAppId = new LocksTakenMap();
+export async function getServicesLockedByAppId(): Promise<LocksTakenMap> {
+	const locksTaken = await getLocksTaken();
+	// Group locksTaken paths by appId & serviceName.
+	// filesTakenByAppId is of type Map<appId, Map<serviceName, Set<filename>>>
+	// and represents files taken under every [appId, serviceName] pair.
+	const filesTakenByAppId = new Map<number, Map<string, Set<string>>>();
 	for (const lockTakenPath of locksTaken) {
-		const [appId, serviceName] = getIdentifiersFromPath(lockTakenPath);
-		if (!StringIdentifier.is(appId) || !DockerName.is(serviceName)) {
+		const [appId, serviceName, filename] =
+			getIdentifiersFromPath(lockTakenPath);
+		if (
+			!StringIdentifier.is(appId) ||
+			!DockerName.is(serviceName) ||
+			!filename?.match(/updates\.lock/)
+		) {
 			continue;
 		}
 		const numAppId = +appId;
-		servicesByAppId.add(numAppId, serviceName);
+		if (!filesTakenByAppId.has(numAppId)) {
+			filesTakenByAppId.set(numAppId, new Map());
+		}
+		const servicesTaken = filesTakenByAppId.get(numAppId)!;
+		if (!servicesTaken.has(serviceName)) {
+			servicesTaken.set(serviceName, new Set());
+		}
+		servicesTaken.get(serviceName)!.add(filename);
+	}
+
+	// Construct a LocksTakenMap from filesTakenByAppId, which represents
+	// services locked by the Supervisor.
+	const servicesByAppId = new LocksTakenMap();
+	for (const [appId, servicesTaken] of filesTakenByAppId) {
+		for (const [serviceName, filenames] of servicesTaken) {
+			if (
+				filenames.has('resin-updates.lock') &&
+				filenames.has('updates.lock')
+			) {
+				servicesByAppId.add(appId, serviceName);
+			}
+		}
 	}
 	return servicesByAppId;
 }
@@ -228,7 +274,7 @@ export async function lock<T>(
 			releases.set(id, await takeGlobalLockRW(id));
 			// Get list of service folders in lock directory
 			const serviceFolders = await fs.readdir(lockDir).catch((e) => {
-				if (ENOENT(e)) {
+				if (isENOENT(e)) {
 					return [];
 				}
 				throw e;
