@@ -14,6 +14,8 @@ import * as config from '../config';
 import * as lockfile from './lockfile';
 import { NumericIdentifier, StringIdentifier, DockerName } from '../types';
 import { takeGlobalLockRW } from './process-lock';
+import * as logger from '../logger';
+import * as logTypes from './log-types';
 
 const decodedUid = NumericIdentifier.decode(process.env.LOCKFILE_UID);
 export const LOCKFILE_UID = isRight(decodedUid) ? decodedUid.right : 65534;
@@ -87,6 +89,12 @@ export async function takeLock(
 	services: string[],
 	force: boolean = false,
 ) {
+	logger.logSystemEvent(logTypes.takeLock, {
+		appId,
+		services,
+		force,
+	});
+
 	const release = await takeGlobalLockRW(appId);
 	try {
 		const actuallyLocked: string[] = [];
@@ -122,6 +130,8 @@ export async function takeLock(
  * Release all locks for an appId | appUuid.
  */
 export async function releaseLock(appId: number) {
+	logger.logSystemEvent(logTypes.releaseLock, { appId });
+
 	const release = await takeGlobalLockRW(appId);
 	await dispose(appId, release);
 }
