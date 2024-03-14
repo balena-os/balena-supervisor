@@ -103,7 +103,16 @@ export async function takeLock(
 			actuallyLocked.push(service);
 		}
 		return actuallyLocked;
+	} catch (err) {
+		// If something errors while taking the lock, we should remove any
+		// lockfiles that may have been created so that all services return
+		// to unlocked status.
+		await dispose(appId, release);
+		// Re-throw error to be handled in caller
+		throw err;
 	} finally {
+		// If not already released from catch, released the RW process lock.
+		// If already released, this will not error.
 		release();
 	}
 }

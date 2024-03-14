@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import { testfs } from 'mocha-pod';
 import type { TestFs } from 'mocha-pod';
 import { setTimeout } from 'timers/promises';
+import { watch } from 'chokidar';
 
 import * as updateLock from '~/lib/update-lock';
 import { UpdatesLockedError } from '~/lib/errors';
@@ -603,6 +604,48 @@ describe('lib/update-lock', () => {
 				expect(await updateLock.getLocksTaken()).to.deep.include.members(
 					serviceLockPaths[1],
 				);
+			});
+
+			it('should release locks when takeLock step errors to return services to unlocked state', async () => {
+				const svcs = ['server', 'client'];
+
+				// Take lock for second service of two services
+				await lockfile.lock(`${lockdir}/1/${svcs[1]}/updates.lock`);
+				expect(await lockfile.getLocksTaken(lockdir)).to.deep.include.members([
+					`${lockdir}/1/${svcs[1]}/updates.lock`,
+				]);
+
+				// Watch for added files, as Supervisor-taken locks should be added
+				// then removed within updateLock.takeLock
+				const addedFiles: string[] = [];
+				const watcher = watch(lockdir).on('add', (p) => addedFiles.push(p));
+
+				// updateLock.takeLock should error
+				await expect(updateLock.takeLock(1, svcs, false)).to.be.rejectedWith(
+					UpdatesLockedError,
+				);
+
+				// Service without user lock should have been locked by Supervisor..
+				expect(addedFiles).to.deep.include.members([
+					`${lockdir}/1/${svcs[0]}/updates.lock`,
+					`${lockdir}/1/${svcs[0]}/resin-updates.lock`,
+				]);
+
+				// ..but upon error, Supervisor-taken locks should have been cleaned up
+				expect(
+					await lockfile.getLocksTaken(lockdir),
+				).to.not.deep.include.members([
+					`${lockdir}/1/${svcs[0]}/updates.lock`,
+					`${lockdir}/1/${svcs[0]}/resin-updates.lock`,
+				]);
+
+				// User lock should be left behind
+				expect(await lockfile.getLocksTaken(lockdir)).to.deep.include.members([
+					`${lockdir}/1/${svcs[1]}/updates.lock`,
+				]);
+
+				// Clean up watcher
+				await watcher.close();
 			});
 		});
 
