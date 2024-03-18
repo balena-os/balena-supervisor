@@ -58,7 +58,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends systemd
 COPY ./build-utils/setup-journal.sh /
 RUN /setup-journal.sh
 
-
 ###################################################
 # Extra dependencies. This uses alpine 3.11 as the
 # procmail package was removed on 3.12
@@ -92,13 +91,17 @@ COPY mount-partitions.sh .
 # Runtime dependencies
 RUN apk add --update --no-cache \
 	$NODE \
-	iptables \
-	ip6tables \
 	rsync \
 	dbus \
 	dmidecode \
 	sqlite-libs \
 	lsblk
+
+# Iptables should be pinned to 1.8.9 (legacy) as balenaOS still uses iptables-legacy
+RUN apk add --update --no-cache \
+	--repository=http://dl-cdn.alpinelinux.org/alpine/v3.18/main \
+	iptables~=1.8.9 \
+	ip6tables~=1.8.9
 
 ARG ARCH
 ARG VERSION=master
