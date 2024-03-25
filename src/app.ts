@@ -1,6 +1,6 @@
 import { set } from '@balena/es-version';
 // Set the desired es version for downstream modules that support it, before we import any
-set('es2019');
+set('es2022');
 
 import { setDefaultAutoSelectFamilyAttemptTimeout } from 'net';
 // Increase the timeout for the happy eyeballs algorithm to 5000ms to avoid issues on slower networks
