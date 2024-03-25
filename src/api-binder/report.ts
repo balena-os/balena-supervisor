@@ -186,7 +186,7 @@ function handleRetry(retryInfo: OnFailureInfo) {
 		);
 	} else {
 		eventTracker.track('Device state report failure', {
-			error: retryInfo.error?.message ?? retryInfo.error,
+			error: retryInfo.error,
 		});
 	}
 	log.info(
