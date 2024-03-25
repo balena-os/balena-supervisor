@@ -1,4 +1,20 @@
 - commits:
+    - subject: Increase the timeout for auto select family to 5000ms to avoid issues
+      hash: 5cd37e73acb63a3bd705aea8e5edb4d255cd1c37
+      body: |
+        On slower networks the default of 250ms can cause problems as all
+        attempts will fail rather than only the ones for interfaces that do not
+        actually work correctly. Increasing this timeout to 5000ms will help to
+        avoid these issues
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 16.1.7
+  title: ""
+  date: 2024-03-25T15:25:23.860Z
+- commits:
     - subject: Pin iptables to 1.8.9 (legacy)
       hash: 3d881347e7d9721b00bcc41411996bd40b48d781
       body: |
