@@ -1,4 +1,16 @@
 - commits:
+    - subject: Set @balena/es-version to es2022 to match tsconfig.json
+      hash: 6b0500cdbcd24b718460f35f6f9412ba6093389c
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 16.1.8
+  title: ""
+  date: 2024-03-25T18:11:08.037Z
+- commits:
     - subject: Increase the timeout for auto select family to 5000ms to avoid issues
       hash: 5cd37e73acb63a3bd705aea8e5edb4d255cd1c37
       body: |
