@@ -1,4 +1,20 @@
 - commits:
+    - subject: Log the full error on device state report failure as it is more useful
+      hash: 20e57f7f168884ccbc048911be15cedc91334192
+      body: |
+        The message can be an empty string or similarly unhelpful, therefore
+        logging the entire error means that we will have whatever the message
+        may be along with the stack trace and other info that will be helpful
+        even when the message is not
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 16.1.9
+  title: ""
+  date: 2024-03-25T18:36:42.735Z
+- commits:
     - subject: Set @balena/es-version to es2022 to match tsconfig.json
       hash: 6b0500cdbcd24b718460f35f6f9412ba6093389c
       body: ""
