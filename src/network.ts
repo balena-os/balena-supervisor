@@ -5,7 +5,7 @@ import os from 'os';
 import url from 'url';
 
 import * as constants from './lib/constants';
-import { EEXIST } from './lib/errors';
+import { isEEXIST } from './lib/errors';
 import { checkFalsey } from './lib/validation';
 
 import blink = require('./lib/blink');
@@ -71,7 +71,7 @@ export const startConnectivityCheck = _.once(
 		try {
 			await fs.mkdir(constants.vpnStatusPath);
 		} catch (err: any) {
-			if (EEXIST(err)) {
+			if (isEEXIST(err)) {
 				log.debug('VPN status path exists.');
 			} else {
 				throw err;

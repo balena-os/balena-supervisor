@@ -74,7 +74,7 @@ export function registerOverride<
 }
 
 export function restoreOverride<T extends DockerodeFunction>(name: T) {
-	if (Object.prototype.hasOwnProperty.call(overrides, name)) {
+	if (Object.hasOwn(overrides, name)) {
 		delete overrides[name];
 	}
 }

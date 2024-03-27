@@ -5,7 +5,7 @@ import * as config from './config';
 import * as db from './db';
 import * as eventTracker from './event-tracker';
 import type { LogType } from './lib/log-types';
-import { writeLock } from './lib/update-lock';
+import { takeGlobalLockRW } from './lib/process-lock';
 import type { LogBackend, LogMessage } from './logging';
 import { BalenaLogBackend, LocalLogBackend } from './logging';
 import type { MonitorHook } from './logging/monitor';
@@ -129,7 +129,7 @@ export function logSystemMessage(
 }
 
 export function lock(containerId: string): Bluebird.Disposer<() => void> {
-	return writeLock(containerId).disposer((release) => {
+	return takeGlobalLockRW(containerId).disposer((release) => {
 		release();
 	});
 }

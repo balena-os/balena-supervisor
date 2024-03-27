@@ -8,6 +8,7 @@ import Network from '~/src/compose/network';
 import * as networkManager from '~/src/compose/network-manager';
 import Volume from '~/src/compose/volume';
 import * as config from '~/src/config';
+import { LocksTakenMap } from '~/lib/update-lock';
 import { createDockerImage } from '~/test-lib/docker-helper';
 import {
 	createService,
@@ -111,6 +112,8 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				// Mock lock taken to avoid takeLock step
+				locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
 			},
 		);
 
@@ -221,6 +224,8 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				// Mock lock taken to avoid takeLock step
+				locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
 			},
 		);
 
@@ -271,6 +276,8 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				// Mock lock taken to avoid takeLock step
+				locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
 			},
 		);
 
@@ -402,6 +409,8 @@ describe('compose/application-manager', () => {
 					downloading: c1.downloading,
 					availableImages: c1.availableImages,
 					containerIdsByAppId: c1.containerIdsByAppId,
+					// Mock lock taken for `main` service which just needs metadata updated
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
 				},
 			);
 			// There should be two noop steps, one for target service which is still downloading,
@@ -448,6 +457,10 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					// Mock locks taken for all services in either current or target state
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['old', 'main', 'new'] },
+					]),
 				},
 			);
 			// Service `old` is safe to kill after download for `new` has completed
@@ -493,6 +506,11 @@ describe('compose/application-manager', () => {
 					// to avoid removeImage steps
 					availableImages: [],
 					containerIdsByAppId: c1.containerIdsByAppId,
+					// Mock locks for service to be updated via updateMetadata
+					// or kill to avoid takeLock step
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['old', 'main', 'new'] },
+					]),
 				},
 			);
 			// Service `new` should be fetched
@@ -565,6 +583,10 @@ describe('compose/application-manager', () => {
 						}),
 					],
 					containerIdsByAppId: c1.containerIdsByAppId,
+					// Mock lock taken for all services in target state
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['old', 'main', 'new'] },
+					]),
 				},
 			);
 			// Service `new` should be started
@@ -605,6 +627,11 @@ describe('compose/application-manager', () => {
 					// to avoid removeImage steps
 					availableImages: [],
 					containerIdsByAppId: c1.containerIdsByAppId,
+					// Mock locks for service to be updated via updateMetadata
+					// or kill to avoid takeLock step
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['old', 'main', 'new'] },
+					]),
 				},
 			);
 			// Service `new` should be fetched
@@ -677,6 +704,10 @@ describe('compose/application-manager', () => {
 						}),
 					],
 					containerIdsByAppId: c1.containerIdsByAppId,
+					// Mock lock taken for all services in target state
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['main', 'new'] },
+					]),
 				},
 			);
 			// Service `new` should be started
@@ -773,6 +804,10 @@ describe('compose/application-manager', () => {
 						}),
 					],
 					containerIdsByAppId,
+					// Mock locks taken for all services in target state
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two'] },
+					]),
 				},
 			);
 			expectSteps('start', steps3, 2);
@@ -841,6 +876,8 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				// Mock lock taken to avoid takeLock step
+				locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
 			},
 		);
 
@@ -921,6 +958,10 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				// Mock locks taken to avoid takeLock step
+				locksTaken: new LocksTakenMap([
+					{ appId: 1, services: ['main', 'dep'] },
+				]),
 			},
 		);
 
@@ -986,10 +1027,14 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				// Mock locks taken to avoid takeLock step
+				locksTaken: new LocksTakenMap([
+					{ appId: 1, services: ['main', 'dep'] },
+				]),
 			},
 		);
 
-		// A start step should happen for the depended service first
+		// A start step should happen for the dependant service first
 		expect(startStep).to.have.property('action').that.equals('start');
 		expect(startStep)
 			.to.have.property('target')
@@ -1054,6 +1099,10 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				// Mock locks taken to avoid takeLock step
+				locksTaken: new LocksTakenMap([
+					{ appId: 1, services: ['main', 'dep'] },
+				]),
 			},
 		);
 
@@ -1096,6 +1145,11 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				// Mock lock already taken for the new and leftover services
+				locksTaken: new LocksTakenMap([
+					{ appId: 5, services: ['old-service'] },
+					{ appId: 1, services: ['main'] },
+				]),
 			},
 		);
 
@@ -1601,6 +1655,11 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				// Mock locks taken to avoid takeLock step
+				locksTaken: new LocksTakenMap([
+					{ appId: 1, services: ['main'] },
+					{ appId: 2, services: ['main'] },
+				]),
 			},
 		);
 
@@ -1621,6 +1680,699 @@ describe('compose/application-manager', () => {
 					s.target.serviceName === 'main',
 			),
 		).to.have.lengthOf(1);
+	});
+
+	describe('taking and releasing locks', () => {
+		it('should take locks for all services in current state when they should be killed', async () => {
+			const targetApps = createApps(
+				{
+					services: [],
+					networks: [DEFAULT_NETWORK],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [
+						await createService({ serviceName: 'one' }),
+						await createService({ serviceName: 'two' }),
+					],
+					networks: [DEFAULT_NETWORK],
+					images: [],
+				});
+
+			// takeLock
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['one', 'two']);
+
+			// kill
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two'] },
+					]),
+				},
+			);
+			expectSteps('kill', steps2, 2);
+		});
+
+		it('should take locks for all services in current state when they should be stopped', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({
+							serviceName: 'one',
+							running: false,
+						}),
+						await createService({
+							serviceName: 'two',
+							running: false,
+						}),
+					],
+					networks: [DEFAULT_NETWORK],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [
+						await createService({ serviceName: 'one' }),
+						await createService({ serviceName: 'two' }),
+					],
+					networks: [DEFAULT_NETWORK],
+					images: [],
+				});
+
+			// takeLock
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['one', 'two']);
+
+			// stop
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two'] },
+					]),
+				},
+			);
+			expectSteps('stop', steps2, 2);
+		});
+
+		it('should take locks for all services in target state before they should be started', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({ serviceName: 'one', image: 'one-image' }),
+						await createService({ serviceName: 'two', image: 'two-image' }),
+					],
+					networks: [DEFAULT_NETWORK],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [],
+					networks: [DEFAULT_NETWORK],
+					images: [
+						createImage({
+							serviceName: 'one',
+							name: 'one-image',
+						}),
+						createImage({
+							serviceName: 'two',
+							name: 'two-image',
+						}),
+					],
+				});
+
+			// takeLock
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['one', 'two']);
+
+			// start
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two'] },
+					]),
+				},
+			);
+			expectSteps('start', steps2, 2);
+		});
+
+		it('should take locks for all services in current and target states when services should be stopped, started, or killed', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({
+							serviceName: 'to-stop',
+							image: 'image-to-stop',
+							running: false,
+						}),
+						await createService({
+							serviceName: 'to-start',
+							image: 'image-to-start',
+						}),
+						await createService({
+							serviceName: 'unchanged',
+							image: 'image-unchanged',
+						}),
+					],
+					networks: [DEFAULT_NETWORK],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [
+						await createService({
+							serviceName: 'to-stop',
+							image: 'image-to-stop',
+						}),
+						await createService({
+							serviceName: 'to-kill',
+							image: 'image-to-kill',
+						}),
+						await createService({
+							serviceName: 'unchanged',
+							image: 'image-unchanged',
+						}),
+					],
+					networks: [DEFAULT_NETWORK],
+					images: [
+						createImage({ serviceName: 'to-start', name: 'image-to-start' }),
+						createImage({ serviceName: 'to-stop', name: 'image-to-stop' }),
+						createImage({ serviceName: 'unchanged', name: 'image-unchanged' }),
+					],
+				});
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			// No matter the number of services, we should see a single takeLock for all services
+			// regardless if they're only in current or only in target
+			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members([
+					'to-stop',
+					'to-kill',
+					'to-start',
+					'unchanged',
+				]);
+		});
+
+		it('should download images before taking locks & killing when update strategy is download-then-kill or handover', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({
+							serviceName: 'one',
+							image: 'one',
+							labels: {
+								'io.balena.update.strategy': 'download-then-kill',
+								'io.updated': 'true',
+							},
+						}),
+						await createService({
+							serviceName: 'two',
+							image: 'two',
+							labels: {
+								'io.balena.update.strategy': 'handover',
+								'io.updated': 'true',
+							},
+						}),
+					],
+					networks: [DEFAULT_NETWORK],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [
+						await createService({
+							serviceName: 'one',
+							image: 'one',
+							labels: { 'io.balena.update.strategy': 'download-then-kill' },
+						}),
+						await createService({
+							serviceName: 'two',
+							image: 'two',
+							labels: { 'io.balena.update.strategy': 'handover' },
+						}),
+					],
+					networks: [DEFAULT_NETWORK],
+				});
+
+			// fetch
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading: [],
+					availableImages: [],
+					containerIdsByAppId,
+				},
+			);
+			expectSteps('fetch', steps, 2);
+
+			// noop while downloading
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading: ['one', 'two'],
+					availableImages: [],
+					containerIdsByAppId,
+				},
+			);
+			expectSteps('noop', steps2, 2);
+
+			// takeLock after download complete
+			const steps3 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			const [takeLockStep] = expectSteps('takeLock', steps3, 1);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['one', 'two']);
+
+			// kill
+			const steps4 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two'] },
+					]),
+				},
+			);
+			expectSteps('kill', steps4, 2);
+		});
+
+		it('should take locks & kill before downloading images when update strategy is kill|delete-then-download', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({
+							serviceName: 'one',
+							labels: {
+								'io.balena.update.strategy': 'kill-then-download',
+								'io.updated': 'true',
+							},
+						}),
+						await createService({
+							serviceName: 'two',
+							labels: {
+								'io.balena.update.strategy': 'delete-then-download',
+								'io.updated': 'true',
+							},
+						}),
+					],
+					networks: [DEFAULT_NETWORK],
+				},
+				true,
+			);
+			const { currentApps, availableImages, containerIdsByAppId } =
+				createCurrentState({
+					services: [
+						await createService({
+							serviceName: 'one',
+							labels: { 'io.balena.update.strategy': 'kill-then-download' },
+						}),
+						await createService({
+							serviceName: 'two',
+							labels: { 'io.balena.update.strategy': 'delete-then-download' },
+						}),
+					],
+					networks: [DEFAULT_NETWORK],
+				});
+
+			// takeLock
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					// Images haven't finished downloading,
+					// but kill steps should still be inferred
+					downloading: ['one', 'two'],
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['one', 'two']);
+
+			// kill
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading: ['one', 'two'],
+					availableImages,
+					containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two'] },
+					]),
+				},
+			);
+			expectSteps('kill', steps2, 2);
+		});
+
+		it('should infer takeLock & kill steps for dependent services before their network should be removed', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({ serviceName: 'main', appUuid: 'deadbeef' }),
+					],
+					networks: [DEFAULT_NETWORK],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [
+						await createService({
+							serviceName: 'main',
+							appUuid: 'deadbeef',
+							composition: { networks: { test: {} } },
+						}),
+					],
+					networks: [
+						DEFAULT_NETWORK,
+						Network.fromComposeObject('test', 1, 'deadbeef', {
+							driver: 'bridge',
+						}),
+					],
+				});
+
+			// takeLock
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['main']);
+
+			// kill
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
+			);
+			expectSteps('kill', steps2);
+
+			// removeNetwork
+			const intermediateCurrent = createCurrentState({
+				services: [],
+				networks: [
+					DEFAULT_NETWORK,
+					Network.fromComposeObject('test', 1, 'deadbeef', {
+						driver: 'bridge',
+					}),
+				],
+			});
+			const steps3 = await applicationManager.inferNextSteps(
+				intermediateCurrent.currentApps,
+				targetApps,
+				{
+					downloading: intermediateCurrent.downloading,
+					availableImages: intermediateCurrent.availableImages,
+					containerIdsByAppId: intermediateCurrent.containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
+			);
+			expectSteps('removeNetwork', steps3);
+		});
+
+		it('should infer takeLock & kill steps for dependent services before their network should have config changed', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({
+							serviceName: 'main',
+							appUuid: 'deadbeef',
+							composition: { networks: { test: {} } },
+						}),
+					],
+					networks: [
+						DEFAULT_NETWORK,
+						Network.fromComposeObject('test', 1, 'deadbeef', {
+							driver: 'local',
+						}),
+					],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [
+						await createService({
+							serviceName: 'main',
+							appUuid: 'deadbeef',
+							composition: { networks: { test: {} } },
+						}),
+					],
+					networks: [
+						DEFAULT_NETWORK,
+						Network.fromComposeObject('test', 1, 'deadbeef', {
+							driver: 'bridge',
+						}),
+					],
+				});
+
+			// takeLock
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['main']);
+
+			// kill
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
+			);
+			expectSteps('kill', steps2, 1);
+
+			// removeNetwork
+			const intermediateCurrent = createCurrentState({
+				services: [],
+				networks: [
+					DEFAULT_NETWORK,
+					Network.fromComposeObject('test', 1, 'deadbeef', {
+						driver: 'bridge',
+					}),
+				],
+			});
+			const steps3 = await applicationManager.inferNextSteps(
+				intermediateCurrent.currentApps,
+				targetApps,
+				{
+					downloading: intermediateCurrent.downloading,
+					availableImages: intermediateCurrent.availableImages,
+					containerIdsByAppId: intermediateCurrent.containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
+			);
+			expectSteps('removeNetwork', steps3);
+		});
+
+		it('should infer takeLock & kill steps for dependent services before their volume should have config changed', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({
+							serviceName: 'main',
+							appUuid: 'deadbeef',
+							composition: { volumes: ['test:/test'] },
+						}),
+					],
+					networks: [DEFAULT_NETWORK],
+					volumes: [
+						Volume.fromComposeObject('test', 1, 'deadbeef', {
+							labels: { 'io.updated': 'true' },
+						}),
+					],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [
+						await createService({
+							serviceName: 'main',
+							appUuid: 'deadbeef',
+							composition: { volumes: ['test:/test'] },
+						}),
+					],
+					networks: [DEFAULT_NETWORK],
+					volumes: [Volume.fromComposeObject('test', 1, 'deadbeef')],
+				});
+
+			// takeLock
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['main']);
+
+			// kill
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
+			);
+			expectSteps('kill', steps2, 1);
+
+			// removeVolume
+			const intermediateCurrent = createCurrentState({
+				services: [],
+				networks: [DEFAULT_NETWORK],
+				volumes: [Volume.fromComposeObject('test', 1, 'deadbeef')],
+			});
+			const steps3 = await applicationManager.inferNextSteps(
+				intermediateCurrent.currentApps,
+				targetApps,
+				{
+					downloading: intermediateCurrent.downloading,
+					availableImages: intermediateCurrent.availableImages,
+					containerIdsByAppId: intermediateCurrent.containerIdsByAppId,
+					// Mock locks taken
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
+			);
+			expectSteps('removeVolume', steps3);
+		});
+
+		it('should release locks before settling state', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({ serviceName: 'one' }),
+						await createService({ serviceName: 'two' }),
+					],
+					networks: [DEFAULT_NETWORK],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [
+						await createService({ serviceName: 'one' }),
+						await createService({ serviceName: 'two' }),
+					],
+					networks: [DEFAULT_NETWORK],
+				});
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two'] },
+					]),
+				},
+			);
+			const [releaseLockStep] = expectSteps('releaseLock', steps, 1, 1);
+			expect(releaseLockStep).to.have.property('appId').that.equals(1);
+		});
 	});
 
 	describe("getting application's current state", () => {
@@ -2025,6 +2777,10 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					// Mock locks taken for all services in target state
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two', 'three', 'four'] },
+					]),
 				});
 
 			[startStep1, startStep2, startStep3, startStep4].forEach((step) => {

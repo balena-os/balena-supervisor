@@ -6,7 +6,7 @@ import path from 'path';
 import * as config from './config';
 import * as applicationManager from './compose/application-manager';
 import * as dbus from './lib/dbus';
-import { ENOENT } from './lib/errors';
+import { isENOENT } from './lib/errors';
 import { mkdirp, unlinkAll } from './lib/fs-utils';
 import {
 	writeToBoot,
@@ -66,8 +66,8 @@ async function readProxy(): Promise<ProxyConfig | undefined> {
 	let redsocksConf: string;
 	try {
 		redsocksConf = await readFromBoot(redsocksConfPath, 'utf-8');
-	} catch (e: any) {
-		if (!ENOENT(e)) {
+	} catch (e: unknown) {
+		if (!isENOENT(e)) {
 			throw e;
 		}
 		return;
@@ -97,8 +97,8 @@ async function readProxy(): Promise<ProxyConfig | undefined> {
 		if (noProxy.length) {
 			conf.noProxy = noProxy;
 		}
-	} catch (e: any) {
-		if (!ENOENT(e)) {
+	} catch (e: unknown) {
+		if (!isENOENT(e)) {
 			throw e;
 		}
 	}

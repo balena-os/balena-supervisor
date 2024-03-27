@@ -12,8 +12,8 @@ import * as imageManager from '../compose/images';
 
 import {
 	AppsJsonParseError,
-	EISDIR,
-	ENOENT,
+	isEISDIR,
+	isENOENT,
 	InternalInconsistencyError,
 } from '../lib/errors';
 import log from '../lib/supervisor-console';
@@ -163,7 +163,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 		// It can be an empty path because if the file does not exist
 		// on host, the docker daemon creates an empty directory when
 		// the bind mount is added
-		if (ENOENT(e) || EISDIR(e)) {
+		if (isENOENT(e) || isEISDIR(e)) {
 			log.debug('No apps.json file present, skipping preload');
 		} else {
 			log.debug(e.message);

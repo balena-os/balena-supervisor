@@ -4,7 +4,7 @@ import _ from 'lodash';
 import * as constants from '../lib/constants';
 import * as hostUtils from '../lib/host-utils';
 import * as osRelease from '../lib/os-release';
-import { readLock, writeLock } from '../lib/update-lock';
+import { takeGlobalLockRO, takeGlobalLockRW } from '../lib/process-lock';
 import type * as Schema from './schema';
 
 export default class ConfigJsonConfigBackend {
@@ -25,9 +25,9 @@ export default class ConfigJsonConfigBackend {
 		this.schema = schema;
 
 		this.writeLockConfigJson = () =>
-			writeLock('config.json').disposer((release) => release());
+			takeGlobalLockRW('config.json').disposer((release) => release());
 		this.readLockConfigJson = () =>
-			readLock('config.json').disposer((release) => release());
+			takeGlobalLockRO('config.json').disposer((release) => release());
 	}
 
 	public async set<T extends Schema.SchemaKey>(keyVals: {
