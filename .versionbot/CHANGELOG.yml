@@ -1,4 +1,19 @@
 - commits:
+    - subject: Add revpi-connect-4 to RPi variants We need the supervisor to be able
+        to manage config.txt changes for the RevPi Connect 4.
+      hash: b5dbef82d75a701cc2accb8f52e5865641e416fc
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Shreya Patel <shreya@dynamicdevices.co.uk>
+        signed-off-by: Shreya Patel <shreya@dynamicdevices.co.uk>
+      author: Shreya Patel
+      nested: []
+  version: 16.1.10
+  title: ""
+  date: 2024-03-28T16:51:48.764Z
+- commits:
     - subject: Log the full error on device state report failure as it is more useful
       hash: 20e57f7f168884ccbc048911be15cedc91334192
       body: |
