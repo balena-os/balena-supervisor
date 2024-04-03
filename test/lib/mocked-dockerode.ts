@@ -1,8 +1,8 @@
 process.env.DOCKER_HOST = 'unix:///your/dockerode/mocks/are/not/working';
 
-import * as dockerode from 'dockerode';
+import Dockerode from 'dockerode';
 import { Stream } from 'stream';
-import _ = require('lodash');
+import _ from 'lodash';
 import { NotFoundError } from '~/lib/errors';
 
 const overrides: Dictionary<(...args: any[]) => Resolvable<any>> = {};
@@ -30,13 +30,13 @@ function addAction(name: string, parameters: Dictionary<any> = {}) {
 	});
 }
 
-type DockerodeFunction = keyof dockerode;
-for (const fn of Object.getOwnPropertyNames(dockerode.prototype)) {
+type DockerodeFunction = keyof Omit<Dockerode, 'modem'>;
+for (const fn of Object.getOwnPropertyNames(Dockerode.prototype)) {
 	if (
 		fn !== 'constructor' &&
-		typeof (dockerode.prototype as any)[fn] === 'function'
+		typeof (Dockerode.prototype as any)[fn] === 'function'
 	) {
-		(dockerode.prototype as any)[fn] = async function (...args: any[]) {
+		(Dockerode.prototype as any)[fn] = async function (...args: any[]) {
 			console.log(`🐳  Calling ${fn}...`);
 			if (overrides[fn] != null) {
 				return overrides[fn](args);
@@ -66,8 +66,8 @@ registerOverride(
  */
 export function registerOverride<
 	T extends DockerodeFunction,
-	P extends Parameters<dockerode[T]>,
-	R extends ReturnType<dockerode[T]>,
+	P extends Parameters<Dockerode[T]>,
+	R extends ReturnType<Dockerode[T]>,
 >(name: T, fn: (...args: P) => R) {
 	console.log(`Overriding ${name}...`);
 	overrides[name] = fn;
@@ -87,14 +87,14 @@ export interface TestData {
 }
 
 function createMockedDockerode(data: TestData) {
-	const mockedDockerode = dockerode.prototype;
+	const mockedDockerode = Dockerode.prototype;
 
 	mockedDockerode.listImages = async () => [];
 
 	mockedDockerode.listVolumes = async () => {
 		addAction('listVolumes');
 		return {
-			Volumes: data.volumes as dockerode.VolumeInspectInfo[],
+			Volumes: data.volumes as Dockerode.VolumeInspectInfo[],
 			Warnings: [],
 		};
 	};
@@ -120,18 +120,18 @@ function createMockedDockerode(data: TestData) {
 			},
 			name: volume.name,
 			modem: {},
-		} as dockerode.Volume;
+		} as Dockerode.Volume;
 	};
 
 	mockedDockerode.createContainer = async (
-		options: dockerode.ContainerCreateOptions,
+		options: Dockerode.ContainerCreateOptions,
 	) => {
 		addAction('createContainer', { options });
 		return {
 			start: async () => {
 				addAction('start');
 			},
-		} as dockerode.Container;
+		} as Dockerode.Container;
 	};
 
 	mockedDockerode.getContainer = (id: string) => {
@@ -167,7 +167,7 @@ function createMockedDockerode(data: TestData) {
 					return c;
 				});
 			},
-		} as dockerode.Container;
+		} as Dockerode.Container;
 	};
 
 	mockedDockerode.getNetwork = (id: string) => {
@@ -177,7 +177,7 @@ function createMockedDockerode(data: TestData) {
 				addAction('inspect');
 				return data.networks[id];
 			},
-		} as dockerode.Network;
+		} as Dockerode.Network;
 	};
 
 	mockedDockerode.getImage = (name: string) => {
@@ -193,7 +193,7 @@ function createMockedDockerode(data: TestData) {
 					name,
 				});
 			},
-		} as dockerode.Image;
+		} as Dockerode.Image;
 	};
 
 	return mockedDockerode;
@@ -232,16 +232,14 @@ export async function testWithData(
 	};
 
 	// grab the original prototype...
-	const basePrototype = clonePrototype(dockerode.prototype);
-
-	// @ts-expect-error setting a RO property
-	dockerode.prototype = createMockedDockerode(mockedData);
+	const basePrototype = clonePrototype(Dockerode.prototype);
+	Dockerode.prototype = createMockedDockerode(mockedData);
 
 	try {
 		// run the test...
 		await test();
 	} finally {
 		// reset the original prototype...
-		assignPrototype(dockerode.prototype, basePrototype);
+		assignPrototype(Dockerode.prototype, basePrototype);
 	}
 }

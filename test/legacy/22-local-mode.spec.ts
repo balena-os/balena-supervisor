@@ -88,7 +88,10 @@ describe('LocalModeManager', () => {
 				}),
 			);
 			dockerStub.listNetworks.returns(
-				Promise.resolve([{ Id: 'network-1' }, { Id: 'network-2' }]),
+				Promise.resolve([
+					{ Id: 'network-1' },
+					{ Id: 'network-2' },
+				] as Docker.NetworkInspectInfo[]),
 			);
 		});
 
