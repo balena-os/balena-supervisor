@@ -80,10 +80,6 @@ modprobe ip6_tables || true
 export BASE_LOCK_DIR="/tmp/balena-supervisor/services"
 export LOCKFILE_UID=65534
 
-# Cleanup leftover Supervisor-created lockfiles from any previous processes.
-# Supervisor-created lockfiles have a UID of 65534.
-find "${ROOT_MOUNTPOINT}${BASE_LOCK_DIR}" -type f -user "${LOCKFILE_UID}" -name "*updates.lock" -delete || true
-
 if [ "${LIVEPUSH}" = "1" ]; then
 	exec npx nodemon --watch src --watch typings --ignore tests -e js,ts,json \
 		--exec node -r ts-node/register/transpile-only src/app.ts

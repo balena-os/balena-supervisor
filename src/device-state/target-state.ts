@@ -8,7 +8,7 @@ import type { TargetState } from '../types/state';
 import { InternalInconsistencyError } from '../lib/errors';
 import { getGotInstance } from '../lib/request';
 import * as config from '../config';
-import { writeLock } from '../lib/update-lock';
+import { takeGlobalLockRW } from '../lib/process-lock';
 import * as constants from '../lib/constants';
 import log from '../lib/supervisor-console';
 
@@ -26,7 +26,7 @@ export const emitter: StrictEventEmitter<EventEmitter, TargetStateEvents> =
 	new EventEmitter();
 
 const lockGetTarget = () =>
-	writeLock('getTarget').disposer((release) => release());
+	takeGlobalLockRW('getTarget').disposer((release) => release());
 
 type CachedResponse = {
 	etag?: string | string[];

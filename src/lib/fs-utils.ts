@@ -3,6 +3,7 @@ import path from 'path';
 import { exec as execSync } from 'child_process';
 import { promisify } from 'util';
 import { uptime } from 'os';
+import { isENOENT } from './errors';
 
 export const exec = promisify(execSync);
 
@@ -76,7 +77,7 @@ export const touch = (file: string, time = new Date()) =>
 	fs.utimes(file, time, time).catch((e) =>
 		// only create the file if it doesn't exist,
 		// if some other error happens is probably better to not touch it
-		e.code === 'ENOENT'
+		isENOENT(e)
 			? fs
 					.open(file, 'w')
 					.then((fd) => fd.close())

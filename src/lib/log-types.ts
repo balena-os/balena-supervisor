@@ -168,3 +168,13 @@ export const removeNetworkError: LogType = {
 	eventName: 'Network removal error',
 	humanName: 'Error removing network',
 };
+
+export const takeLock: LogType = {
+	eventName: 'Take update locks',
+	humanName: 'Taking update locks',
+};
+
+export const releaseLock: LogType = {
+	eventName: 'Release update locks',
+	humanName: 'Releasing update locks',
+};

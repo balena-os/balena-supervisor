@@ -1,64 +1,43 @@
-import _ from 'lodash';
-
 import * as config from '../config';
-
 import type { Image } from './images';
 import * as images from './images';
 import type Network from './network';
 import type Service from './service';
 import * as serviceManager from './service-manager';
-import type Volume from './volume';
-
-import { checkTruthy } from '../lib/validation';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
-import type { DeviceLegacyReport } from '../types/state';
+import type Volume from './volume';
 import * as commitStore from './commit';
+import * as updateLock from '../lib/update-lock';
+import type { DeviceLegacyReport } from '../types/state';
 
-interface BaseCompositionStepArgs {
-	force?: boolean;
-	skipLock?: boolean;
-}
-
-// FIXME: Most of the steps take the
-// BaseCompositionStepArgs, but some also take an options
-// structure which includes some of the same fields. It
-// would be nice to remove the need for this
 interface CompositionStepArgs {
 	stop: {
 		current: Service;
 		options?: {
-			skipLock?: boolean;
 			wait?: boolean;
 		};
-	} & BaseCompositionStepArgs;
+	};
 	kill: {
 		current: Service;
 		options?: {
-			skipLock?: boolean;
 			wait?: boolean;
 		};
-	} & BaseCompositionStepArgs;
+	};
 	remove: {
 		current: Service;
-	} & BaseCompositionStepArgs;
+	};
 	updateMetadata: {
 		current: Service;
 		target: Service;
-		options?: {
-			skipLock?: boolean;
-		};
-	} & BaseCompositionStepArgs;
+	};
 	restart: {
 		current: Service;
 		target: Service;
-		options?: {
-			skipLock?: boolean;
-		};
-	} & BaseCompositionStepArgs;
+	};
 	start: {
 		target: Service;
-	} & BaseCompositionStepArgs;
+	};
 	updateCommit: {
 		target: string;
 		appId: number;
@@ -67,10 +46,9 @@ interface CompositionStepArgs {
 		current: Service;
 		target: Service;
 		options?: {
-			skipLock?: boolean;
 			timeout?: number;
 		};
-	} & BaseCompositionStepArgs;
+	};
 	fetch: {
 		image: Image;
 		serviceName: string;
@@ -96,6 +74,14 @@ interface CompositionStepArgs {
 	};
 	ensureSupervisorNetwork: object;
 	noop: object;
+	takeLock: {
+		appId: number;
+		services: string[];
+		force: boolean;
+	};
+	releaseLock: {
+		appId: number;
+	};
 }
 
 export type CompositionStepAction = keyof CompositionStepArgs;
@@ -117,13 +103,6 @@ export function generateStep<T extends CompositionStepAction>(
 type Executors<T extends CompositionStepAction> = {
 	[key in T]: (step: CompositionStepT<key>) => Promise<unknown>;
 };
-type LockingFn = (
-	// TODO: Once the entire codebase is typescript, change
-	// this to number
-	app: number | number[] | null,
-	args: BaseCompositionStepArgs,
-	fn: () => Promise<unknown>,
-) => Promise<unknown>;
 
 interface CompositionCallbacks {
 	// TODO: Once the entire codebase is typescript, change
@@ -135,71 +114,36 @@ interface CompositionCallbacks {
 	bestDeltaSource: (image: Image, available: Image[]) => string | null;
 }
 
-export function getExecutors(app: {
-	lockFn: LockingFn;
-	callbacks: CompositionCallbacks;
-}) {
+export function getExecutors(app: { callbacks: CompositionCallbacks }) {
 	const executors: Executors<CompositionStepAction> = {
-		stop: (step) => {
-			return app.lockFn(
-				step.current.appId,
-				{
-					force: step.force,
-					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
-				},
-				async () => {
-					const wait = _.get(step, ['options', 'wait'], false);
-					await serviceManager.kill(step.current, {
-						removeContainer: false,
-						wait,
-					});
-				},
-			);
+		stop: async (step) => {
+			// Should always be preceded by a takeLock step,
+			// so the call is executed assuming that the lock is taken.
+			await serviceManager.kill(step.current, {
+				removeContainer: false,
+				wait: step.options?.wait || false,
+			});
 		},
-		kill: (step) => {
-			return app.lockFn(
-				step.current.appId,
-				{
-					force: step.force,
-					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
-				},
-				async () => {
-					await serviceManager.kill(step.current);
-				},
-			);
+		kill: async (step) => {
+			// Should always be preceded by a takeLock step,
+			// so the call is executed assuming that the lock is taken.
+			await serviceManager.kill(step.current);
 		},
 		remove: async (step) => {
 			// Only called for dead containers, so no need to
 			// take locks
 			await serviceManager.remove(step.current);
 		},
-		updateMetadata: (step) => {
-			const skipLock =
-				step.skipLock ||
-				checkTruthy(step.current.config.labels['io.balena.legacy-container']);
-			return app.lockFn(
-				step.current.appId,
-				{
-					force: step.force,
-					skipLock: skipLock || _.get(step, ['options', 'skipLock']),
-				},
-				async () => {
-					await serviceManager.updateMetadata(step.current, step.target);
-				},
-			);
+		updateMetadata: async (step) => {
+			// Should always be preceded by a takeLock step,
+			// so the call is executed assuming that the lock is taken.
+			await serviceManager.updateMetadata(step.current, step.target);
 		},
-		restart: (step) => {
-			return app.lockFn(
-				step.current.appId,
-				{
-					force: step.force,
-					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
-				},
-				async () => {
-					await serviceManager.kill(step.current, { wait: true });
-					await serviceManager.start(step.target);
-				},
-			);
+		restart: async (step) => {
+			// Should always be preceded by a takeLock step,
+			// so the call is executed assuming that the lock is taken.
+			await serviceManager.kill(step.current, { wait: true });
+			await serviceManager.start(step.target);
 		},
 		start: async (step) => {
 			await serviceManager.start(step.target);
@@ -207,17 +151,10 @@ export function getExecutors(app: {
 		updateCommit: async (step) => {
 			await commitStore.upsertCommitForApp(step.appId, step.target);
 		},
-		handover: (step) => {
-			return app.lockFn(
-				step.current.appId,
-				{
-					force: step.force,
-					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
-				},
-				async () => {
-					await serviceManager.handover(step.current, step.target);
-				},
-			);
+		handover: async (step) => {
+			// Should always be preceded by a takeLock step,
+			// so the call is executed assuming that the lock is taken.
+			await serviceManager.handover(step.current, step.target);
 		},
 		fetch: async (step) => {
 			const startTime = process.hrtime();
@@ -277,6 +214,12 @@ export function getExecutors(app: {
 		},
 		noop: async () => {
 			/* async noop */
+		},
+		takeLock: async (step) => {
+			await updateLock.takeLock(step.appId, step.services, step.force);
+		},
+		releaseLock: async (step) => {
+			await updateLock.releaseLock(step.appId);
 		},
 	};
 

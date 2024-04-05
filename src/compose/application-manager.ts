@@ -17,10 +17,11 @@ import {
 	ContractViolationError,
 	InternalInconsistencyError,
 } from '../lib/errors';
-import { lock } from '../lib/update-lock';
+import { getServicesLockedByAppId, LocksTakenMap } from '../lib/update-lock';
 import { checkTruthy } from '../lib/validation';
 
 import App from './app';
+import type { UpdateState } from './app';
 import * as volumeManager from './volume-manager';
 import * as networkManager from './network-manager';
 import * as serviceManager from './service-manager';
@@ -63,7 +64,6 @@ export function resetTimeSpentFetching(value: number = 0) {
 }
 
 const actionExecutors = getExecutors({
-	lockFn: lock,
 	callbacks: {
 		fetchStart: () => {
 			fetchesInProgress += 1;
@@ -119,6 +119,7 @@ export async function getRequiredSteps(
 	targetApps: InstancedAppState,
 	keepImages?: boolean,
 	keepVolumes?: boolean,
+	force: boolean = false,
 ): Promise<CompositionStep[]> {
 	// get some required data
 	const [downloading, availableImages, { localMode, delta }] =
@@ -145,9 +146,11 @@ export async function getRequiredSteps(
 		// Volumes are not removed when stopping an app when going to local mode
 		keepVolumes,
 		delta,
+		force,
 		downloading,
 		availableImages,
 		containerIdsByAppId,
+		locksTaken: await getServicesLockedByAppId(),
 	});
 }
 
@@ -159,9 +162,13 @@ export async function inferNextSteps(
 		keepImages = false,
 		keepVolumes = false,
 		delta = true,
-		downloading = [] as string[],
-		availableImages = [] as Image[],
-		containerIdsByAppId = {} as { [appId: number]: Dictionary<string> },
+		force = false,
+		downloading = [] as UpdateState['downloading'],
+		availableImages = [] as UpdateState['availableImages'],
+		containerIdsByAppId = {} as {
+			[appId: number]: UpdateState['containerIds'];
+		},
+		locksTaken = new LocksTakenMap(),
 	} = {},
 ) {
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
@@ -213,6 +220,8 @@ export async function inferNextSteps(
 							availableImages,
 							containerIds: containerIdsByAppId[id],
 							downloading,
+							locksTaken,
+							force,
 						},
 						targetApps[id],
 					),
@@ -226,6 +235,8 @@ export async function inferNextSteps(
 						keepVolumes,
 						downloading,
 						containerIds: containerIdsByAppId[id],
+						locksTaken,
+						force,
 					}),
 				);
 			}
@@ -249,6 +260,8 @@ export async function inferNextSteps(
 							availableImages,
 							containerIds: containerIdsByAppId[id] ?? {},
 							downloading,
+							locksTaken,
+							force,
 						},
 						targetApps[id],
 					),
@@ -291,17 +304,6 @@ export async function inferNextSteps(
 	}
 
 	return steps;
-}
-
-export async function stopAll({ force = false, skipLock = false } = {}) {
-	const services = await serviceManager.getAll();
-	await Promise.all(
-		services.map(async (s) => {
-			return lock(s.appId, { force, skipLock }, async () => {
-				await serviceManager.kill(s, { removeContainer: false, wait: true });
-			});
-		}),
-	);
 }
 
 // The following two function may look pretty odd, but after the move to uuids,
@@ -493,7 +495,7 @@ function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 // intermediate targets to perform changes
 export async function executeStep(
 	step: CompositionStep,
-	{ force = false, skipLock = false } = {},
+	{ force = false } = {},
 ): Promise<void> {
 	if (!validActions.includes(step.action)) {
 		return Promise.reject(
@@ -507,7 +509,6 @@ export async function executeStep(
 	await actionExecutors[step.action]({
 		...step,
 		force,
-		skipLock,
 	} as any);
 }
 
@@ -651,7 +652,7 @@ export function bestDeltaSource(
 function saveAndRemoveImages(
 	current: InstancedAppState,
 	target: InstancedAppState,
-	availableImages: imageManager.Image[],
+	availableImages: UpdateState['availableImages'],
 	skipRemoval: boolean,
 ): CompositionStep[] {
 	type ImageWithoutID = Omit<imageManager.Image, 'dockerImageId' | 'id'>;
@@ -670,9 +671,8 @@ function saveAndRemoveImages(
 			.filter((img) => img[1] != null)
 			.value();
 
-	const availableWithoutIds: ImageWithoutID[] = _.map(
-		availableImages,
-		(image) => _.omit(image, ['dockerImageId', 'id']),
+	const availableWithoutIds: ImageWithoutID[] = availableImages.map((image) =>
+		_.omit(image, ['dockerImageId', 'id']),
 	);
 
 	const currentImages = _.flatMap(current, (app) =>
@@ -692,18 +692,16 @@ function saveAndRemoveImages(
 	const targetServices = Object.values(target).flatMap((app) => app.services);
 	const targetImages = targetServices.map(imageManager.imageFromService);
 
-	const availableAndUnused = _.filter(
-		availableWithoutIds,
+	const availableAndUnused = availableWithoutIds.filter(
 		(image) =>
-			!_.some(currentImages.concat(targetImages), (imageInUse) => {
+			!currentImages.concat(targetImages).some((imageInUse) => {
 				return _.isEqual(image, _.omit(imageInUse, ['dockerImageId', 'id']));
 			}),
 	);
 
-	const imagesToDownload = _.filter(
-		targetImages,
+	const imagesToDownload = targetImages.filter(
 		(targetImage) =>
-			!_.some(availableImages, (available) =>
+			!availableImages.some((available) =>
 				imageManager.isSameImage(available, targetImage),
 			),
 	);
@@ -713,10 +711,9 @@ function saveAndRemoveImages(
 	);
 
 	// Images that are available but we don't have them in the DB with the exact metadata:
-	const imagesToSave: imageManager.Image[] = _.filter(
-		targetImages,
+	const imagesToSave: imageManager.Image[] = targetImages.filter(
 		(targetImage) => {
-			const isActuallyAvailable = _.some(availableImages, (availableImage) => {
+			const isActuallyAvailable = availableImages.some((availableImage) => {
 				// There is an image with same image name or digest
 				// on the database
 				if (imageManager.isSameImage(availableImage, targetImage)) {
@@ -734,7 +731,7 @@ function saveAndRemoveImages(
 			});
 
 			// There is no image in the database with the same metadata
-			const isNotSaved = !_.some(availableWithoutIds, (img) =>
+			const isNotSaved = !availableWithoutIds.some((img) =>
 				_.isEqual(img, targetImage),
 			);
 

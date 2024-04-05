@@ -5,6 +5,8 @@ export type EventTrackProperties = Dictionary<any>;
 
 const mixpanelMask = [
 	'appId',
+	'force',
+	'services',
 	'delay',
 	'error',
 	'interval',
