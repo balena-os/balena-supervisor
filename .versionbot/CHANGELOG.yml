@@ -1,4 +1,18 @@
 - commits:
+    - subject: Take lock before updating service metadata
+      hash: af6359f7ae2db4a656598947120bb46d5d3730de
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.2.0
+  title: ""
+  date: 2024-04-05T02:35:13.875Z
+- commits:
     - subject: Add revpi-connect-4 to RPi variants We need the supervisor to be able
         to manage config.txt changes for the RevPi Connect 4.
       hash: b5dbef82d75a701cc2accb8f52e5865641e416fc
