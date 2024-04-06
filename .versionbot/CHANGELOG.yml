@@ -1,4 +1,31 @@
 - commits:
+    - subject: Fix some RegEx io-ts types
+      hash: b7922e687567899c668474c3ee5e6f2e89f0989d
+      body: >
+        io-ts types that were generated using `shortStringWithRegex` were
+        testing
+
+        against `VAR_NAME_REGEX`, instead of the Regex that was specified when
+
+        generating the type. This affected `DockerName` such that service names
+        with
+
+        a dash in the middle were returning as false when passed through the
+
+        `DockerName.is` type guard, affecting how `getServicesLockedByAppId` was
+
+        returning a map of locked services.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.2.1
+  title: ""
+  date: 2024-04-06T08:22:13.914Z
+- commits:
     - subject: Take lock before updating service metadata
       hash: af6359f7ae2db4a656598947120bb46d5d3730de
       body: ""
