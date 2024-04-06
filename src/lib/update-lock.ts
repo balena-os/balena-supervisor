@@ -96,6 +96,16 @@ export async function takeLock(
 	});
 
 	const release = await takeGlobalLockRW(appId);
+
+	let lockOverride: boolean;
+	try {
+		lockOverride = await config.get('lockOverride');
+	} catch (err: any) {
+		throw new InternalInconsistencyError(
+			`Error getting lockOverride config value: ${err?.message ?? err}`,
+		);
+	}
+
 	try {
 		const actuallyLocked: string[] = [];
 		const locksTaken = await getServicesLockedByAppId();
@@ -107,7 +117,7 @@ export async function takeLock(
 		);
 		for (const service of servicesWithoutLock) {
 			await mkdirp(pathOnRoot(lockPath(appId, service)));
-			await lockService(appId, service, force);
+			await lockService(appId, service, force || lockOverride);
 			actuallyLocked.push(service);
 		}
 		return actuallyLocked;

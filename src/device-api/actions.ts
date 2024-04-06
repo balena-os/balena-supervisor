@@ -230,16 +230,17 @@ const executeDeviceActionWithLock = async ({
 }) => {
 	try {
 		if (currentService) {
+			const lockOverride = await config.get('lockOverride');
 			// Take lock for current service to be modified / stopped
 			await executeDeviceAction(
 				generateStep('takeLock', {
 					appId,
 					services: [currentService.serviceName],
-					force,
+					force: force || lockOverride,
 				}),
 				// FIXME: deviceState.executeStepAction only accepts force as a separate arg
 				// instead of reading force from the step object, so we have to pass it twice
-				force,
+				force || lockOverride,
 			);
 		}
 
