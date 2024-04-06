@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import * as t from 'io-ts';
 
-import { withDefault } from '~/src/types';
+import { withDefault, DockerName } from '~/src/types';
 
 describe('types', () => {
 	describe('withDefault', () => {
@@ -37,6 +37,34 @@ describe('types', () => {
 			expect(withDefault(t.boolean, true).decode(false))
 				.to.have.property('right')
 				.that.equals(false);
+		});
+	});
+
+	describe('DockerName', () => {
+		// Should match /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/
+		it('decodes valid Docker names', () => {
+			const validDockerNames = [
+				'a',
+				'A',
+				'0',
+				'a0',
+				'A0',
+				'a.',
+				'A.',
+				'a-',
+				'A-',
+				'a_',
+				'A_',
+				'a.a',
+				'A.A',
+				'a-a',
+				'A-A',
+				'a_a',
+				'A_A',
+			];
+			for (const name of validDockerNames) {
+				expect(DockerName.is(name)).to.be.true;
+			}
 		});
 	});
 });

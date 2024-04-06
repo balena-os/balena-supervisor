@@ -80,6 +80,11 @@ async function dispose(
 	}
 }
 
+const locksInProgress: { [appId: number]: boolean } = {};
+
+export const isLockInProgress = (appId: number): boolean =>
+	!!locksInProgress[appId];
+
 /**
  * Composition step used by Supervisor compose module.
  * Take all locks for an appId | appUuid, creating directories if they don't exist.
@@ -96,7 +101,9 @@ export async function takeLock(
 	});
 
 	const release = await takeGlobalLockRW(appId);
+	locksInProgress[appId] = true;
 	try {
+		const lockOverride = await config.get('lockOverride');
 		const actuallyLocked: string[] = [];
 		const locksTaken = await getServicesLockedByAppId();
 		// Filter out services that already have Supervisor-taken locks.
@@ -107,7 +114,7 @@ export async function takeLock(
 		);
 		for (const service of servicesWithoutLock) {
 			await mkdirp(pathOnRoot(lockPath(appId, service)));
-			await lockService(appId, service, force);
+			await lockService(appId, service, force || lockOverride);
 			actuallyLocked.push(service);
 		}
 		return actuallyLocked;
@@ -116,12 +123,14 @@ export async function takeLock(
 		// lockfiles that may have been created so that all services return
 		// to unlocked status.
 		await dispose(appId, release);
+		locksInProgress[appId] = false;
 		// Re-throw error to be handled in caller
 		throw err;
 	} finally {
 		// If not already released from catch, released the RW process lock.
 		// If already released, this will not error.
 		release();
+		locksInProgress[appId] = false;
 	}
 }
 
@@ -215,7 +224,10 @@ export async function getLocksTaken(
  * [appId, serviceName] pair for a service to be considered locked.
  */
 export async function getServicesLockedByAppId(): Promise<LocksTakenMap> {
+	console.log('In getServicesLockedByAppId');
 	const locksTaken = await getLocksTaken();
+	console.log({ locksTaken });
+
 	// Group locksTaken paths by appId & serviceName.
 	// filesTakenByAppId is of type Map<appId, Map<serviceName, Set<filename>>>
 	// and represents files taken under every [appId, serviceName] pair.
@@ -223,11 +235,13 @@ export async function getServicesLockedByAppId(): Promise<LocksTakenMap> {
 	for (const lockTakenPath of locksTaken) {
 		const [appId, serviceName, filename] =
 			getIdentifiersFromPath(lockTakenPath);
+		console.log({ appId, serviceName, filename });
 		if (
 			!StringIdentifier.is(appId) ||
 			!DockerName.is(serviceName) ||
 			!filename?.match(/updates\.lock/)
 		) {
+			console.log(`Skipping ${lockTakenPath}`);
 			continue;
 		}
 		const numAppId = +appId;
@@ -245,7 +259,9 @@ export async function getServicesLockedByAppId(): Promise<LocksTakenMap> {
 	// services locked by the Supervisor.
 	const servicesByAppId = new LocksTakenMap();
 	for (const [appId, servicesTaken] of filesTakenByAppId) {
+		console.log({ appId, servicesTaken });
 		for (const [serviceName, filenames] of servicesTaken) {
+			console.log({ serviceName, filenames });
 			if (
 				filenames.has('resin-updates.lock') &&
 				filenames.has('updates.lock')

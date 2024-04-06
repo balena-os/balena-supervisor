@@ -15,6 +15,11 @@ import { mkdirp } from '~/lib/fs-utils';
 import { takeGlobalLockRW } from '~/lib/process-lock';
 
 describe('lib/update-lock', () => {
+	beforeEach(async () => {
+		await config.initialized();
+		await config.set({ lockOverride: false });
+	});
+
 	describe('abortIfHUPInProgress', () => {
 		const breadcrumbFiles = [
 			'rollback-health-breadcrumb',
@@ -106,9 +111,6 @@ describe('lib/update-lock', () => {
 			).to.eventually.deep.equal(exists ? supportedLockfiles : []);
 
 		before(async () => {
-			await config.initialized();
-			await config.set({ lockOverride: false });
-
 			// Ensure the directory is available for all tests
 			await fs.mkdir(lockdir(testAppId, testServiceName), {
 				recursive: true,

@@ -10,6 +10,7 @@ import type Volume from './volume';
 import * as commitStore from './commit';
 import * as updateLock from '../lib/update-lock';
 import type { DeviceLegacyReport } from '../types/state';
+import { promises as fs } from 'fs';
 
 interface CompositionStepArgs {
 	stop: {
@@ -217,6 +218,20 @@ export function getExecutors(app: { callbacks: CompositionCallbacks }) {
 		},
 		takeLock: async (step) => {
 			await updateLock.takeLock(step.appId, step.services, step.force);
+			console.log(
+				'services locked after takeLock action according to getServicesLockedByAppId',
+				JSON.stringify(await updateLock.getServicesLockedByAppId(), null, 2),
+			);
+			const services = await fs.readdir(
+				`/mnt/root/tmp/balena-supervisor/services/${step.appId}`,
+			);
+			for (const service of services) {
+				const servicePath = `/mnt/root/tmp/balena-supervisor/services/${step.appId}/${service}`;
+				const contents = await fs.readdir(servicePath);
+				if (contents.length) {
+					console.log(`Service ${service} has ${contents.join(', ')}`);
+				}
+			}
 		},
 		releaseLock: async (step) => {
 			await updateLock.releaseLock(step.appId);

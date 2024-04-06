@@ -25,6 +25,7 @@ import { checkTruthy } from '../lib/validation';
 import type { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
+import { isLockInProgress } from '../lib/update-lock';
 import type { LocksTakenMap } from '../lib/update-lock';
 
 export interface AppConstructOpts {
@@ -169,14 +170,21 @@ export class App {
 
 		// Generate lock steps from appsToLock
 		for (const [appId, services] of Object.entries(appsToLock)) {
+			const numAppId = parseInt(appId, 10);
 			if (services.size > 0) {
-				steps.push(
-					generateStep('takeLock', {
-						appId: parseInt(appId, 10),
-						services: Array.from(services),
-						force: state.force,
-					}),
-				);
+				// Keep state funnel alive while locks are in process of
+				// being taken, as it's not an instant operation
+				if (isLockInProgress(numAppId)) {
+					steps.push(generateStep('noop', {}));
+				} else {
+					steps.push(
+						generateStep('takeLock', {
+							appId: numAppId,
+							services: Array.from(services),
+							force: state.force,
+						}),
+					);
+				}
 			}
 		}
 
@@ -219,6 +227,7 @@ export class App {
 				);
 			}
 		}
+		console.log({ steps });
 		return steps;
 	}
 
@@ -232,13 +241,19 @@ export class App {
 					(svc) => !state.locksTaken.isLocked(svc.appId, svc.serviceName),
 				)
 			) {
-				return [
-					generateStep('takeLock', {
-						appId: this.appId,
-						services: this.services.map((svc) => svc.serviceName),
-						force: state.force,
-					}),
-				];
+				// Keep state funnel alive while locks are in process of
+				// being taken, as it's not an instant operation
+				if (isLockInProgress(this.appId)) {
+					return [generateStep('noop', {})];
+				} else {
+					return [
+						generateStep('takeLock', {
+							appId: this.appId,
+							services: this.services.map((svc) => svc.serviceName),
+							force: state.force,
+						}),
+					];
+				}
 			}
 
 			return Object.values(this.services).map((service) =>
