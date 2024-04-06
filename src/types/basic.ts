@@ -96,7 +96,7 @@ const CONFIG_VAR_NAME_REGEX = /^[a-zA-Z_][a-zA-Z0-9_:]*$/;
 const shortStringWithRegex = (name: string, regex: RegExp, message: string) =>
 	new t.Type<string, string>(
 		name,
-		(s: unknown): s is string => ShortString.is(s) && VAR_NAME_REGEX.test(s),
+		(s: unknown): s is string => ShortString.is(s) && regex.test(s),
 		(i, c) =>
 			pipe(
 				ShortString.validate(i, c),
