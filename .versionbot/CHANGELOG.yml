@@ -1,4 +1,18 @@
 - commits:
+    - subject: Inherit Renovate settings from balena-io
+      hash: 58e05d0f63a9c789c4163a678b782cb56763250f
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+      nested: []
+  version: 16.2.2
+  title: ""
+  date: 2024-04-08T14:36:45.050Z
+- commits:
     - subject: Fix some RegEx io-ts types
       hash: b7922e687567899c668474c3ee5e6f2e89f0989d
       body: >
