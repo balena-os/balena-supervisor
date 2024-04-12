@@ -29,8 +29,10 @@ export const getLocksTaken = async (
 	}
 	for (const fileOrDir of filesOrDirs) {
 		const lockPath = `${rootDir}/${fileOrDir.name}`;
-		// A lock is taken if it's a file or directory within rootDir that passes filter fn
-		if (lockFilter(lockPath, await fs.stat(lockPath))) {
+		// A lock is taken if it's a file or directory within rootDir that passes filter fn.
+		// We also don't want to follow symlinks since we don't want to follow the lock to
+		// the target path if it's a symlink and only care that it exists or not.
+		if (lockFilter(lockPath, await fs.lstat(lockPath))) {
 			locksTaken.push(lockPath);
 			// Otherwise, if non-lock directory, seek locks recursively within directory
 		} else if (fileOrDir.isDirectory()) {
