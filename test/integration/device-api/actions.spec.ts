@@ -93,12 +93,16 @@ describe('manages application lifecycle', () => {
 
 	const setSupervisorTarget = async (
 		target: Awaited<ReturnType<typeof generateTarget>>,
-	) =>
+	) => {
 		await request(BALENA_SUPERVISOR_ADDRESS)
 			.post('/v2/local/target-state')
 			.set('Content-Type', 'application/json')
 			.send(JSON.stringify(target))
 			.expect(200);
+
+		// Give some time for the Supervisor to settle
+		await setTimeout(1000);
+	};
 
 	const generateTargetApps = ({
 		serviceCount,
@@ -147,10 +151,12 @@ describe('manages application lifecycle', () => {
 		serviceCount,
 		appId = APP_ID,
 		serviceNames = ['server', 'client'],
+		configOverride = {},
 	}: {
 		serviceCount: number;
 		appId?: number;
 		serviceNames?: string[];
+		configOverride?: { [key: string]: string | boolean };
 	}) => {
 		const { name, config: svConfig } = await getSupervisorTarget();
 		return {
@@ -158,7 +164,7 @@ describe('manages application lifecycle', () => {
 				// We don't want to change name or config as this may result in
 				// unintended reboots. We just want to test state changes in containers.
 				name,
-				config: svConfig,
+				config: { ...svConfig, ...configOverride },
 				apps:
 					serviceCount === 0
 						? {}
@@ -256,6 +262,9 @@ describe('manages application lifecycle', () => {
 			targetState = await generateTarget({
 				serviceCount,
 				serviceNames,
+				configOverride: {
+					SUPERVISOR_OVERRIDE_LOCK: 'false',
+				},
 			});
 		});
 
@@ -370,6 +379,51 @@ describe('manages application lifecycle', () => {
 			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
 		});
 
+		it('should restart an application when user locks are present if lockOverride is specified', async () => {
+			const targetStateWithLockOverride = await generateTarget({
+				serviceCount,
+				serviceNames,
+				configOverride: {
+					SUPERVISOR_OVERRIDE_LOCK: 'true',
+				},
+			});
+			await setSupervisorTarget(targetStateWithLockOverride);
+			containers = await waitForSetup(targetStateWithLockOverride);
+			const isRestartSuccessful = startTimesChanged(
+				containers.map((ctn) => ctn.State.StartedAt),
+			);
+
+			// Create a lock
+			await lockfile.lock(
+				`${lockdir}/${APP_ID}/${serviceNames[0]}/updates.lock`,
+			);
+
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post(`/v1/restart`)
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ appId: APP_ID }));
+
+			const restartedContainers = await waitForSetup(
+				targetStateWithLockOverride,
+				isRestartSuccessful,
+			);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isRestartSuccessful(restartedContainers)).to.be.true;
+
+			// Containers should have different Ids since they're recreated
+			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+
+			// Wait briefly for state to settle which includes releasing locks
+			await setTimeout(1000);
+
+			// User lock should be overridden
+			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+		});
+
 		it('should restart service by removing and recreating corresponding container', async () => {
 			containers = await waitForSetup(targetState);
 			const isRestartSuccessful = startTimesChanged(
@@ -447,6 +501,53 @@ describe('manages application lifecycle', () => {
 
 			const restartedContainers = await waitForSetup(
 				targetState,
+				isRestartSuccessful,
+			);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isRestartSuccessful(restartedContainers)).to.be.true;
+
+			// Containers should have different Ids since they're recreated
+			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+
+			// Wait briefly for state to settle which includes releasing locks
+			await setTimeout(1000);
+
+			// User lock should be overridden
+			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+		});
+
+		it('should restart service when user locks are present if lockOverride is specified', async () => {
+			const targetStateWithLockOverride = await generateTarget({
+				serviceCount,
+				serviceNames,
+				configOverride: {
+					SUPERVISOR_OVERRIDE_LOCK: 'true',
+				},
+			});
+			await setSupervisorTarget(targetStateWithLockOverride);
+			containers = await waitForSetup(targetStateWithLockOverride);
+			const isRestartSuccessful = startTimesChanged(
+				containers
+					.filter((ctn) => ctn.Name.includes(serviceNames[0]))
+					.map((ctn) => ctn.State.StartedAt),
+			);
+
+			// Create a lock
+			await lockfile.lock(
+				`${lockdir}/${APP_ID}/${serviceNames[0]}/updates.lock`,
+			);
+
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post('/v2/applications/1/restart-service')
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ serviceName: serviceNames[0] }));
+
+			const restartedContainers = await waitForSetup(
+				targetStateWithLockOverride,
 				isRestartSuccessful,
 			);
 
@@ -773,6 +874,51 @@ describe('manages application lifecycle', () => {
 			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
 		});
 
+		it('should restart an application when user locks are present if lockOverride is specified', async () => {
+			const targetStateWithLockOverride = await generateTarget({
+				serviceCount,
+				serviceNames,
+				configOverride: {
+					SUPERVISOR_OVERRIDE_LOCK: 'true',
+				},
+			});
+			await setSupervisorTarget(targetStateWithLockOverride);
+			containers = await waitForSetup(targetStateWithLockOverride);
+			const isRestartSuccessful = startTimesChanged(
+				containers.map((ctn) => ctn.State.StartedAt),
+			);
+
+			// Create a lock
+			await lockfile.lock(
+				`${lockdir}/${APP_ID}/${serviceNames[0]}/updates.lock`,
+			);
+
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post(`/v1/restart`)
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ appId: APP_ID }));
+
+			const restartedContainers = await waitForSetup(
+				targetStateWithLockOverride,
+				isRestartSuccessful,
+			);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isRestartSuccessful(restartedContainers)).to.be.true;
+
+			// Containers should have different Ids since they're recreated
+			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+
+			// Wait briefly for state to settle which includes releasing locks
+			await setTimeout(500);
+
+			// User lock should be overridden
+			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+		});
+
 		it('should restart service by removing and recreating corresponding container', async () => {
 			containers = await waitForSetup(targetState);
 			const serviceName = serviceNames[0];
@@ -862,6 +1008,53 @@ describe('manages application lifecycle', () => {
 
 			const restartedContainers = await waitForSetup(
 				targetState,
+				isRestartSuccessful,
+			);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isRestartSuccessful(restartedContainers)).to.be.true;
+
+			// Containers should have different Ids since they're recreated
+			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+
+			// Wait briefly for state to settle which includes releasing locks
+			await setTimeout(500);
+
+			// User lock should be overridden
+			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+		});
+
+		it('should restart service when user locks are present if lockOverride is specified', async () => {
+			const targetStateWithLockOverride = await generateTarget({
+				serviceCount,
+				serviceNames,
+				configOverride: {
+					SUPERVISOR_OVERRIDE_LOCK: 'true',
+				},
+			});
+			await setSupervisorTarget(targetStateWithLockOverride);
+			containers = await waitForSetup(targetStateWithLockOverride);
+			const isRestartSuccessful = startTimesChanged(
+				containers
+					.filter((ctn) => ctn.Name.includes(serviceNames[0]))
+					.map((ctn) => ctn.State.StartedAt),
+			);
+
+			// Create a lock
+			await lockfile.lock(
+				`${lockdir}/${APP_ID}/${serviceNames[0]}/updates.lock`,
+			);
+
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post('/v2/applications/1/restart-service')
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ serviceName: serviceNames[0] }));
+
+			const restartedContainers = await waitForSetup(
+				targetStateWithLockOverride,
 				isRestartSuccessful,
 			);
 

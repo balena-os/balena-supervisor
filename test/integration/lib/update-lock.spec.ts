@@ -593,6 +593,24 @@ describe('lib/update-lock', () => {
 				}
 			});
 
+			it('should take locks if service has non-Supervisor-taken lock and force is true', async () => {
+				// Simulate a user service taking the lock for services with appId 1
+				for (const lockPath of serviceLockPaths[1]) {
+					await fs.writeFile(lockPath, '');
+				}
+				// Take locks using takeLock & force, should not error
+				await updateLock.takeLock(1, ['server', 'client'], true);
+				// Check that locks are taken
+				expect(await updateLock.getLocksTaken()).to.deep.include(
+					serviceLockPaths[1][0],
+					serviceLockPaths[1][1],
+				);
+				// Clean up lockfiles
+				for (const lockPath of serviceLockPaths[1]) {
+					await lockfile.unlock(lockPath);
+				}
+			});
+
 			it('waits to take locks until resource write lock is taken', async () => {
 				// Take the write lock for appId 1
 				const release = await takeGlobalLockRW(1);
