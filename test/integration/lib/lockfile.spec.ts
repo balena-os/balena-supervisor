@@ -226,4 +226,18 @@ describe('lib/lockfile', () => {
 		// Clean up locks
 		await fs.rm(`${lockdir}`, { recursive: true });
 	});
+
+	// This tests an edge case where the lockfile is a symlink to a nonexistent file.
+	// Calling fs.stat on such a lockfile will throw, hence why we switched to fs.lstat.
+	it('should not error if lockfile is a symlink to a nonexistent file', async () => {
+		// Create symlink lock
+		await fs.symlink('/nonexistent', `${lockdir}/updates.lock`);
+
+		expect(
+			await lockfile.getLocksTaken(lockdir, (_p, s) => s.isSymbolicLink()),
+		).to.have.members([`${lockdir}/updates.lock`]);
+
+		// Cleanup symlink lock
+		await fs.rm(`${lockdir}/updates.lock`);
+	});
 });
