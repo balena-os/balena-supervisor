@@ -1,4 +1,20 @@
 - commits:
+    - subject: Add memory usage healthcheck
+      hash: f863075bdc5714baebcce8b73ddd95240fd04583
+      body: |
+        This healthcheck fails when Supervisor memory usage is above a threshold
+        based on initial memory measurements after device state has settled.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.2.7
+  title: ""
+  date: 2024-04-12T01:49:06.409Z
+- commits:
     - subject: Update balena-io/deploy-to-balena-action action to v2.0.55
       hash: 6864ab329aa9879a2d12aa19b2e70cadfff5fb49
       body: |
