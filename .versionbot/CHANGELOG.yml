@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action action to v2.0.57
+      hash: 97633816850f0d13d70cdfa2afb8bc9652e71fa2
+      body: |
+        Update balena-io/deploy-to-balena-action from 2.0.55 to 2.0.57
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.8
+  title: ""
+  date: 2024-04-12T11:30:35.445Z
+- commits:
     - subject: Add memory usage healthcheck
       hash: f863075bdc5714baebcce8b73ddd95240fd04583
       body: |
