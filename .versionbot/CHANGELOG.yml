@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update event-stream to v3.3.5
+      hash: 36e0fed219b041fa9695dd97629f710d52d76129
+      body: |
+        Update event-stream from 3.3.4 to 3.3.5
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.18
+  title: ""
+  date: 2024-04-15T21:29:50.342Z
+- commits:
     - subject: Add additional update lock tests for lockOverride & force
       hash: 57207c35398f147205fdc25d5010ec3fb51b132e
       body: ""
