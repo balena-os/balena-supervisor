@@ -1,4 +1,18 @@
 - commits:
+    - subject: Disable automerge for major npm devDependencies
+      hash: dfff74d21c1c05b0e9a4560db807887b079a73dc
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+      nested: []
+  version: 16.2.14
+  title: ""
+  date: 2024-04-15T14:19:35.895Z
+- commits:
     - subject: Update shell-quote to v1.7.3 [SECURITY]
       hash: 7398e53626f90d574ea5ce9b318e518fce8d0c19
       body: |
