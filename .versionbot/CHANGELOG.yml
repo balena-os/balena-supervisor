@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update @types/chai-things to v0.0.38
+      hash: 28d583067193fd0bcdb56732faf659785389f248
+      body: |
+        Update @types/chai-things from 0.0.35 to 0.0.38
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.16
+  title: ""
+  date: 2024-04-15T16:33:18.061Z
+- commits:
     - subject: Update webpack to v5.76.0 [SECURITY]
       hash: 6517d7fdbd6185c448846f7265c411fb0a2d899c
       body: |
