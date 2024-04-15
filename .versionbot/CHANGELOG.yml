@@ -1,4 +1,19 @@
 - commits:
+    - subject: Enable npm package management via Renovate
+      hash: 23c2f6ddf10216ad47935ff8bf894274299b0ba2
+      body: |
+        Settings are inherited from balena-io/renovate-config
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+      nested: []
+  version: 16.2.11
+  title: ""
+  date: 2024-04-15T10:40:13.559Z
+- commits:
     - subject: Update balena-io/deploy-to-balena-action action to v2.0.58
       hash: d7c14686cf22d9b82da1e3d7c8e52efb71da6ddc
       body: |
