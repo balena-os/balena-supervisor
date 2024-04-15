@@ -46,7 +46,7 @@
     "@types/chai": "^4.3.3",
     "@types/chai-as-promised": "^7.1.5",
     "@types/chai-like": "^1.1.1",
-    "@types/chai-things": "0.0.35",
+    "@types/chai-things": "0.0.38",
     "@types/common-tags": "^1.8.1",
     "@types/copy-webpack-plugin": "^10.1.0",
     "@types/dockerode": "^2.5.34",
