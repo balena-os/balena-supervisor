@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add additional update lock tests for lockOverride & force
+      hash: 57207c35398f147205fdc25d5010ec3fb51b132e
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.2.17
+  title: ""
+  date: 2024-04-15T20:57:03.828Z
+- commits:
     - subject: Update @types/chai-things to v0.0.38
       hash: 28d583067193fd0bcdb56732faf659785389f248
       body: |
