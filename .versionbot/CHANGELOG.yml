@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action action to v2.0.58
+      hash: d7c14686cf22d9b82da1e3d7c8e52efb71da6ddc
+      body: |
+        Update balena-io/deploy-to-balena-action from 2.0.57 to 2.0.58
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.10
+  title: ""
+  date: 2024-04-15T03:02:03.903Z
+- commits:
     - subject: Don't follow symlinks when checking for lockfiles
       hash: 6e185fbd447bce46179f60a9e650a3a35937d990
       body: |
