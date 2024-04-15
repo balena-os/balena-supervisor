@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update express to v4.19.2 [SECURITY]
+      hash: 9dfb0c576429290c42754e64f27e86bbde8e23bf
+      body: |
+        Update express from 4.17.1 to 4.19.2
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.12
+  title: ""
+  date: 2024-04-15T11:31:06.812Z
+- commits:
     - subject: Enable npm package management via Renovate
       hash: 23c2f6ddf10216ad47935ff8bf894274299b0ba2
       body: |
