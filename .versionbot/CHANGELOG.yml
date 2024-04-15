@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update shell-quote to v1.7.3 [SECURITY]
+      hash: 7398e53626f90d574ea5ce9b318e518fce8d0c19
+      body: |
+        Update shell-quote from 1.7.2 to 1.7.3
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.13
+  title: ""
+  date: 2024-04-15T13:53:49.933Z
+- commits:
     - subject: Update express to v4.19.2 [SECURITY]
       hash: 9dfb0c576429290c42754e64f27e86bbde8e23bf
       body: |
