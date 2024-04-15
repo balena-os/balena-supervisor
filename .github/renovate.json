@@ -4,6 +4,19 @@
     {
       "matchManagers": ["npm"],
       "enabled": true
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": "/^v?0/",
+      "automerge": false
     }
   ]
 }
