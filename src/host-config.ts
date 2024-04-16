@@ -16,22 +16,6 @@ import {
 } from './lib/host-utils';
 import * as updateLock from './lib/update-lock';
 
-const redsocksHeader = stripIndent`
-	base {
-		log_debug = off;
-		log_info = on;
-		log = stderr;
-		daemon = off;
-		redirector = iptables;
-	}
-
-	redsocks {
-		local_ip = 127.0.0.1;
-		local_port = 12345;
-`;
-
-const redsocksFooter = '}\n';
-
 const proxyFields = ['type', 'ip', 'port', 'login', 'password'];
 
 const proxyBasePath = pathOnBoot('system-proxy');
@@ -111,7 +95,7 @@ async function readProxy(): Promise<ProxyConfig | undefined> {
 }
 
 function generateRedsocksConfEntries(conf: ProxyConfig): string {
-	let val = '';
+	const entries = [];
 	for (const field of proxyFields) {
 		let v = conf[field];
 		if (v != null) {
@@ -119,19 +103,35 @@ function generateRedsocksConfEntries(conf: ProxyConfig): string {
 				// Escape any quotes in the field value
 				v = `"${v.toString().replace(/"/g, '\\"')}"`;
 			}
-			val += `\t${field} = ${v};\n`;
+			entries.push(`\t${field} = ${v};`);
 		}
 	}
-	return val;
+	return entries.join('\n');
 }
 
-async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
-	if (_.isEmpty(maybeConf)) {
+const base = () => stripIndent`
+	base {
+		log_debug = off;
+		log_info = on;
+		log = stderr;
+		daemon = off;
+		redirector = iptables;
+	}
+`;
+
+const redsocks = (conf: ProxyConfig) =>
+	stripIndent`
+	redsocks {
+		local_ip = 127.0.0.1;
+		local_port = 12345;` +
+	`\n${generateRedsocksConfEntries(conf)}` +
+	`\n}`;
+
+async function setProxy(conf: ProxyConfig): Promise<void> {
+	const proxyEmpty = Object.keys(conf).length === 0;
+	if (proxyEmpty) {
 		await unlinkAll(redsocksConfPath, noProxyPath);
 	} else {
-		// We know that maybeConf is not null due to the _.isEmpty check above,
-		// but the compiler doesn't
-		const conf = maybeConf as ProxyConfig;
 		await mkdirp(proxyBasePath);
 		if (Array.isArray(conf.noProxy)) {
 			await writeToBoot(noProxyPath, conf.noProxy.join('\n'));
@@ -146,14 +146,15 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 
 		// If currentConf is undefined, the currentConf spread will be skipped.
 		// See: https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-1.html#conditional-spreads-create-optional-properties
-		const redsocksConf = `
-			${redsocksHeader}\n
-			${generateRedsocksConfEntries({ ...currentConf, ...conf })}
-			${redsocksFooter}
-		`;
+		const redsocksConf =
+			base() + '\n\n' + redsocks({ ...currentConf, ...conf });
 		await writeToBoot(redsocksConfPath, redsocksConf);
 	}
 
+	await restartProxyServices();
+}
+
+async function restartProxyServices() {
 	// restart balena-proxy-config if it is loaded and NOT PartOf redsocks-conf.target
 	if (
 		(
