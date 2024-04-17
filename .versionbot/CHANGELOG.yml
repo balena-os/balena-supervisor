@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update rimraf
+      hash: 5e5a803e26ac36a3085701c3c7055553be6d2fcb
+      body: |
+        Update @types/rimraf from 2.0.5 to 4.0.5
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.20
+  title: ""
+  date: 2024-04-17T15:39:15.721Z
+- commits:
     - subject: Update semver to v7.6.0
       hash: 52268d83fa6d8fd364e765b4c0d11128040e9410
       body: |
