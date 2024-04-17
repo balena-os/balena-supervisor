@@ -19,37 +19,54 @@ export DBUS_SYSTEM_BUS_ADDRESS="${DBUS_SYSTEM_BUS_ADDRESS:-unix:path="${ROOT_MOU
 # Partition is only the label, e.g. boot, state, data
 dbus_get_mount() {
     part="$1"
-
     result=$(dbus-send --system --print-reply \
         --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1/unit/mnt_2d${part}_2emount org.freedesktop.DBus.Properties.Get \
         string:"org.freedesktop.systemd1.Mount" string:"What" | grep "string" | cut -d'"' -f2 2>&1)
-    # If the output doesn't match the /dev/* device regex, exit with an error
+    # If the output doesn't match the /dev/* device regex, return empty and do not exit
     if [ "$(echo "${result}" | grep -E '^/dev/')" = "" ]; then
-        echo "ERROR: Could not determine ${part} device from dbus. Please launch Supervisor as a privileged container with DBus socket access."
-        exit 1
+        echo ""
+    else
+        echo "${result}"
     fi
-
-    echo "${result}"
 }
 
 # Get the current boot block device in case there are duplicate partition labels
 # for `(balena|resin)-(boot|state|data)` found.
+secure_boot_partitions='efi
+rpi
+'
 current_boot_block_device=""
 if [ "${TEST}" != 1 ]; then
     mnt_boot_mount=$(dbus_get_mount "boot")
     mnt_boot_type=$(lsblk -no type "${mnt_boot_mount}")
-    # If the (resin|balena)-boot partition is encrypted, we need to have a look at the efi partition
     if [ "${mnt_boot_type}" = "crypt" ]; then
-        boot_part=$(dbus_get_mount "efi")
+        echo "INFO: Encrypted boot partition detected."
+        for part in $secure_boot_partitions; do
+            echo "INFO: Trying ${part} as boot partition."
+            boot_part=$(dbus_get_mount "${part}")
+            if [ -n "${boot_part}" ]; then
+                echo "INFO: Using ${part} as boot partition."
+                break
+            else
+                echo "ERROR: Could not determine ${part} device from dbus."
+            fi
+        done
     else
         boot_part="${mnt_boot_mount}"
     fi
+
+    if [ -z "${boot_part}" ]; then
+        echo "ERROR: Could not determine boot device from dbus. Please launch Supervisor as a privileged container with DBus socket access."
+        exit 1
+    fi
+
     current_boot_block_device=$(lsblk -no pkname "${boot_part}")
-    if [ "${current_boot_block_device}" = "" ]; then
+    if [ -z "${current_boot_block_device}" ]; then
         echo "ERROR: Could not determine boot device from lsblk. Please launch Supervisor as a privileged container."
         exit 1
     fi
 fi
+
 
 # Mounts a device to a path if it's not already mounted.
 # Usage: do_mount DEVICE MOUNT_PATH
