@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update semver to v7.6.0
+      hash: 52268d83fa6d8fd364e765b4c0d11128040e9410
+      body: |
+        Update semver from 7.5.4 to 7.6.0
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.19
+  title: ""
+  date: 2024-04-17T14:38:48.064Z
+- commits:
     - subject: Update event-stream to v3.3.5
       hash: 36e0fed219b041fa9695dd97629f710d52d76129
       body: |
