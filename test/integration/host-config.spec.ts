@@ -80,7 +80,7 @@ describe('host-config', () => {
 		(dbus.restartService as SinonStub).restore();
 	});
 
-	it('reads proxy configs and hostname', async () => {
+	it('reads proxy config, dns config, and hostname', async () => {
 		const { network } = await hostConfig.get();
 		expect(network).to.have.property('hostname', 'deadbeef');
 		expect(network).to.have.property('proxy');
@@ -93,6 +93,9 @@ describe('host-config', () => {
 			'152.10.30.4',
 			'253.1.1.0/16',
 		]);
+		expect(network).to.have.property('dns');
+		expect(network.dns).to.have.property('remoteIp', '1.2.3.4');
+		expect(network.dns).to.have.property('remotePort', '54');
 	});
 
 	it('prevents patch if update locks are present', async () => {
@@ -128,30 +131,223 @@ describe('host-config', () => {
 		expect(await config.get('hostname')).to.equal('test');
 	});
 
-	it('patches proxy', async () => {
-		await hostConfig.patch({
-			network: {
-				proxy: {
+	describe('proxy', () => {
+		// Reset to defaults before each test
+		beforeEach(async () => {
+			await hostConfig.patch({
+				network: {
+					proxy: {
+						ip: 'example2.org',
+						port: 1090,
+						type: 'http-relay',
+						login: 'bar',
+						password: 'foo',
+						noProxy: ['balena.io', '222.22.2.2'],
+					},
+				},
+			});
+		});
+
+		it('patches proxy successfully (sanity check)', async () => {
+			const { network } = await hostConfig.get();
+			expect(network)
+				.to.have.property('proxy')
+				.that.deep.equals({
 					ip: 'example2.org',
 					port: 1090,
 					type: 'http-relay',
 					login: 'bar',
 					password: 'foo',
 					noProxy: ['balena.io', '222.22.2.2'],
-				},
-			},
+				});
 		});
-		const { network } = await hostConfig.get();
-		expect(network).to.have.property('proxy');
-		expect(network.proxy).to.have.property('ip', 'example2.org');
-		expect(network.proxy).to.have.property('port', 1090);
-		expect(network.proxy).to.have.property('type', 'http-relay');
-		expect(network.proxy).to.have.property('login', 'bar');
-		expect(network.proxy).to.have.property('password', 'foo');
-		expect(network.proxy).to.have.deep.property('noProxy', [
-			'balena.io',
-			'222.22.2.2',
-		]);
+
+		it('keeps current proxy if only noProxy is in target config', async () => {
+			await hostConfig.patch({
+				network: {
+					proxy: {
+						noProxy: ['balena-cloud.com'],
+					},
+				},
+			});
+			const { network } = await hostConfig.get();
+			expect(network)
+				.to.have.property('proxy')
+				.that.deep.equals({
+					ip: 'example2.org',
+					port: 1090,
+					type: 'http-relay',
+					login: 'bar',
+					password: 'foo',
+					noProxy: ['balena-cloud.com'],
+				});
+		});
+
+		it('keeps current proxy when a patch does not include any proxy changes', async () => {
+			const { network } = await hostConfig.get();
+			expect(network)
+				.to.have.property('proxy')
+				.that.deep.equals({
+					ip: 'example2.org',
+					port: 1090,
+					type: 'http-relay',
+					login: 'bar',
+					password: 'foo',
+					noProxy: ['balena.io', '222.22.2.2'],
+				});
+
+			// Patch something unrelated
+			await hostConfig.patch({
+				network: {
+					hostname: 'test',
+				},
+			});
+			const { network: n2 } = await hostConfig.get();
+			expect(n2)
+				.to.have.property('proxy')
+				.that.deep.equals({
+					ip: 'example2.org',
+					port: 1090,
+					type: 'http-relay',
+					login: 'bar',
+					password: 'foo',
+					noProxy: ['balena.io', '222.22.2.2'],
+				});
+		});
+	});
+
+	describe('dns', () => {
+		// Reset to defaults before each test
+		beforeEach(async () => {
+			await hostConfig.patch({
+				network: {
+					dns: '1.2.3.4:52',
+				},
+			});
+		});
+
+		it('patches dns successfully (sanity check)', async () => {
+			const { network } = await hostConfig.get();
+			expect(network).to.have.property('dns').that.deep.equals({
+				remoteIp: '1.2.3.4',
+				remotePort: '52',
+			});
+		});
+
+		it('patches dns with defaults when provided boolean config (dns: true)', async () => {
+			await hostConfig.patch({
+				network: {
+					dns: true,
+				},
+			});
+			const { network } = await hostConfig.get();
+			expect(network).to.have.property('dns').that.deep.equals({
+				remoteIp: '8.8.8.8',
+				remotePort: '53',
+			});
+		});
+
+		it('removes dns when provided boolean config (dns: false)', async () => {
+			await hostConfig.patch({
+				network: {
+					dns: false,
+				},
+			});
+			const { network } = await hostConfig.get();
+			expect(network).to.not.have.property('dns');
+		});
+
+		it('patches dns when provided valid string config (dns: "remote_ip[:remote_port]")', async () => {
+			await hostConfig.patch({
+				network: {
+					dns: '3.4.5.6:56',
+				},
+			});
+			const { network } = await hostConfig.get();
+			expect(network).to.have.property('dns').that.deep.equals({
+				remoteIp: '3.4.5.6',
+				remotePort: '56',
+			});
+		});
+
+		it('patches with default ip and port if provided empty string', async () => {
+			await hostConfig.patch({
+				network: {
+					dns: '',
+				},
+			});
+			const { network } = await hostConfig.get();
+			expect(network).to.have.property('dns').that.deep.equals({
+				remoteIp: '8.8.8.8',
+				remotePort: '53',
+			});
+		});
+
+		it('patches with default ip if not provided', async () => {
+			await hostConfig.patch({
+				network: {
+					dns: false,
+				},
+			});
+			await hostConfig.patch({
+				network: {
+					dns: ':57',
+				},
+			});
+			const { network } = await hostConfig.get();
+			expect(network).to.have.property('dns').that.deep.equals({
+				remoteIp: '8.8.8.8',
+				remotePort: '57',
+			});
+		});
+
+		it('patches with default port if not provided', async () => {
+			await hostConfig.patch({
+				network: {
+					dns: false,
+				},
+			});
+			await hostConfig.patch({
+				network: {
+					dns: '4.5.6.7',
+				},
+			});
+			const { network: n2 } = await hostConfig.get();
+			expect(n2).to.have.property('dns').that.deep.equals({
+				remoteIp: '4.5.6.7',
+				remotePort: '53',
+			});
+		});
+
+		it('does not modify dns configs when patch does not include dns', async () => {
+			// Set dns
+			await hostConfig.patch({
+				network: {
+					dns: true,
+				},
+			});
+			const { network } = await hostConfig.get();
+			expect(network).to.have.property('dns').that.deep.equals({
+				remoteIp: '8.8.8.8',
+				remotePort: '53',
+			});
+
+			// Patch something else that's unrelated
+			await hostConfig.patch({
+				network: {
+					proxy: {
+						ip: 'example2.org',
+						port: 1090,
+						type: 'http-relay',
+					},
+				},
+			});
+			const { network: n2 } = await hostConfig.get();
+			expect(n2).to.have.property('dns').that.deep.equals({
+				remoteIp: '8.8.8.8',
+				remotePort: '53',
+			});
+		});
 	});
 
 	it('skips restarting proxy services when part of redsocks-conf.target', async () => {
@@ -183,9 +379,10 @@ describe('host-config', () => {
 	});
 
 	it('patches redsocks.conf to be empty if prompted', async () => {
-		await hostConfig.patch({ network: { proxy: {} } });
+		await hostConfig.patch({ network: { proxy: {}, dns: false } });
 		const { network } = await hostConfig.get();
-		expect(network).to.have.property('proxy', undefined);
+		expect(network).to.not.have.property('proxy');
+		expect(network).to.not.have.property('dns');
 		expect(await fs.readdir(proxyBase)).to.not.have.members([
 			'redsocks.conf',
 			'no_proxy',
@@ -206,11 +403,12 @@ describe('host-config', () => {
 		expect(await fs.readdir(proxyBase)).to.not.have.members(['no_proxy']);
 	});
 
-	it("doesn't update hostname or proxy when both are empty", async () => {
+	it("doesn't update hostname, proxy, or dns when all are empty", async () => {
 		const { network } = await hostConfig.get();
 		await hostConfig.patch({ network: {} });
 		const { network: newNetwork } = await hostConfig.get();
 		expect(network.hostname).to.equal(newNetwork.hostname);
 		expect(network.proxy).to.deep.equal(newNetwork.proxy);
+		expect(network.dns).to.deep.equal(newNetwork.dns);
 	});
 });
