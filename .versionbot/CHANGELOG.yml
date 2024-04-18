@@ -1,4 +1,16 @@
 - commits:
+    - subject: Remove unused `tmp` dependency
+      hash: 12cc8eb91b52545d84a22e511ddd63ad4ac677ad
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 16.2.21
+  title: ""
+  date: 2024-04-18T02:44:36.677Z
+- commits:
     - subject: Update rimraf
       hash: 5e5a803e26ac36a3085701c3c7055553be6d2fcb
       body: |
