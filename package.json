@@ -83,7 +83,7 @@
     "chai-things": "^0.2.0",
     "chokidar": "^3.5.1",
     "common-tags": "^1.8.0",
-    "copy-webpack-plugin": "^11.0.0",
+    "copy-webpack-plugin": "^12.0.0",
     "deep-object-diff": "^1.1.0",
     "docker-delta": "^2.2.11",
     "docker-progress": "^4.0.3",
