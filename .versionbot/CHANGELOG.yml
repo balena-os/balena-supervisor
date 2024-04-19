@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update got to v14
+      hash: 148ba6e0c31ac09834cb8ad598bf1cac35ca1095
+      body: |
+        Update got from 12.6.1 to 14.2.1
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.23
+  title: ""
+  date: 2024-04-19T13:34:13.665Z
+- commits:
     - subject: Update @types/supertest to v6
       hash: e24691fa63c1f2b6f097e0bcb510bfc9da1eda7d
       body: |
