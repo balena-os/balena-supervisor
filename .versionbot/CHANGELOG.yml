@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update copy-webpack-plugin to v12
+      hash: dde0e86a1abfab8c8f0e954ed632d5b154dc5a55
+      body: |
+        Update copy-webpack-plugin from 11.0.0 to 12.0.2
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.25
+  title: ""
+  date: 2024-04-19T15:46:46.217Z
+- commits:
     - subject: Update webpack-cli to v5
       hash: 00f1610870497c4e2436d0fc022f4de30b90707b
       body: |
