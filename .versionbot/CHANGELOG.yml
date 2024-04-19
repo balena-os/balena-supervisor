@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update @types/supertest to v6
+      hash: e24691fa63c1f2b6f097e0bcb510bfc9da1eda7d
+      body: |
+        Update @types/supertest from 2.0.12 to 6.0.2
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.22
+  title: ""
+  date: 2024-04-19T12:25:19.313Z
+- commits:
     - subject: Remove unused `tmp` dependency
       hash: 12cc8eb91b52545d84a22e511ddd63ad4ac677ad
       body: ""
