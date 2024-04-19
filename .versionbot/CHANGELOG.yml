@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update webpack-cli to v5
+      hash: 00f1610870497c4e2436d0fc022f4de30b90707b
+      body: |
+        Update webpack-cli from 4.10.0 to 5.1.4
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.24
+  title: ""
+  date: 2024-04-19T14:55:50.059Z
+- commits:
     - subject: Update got to v14
       hash: 148ba6e0c31ac09834cb8ad598bf1cac35ca1095
       body: |
