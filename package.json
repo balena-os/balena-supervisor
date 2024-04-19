@@ -41,7 +41,7 @@
   "devDependencies": {
     "@balena/contrato": "^0.6.0",
     "@balena/es-version": "^1.0.3",
-    "@balena/lint": "^7.3.0",
+    "@balena/lint": "^8.0.0",
     "@types/bluebird": "^3.5.37",
     "@types/chai": "^4.3.3",
     "@types/chai-as-promised": "^7.1.5",
