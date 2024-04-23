@@ -7,7 +7,7 @@ import { setDefaultAutoSelectFamilyAttemptTimeout } from 'net';
 setDefaultAutoSelectFamilyAttemptTimeout(5000);
 
 import { NOTFOUND } from 'dns';
-import mdnsResolver from 'mdns-resolver';
+import * as mdnsResolver from 'mdns-resolver';
 
 class DnsLookupError extends Error {
 	public constructor(public code: string = NOTFOUND) {
