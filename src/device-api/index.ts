@@ -12,10 +12,6 @@ interface SupervisorAPIConstructOpts {
 	healthchecks: Array<() => Promise<boolean>>;
 }
 
-interface SupervisorAPIStopOpts {
-	errored: boolean;
-}
-
 // API key methods
 // For better black boxing, device-api should serve as the interface
 // to the rest of the Supervisor code for accessing API key related methods.
@@ -92,22 +88,25 @@ export class SupervisorAPI {
 		});
 	}
 
-	public async stop(options?: SupervisorAPIStopOpts): Promise<void> {
+	public async stop(): Promise<void> {
 		if (this.server != null) {
+			const server = this.server;
+			this.server = null;
 			return new Promise((resolve, reject) => {
-				this.server?.close((err: Error) => {
+				server.close((err: Error) => {
 					if (err) {
-						log.error('Failed to stop Supervisor API');
+						// In case the HTTP server fails to shut down,
+						// make this.server available again for future attempts.
+						this.server = server;
 						return reject(err);
-					}
-					if (options?.errored) {
-						log.error('Stopped Supervisor API');
 					} else {
 						log.info('Stopped Supervisor API');
+						return resolve();
 					}
-					return resolve();
 				});
 			});
+		} else {
+			log.warn('Supervisor API already stopped, ignoring further requests');
 		}
 	}
 }
