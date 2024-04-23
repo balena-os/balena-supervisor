@@ -1,4 +1,24 @@
 - commits:
+    - subject: Gracefully handle multiple reboot/shutdown requests
+      hash: 14bdc522c17c924ce560da81f735b96bac41bd4d
+      body: |
+        Since HTTP's server.close() is async, there is a slim chance
+        for two instances of /v1/reboot or /v1/shutdown to be processed.
+        If the server is already closed when server.close() is called,
+        the call throws ERR_SERVER_NOT_RUNNING
+        which doesn't need to be surfaced to the user. This change
+        only allows one server.close() attempt to occur at a time.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.2.28
+  title: ""
+  date: 2024-04-23T20:19:12.030Z
+- commits:
     - subject: Update ts-node to v10
       hash: d14824f2fddffb0292af94c001d90e816ddb94c6
       body: |
