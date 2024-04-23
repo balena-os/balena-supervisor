@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update ts-node to v10
+      hash: d14824f2fddffb0292af94c001d90e816ddb94c6
+      body: |
+        Update ts-node from 8.10.2 to 10.9.2
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.27
+  title: ""
+  date: 2024-04-23T19:33:02.255Z
+- commits:
     - subject: Remove unnecessary @types packages
       hash: 8ebb26663880d879e5eb6528512822c99e1ef42b
       body: ""
