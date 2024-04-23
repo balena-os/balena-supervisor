@@ -1,4 +1,108 @@
 - commits:
+    - subject: Remove unnecessary @types packages
+      hash: 8ebb26663880d879e5eb6528512822c99e1ef42b
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update knex to 3.1.0
+      hash: 17a7e60506f36403a98c0205d80989edcb1997f6
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update json-mask to 2.0.0
+      hash: 77f6f17042d9fda21d90dc5363824562f1ddd0f6
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update lint-staged to 15.2.2
+      hash: f3809dccfb3cf787da9ccd9fefab6d0f2554d895
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update mocha-pod to 2.0.5
+      hash: 9ca027ad486ecffac20f1cff714c493e92b7befc
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update mocha to 10.4.0
+      hash: 7c423958ea61c12f3786b9a52567dea75d2351c5
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update rewire to 7, @balena/lint to 8
+      hash: 5d6a73514165f4fc60b64d3eebafc0419e50e228
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update nodemon to 3.1.0
+      hash: d887809494ce27859ddd571048f4c7266c0c4bec
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update sinon to 17
+      hash: bd26d8877003aa751df0216f341e776d39370724
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update systeminformation to 5.22.7
+      hash: 7bb5900649b42ecd418dc21590b7359c2088cc5c
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.2.26
+  title: ""
+  date: 2024-04-23T18:58:25.318Z
+- commits:
     - subject: Update copy-webpack-plugin to v12
       hash: dde0e86a1abfab8c8f0e954ed632d5b154dc5a55
       body: |
