@@ -41,7 +41,7 @@
   "devDependencies": {
     "@balena/contrato": "^0.6.0",
     "@balena/es-version": "^1.0.3",
-    "@balena/lint": "^7.3.0",
+    "@balena/lint": "^8.0.2",
     "@types/bluebird": "^3.5.37",
     "@types/chai": "^4.3.3",
     "@types/chai-as-promised": "^7.1.5",
@@ -117,7 +117,7 @@
     "request": "^2.88.2",
     "resin-docker-build": "^1.1.6",
     "resumable-request": "^2.0.1",
-    "rewire": "^6.0.0",
+    "rewire": "^7.0.0",
     "rimraf": "^5.0.0",
     "rwlock": "^5.0.0",
     "semver": "7.6.0",
