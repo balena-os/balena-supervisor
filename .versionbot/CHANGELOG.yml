@@ -1,4 +1,29 @@
 - commits:
+    - subject: Refactor MDNS resolver into a module
+      hash: 6f02b17968d02c2e27b523e40a25ef4c4815d20a
+      body: |
+        Also add integration tests for the resolver functionality to prevent
+        regressions.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Fix mdnsResolver import
+      hash: ad52561de548ef9f2dfec67187ae0d903e0bedfe
+      body: |
+        The `mdns-resolver` module does not provide a default export. Trying to
+        use a default import notation, causes the `resolve` function to not be
+        found, breaking MDNS resolution.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.2.29
+  title: ""
+  date: 2024-04-24T15:13:31.152Z
+- commits:
     - subject: Gracefully handle multiple reboot/shutdown requests
       hash: 14bdc522c17c924ce560da81f735b96bac41bd4d
       body: |
