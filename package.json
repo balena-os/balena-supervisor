@@ -104,7 +104,7 @@
     "memoizee": "^0.4.14",
     "mocha": "^10.4.0",
     "mocha-pod": "^2.0.5",
-    "mock-fs": "^4.14.0",
+    "mock-fs": "^5.0.0",
     "morgan": "^1.10.0",
     "network-checker": "^0.1.1",
     "nock": "^13.1.2",
