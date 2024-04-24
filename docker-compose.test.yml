@@ -40,12 +40,17 @@ services:
       MOCK_SYSTEMD_UNITS: openvpn.service avahi.socket
 
   docker:
-    image: docker:24-dind
+    image: docker:dind
     stop_grace_period: 3s
     privileged: true
     environment:
       DOCKER_TLS_CERTDIR: ''
     command: --tls=false # --debug
+
+  mdns:
+    image: ydkn/avahi:latest
+    # This hostname should be resolved
+    hostname: my-device
 
   sut:
     # Build the supervisor code for development and testing
@@ -69,6 +74,7 @@ services:
       - balena-supervisor-sut
       - docker
       - mock-systemd
+      - mdns
     stop_grace_period: 3s
     volumes:
       - dbus:/shared/dbus
