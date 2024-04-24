@@ -88,7 +88,7 @@
     "duration-js": "^4.0.0",
     "event-stream": "3.3.5",
     "express": "^4.17.1",
-    "fork-ts-checker-webpack-plugin": "^7.2.13",
+    "fork-ts-checker-webpack-plugin": "^9.0.0",
     "fp-ts": "^2.8.1",
     "got": "14.2.1",
     "husky": "^8.0.1",
