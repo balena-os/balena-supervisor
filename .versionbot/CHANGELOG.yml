@@ -1,4 +1,39 @@
 - commits:
+    - subject: Update supertest to v7
+      hash: 35e17cf22c0e45c14daa2efa24eb07358d14fff6
+      body: |
+        This patches a `formidable` package vulnerability
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update fork-ts-checker-webpack-plugin to v9
+      hash: 73b71386fe00fdf9896ef6f14ead75920e9318bf
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update yargs to v17, tar-stream to v3
+      hash: 717c8cd6149eb46b8b7e39b3021fd86321f95089
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.2.30
+  title: ""
+  date: 2024-04-24T18:35:21.169Z
+- commits:
     - subject: Refactor MDNS resolver into a module
       hash: 6f02b17968d02c2e27b523e40a25ef4c4815d20a
       body: |
