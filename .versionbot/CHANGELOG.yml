@@ -1,4 +1,18 @@
 - commits:
+    - subject: Update docker related dependencies
+      hash: ae823fea181e2b1680940538b04b5af37c1b3229
+      body: |
+        This bumps dockerode, removes resin-docker-build in favor of
+        @balena/compose, and updates docker-delta and docker-progress packages.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.2.33
+  title: ""
+  date: 2024-04-26T19:51:36.874Z
+- commits:
     - subject: Update balena-io/deploy-to-balena-action action to v2.0.62
       hash: 20f6cb07cb1989f99eaa54625d8e4b502e2e0919
       body: |
