@@ -1,4 +1,19 @@
 - commits:
+    - subject: Move lib/fs-utils tests to testfs
+      hash: 9c968b8d06a407e943d9f91eb5f89863280d7962
+      body: |
+        This removes mock-fs as a dependency
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.2.31
+  title: ""
+  date: 2024-04-26T00:40:13.656Z
+- commits:
     - subject: Update supertest to v7
       hash: 35e17cf22c0e45c14daa2efa24eb07358d14fff6
       body: |
