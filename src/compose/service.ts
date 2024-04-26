@@ -506,7 +506,14 @@ export class Service {
 
 		const ulimits: ServiceConfig['ulimits'] = {};
 		_.each(container.HostConfig.Ulimits, ({ Name, Soft, Hard }) => {
-			ulimits[Name] = { soft: Soft, hard: Hard };
+			// The Ulimit type in @types/dockerode allows any element to be
+			// null which is probably wrong
+			if (Name != null && Soft != null && Hard != null) {
+				ulimits[Name] = {
+					soft: Soft,
+					hard: Hard,
+				};
+			}
 		});
 
 		const portMaps = PortMap.fromDockerOpts(container.HostConfig.PortBindings);

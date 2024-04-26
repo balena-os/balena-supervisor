@@ -97,7 +97,7 @@ export class Volume {
 			Name: Volume.generateDockerName(this.appId, this.name),
 			Labels: this.config.labels,
 			Driver: this.config.driver,
-			DriverOpts: this.config.driverOpts,
+			DriverOpts: this.config.driverOpts!,
 		});
 	}
 

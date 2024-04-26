@@ -1,4 +1,4 @@
-import dockerode from 'dockerode';
+import Dockerode from 'dockerode';
 import sinon from 'sinon';
 
 import { randomUUID as uuidv4 } from 'crypto';
@@ -14,31 +14,31 @@ type DeepPartial<T> = {
 
 // Partial container inspect info for receiving as testing data
 export type PartialContainerInspectInfo =
-	DeepPartial<dockerode.ContainerInspectInfo> & {
+	DeepPartial<Dockerode.ContainerInspectInfo> & {
 		Id: string;
 	};
 
 export type PartialNetworkInspectInfo =
-	DeepPartial<dockerode.NetworkInspectInfo> & {
+	DeepPartial<Dockerode.NetworkInspectInfo> & {
 		Id: string;
 	};
 
 export type PartialVolumeInspectInfo =
-	DeepPartial<dockerode.VolumeInspectInfo> & {
+	DeepPartial<Dockerode.VolumeInspectInfo> & {
 		Name: string;
 	};
 
 export type PartialImageInspectInfo =
-	DeepPartial<dockerode.ImageInspectInfo> & {
+	DeepPartial<Dockerode.ImageInspectInfo> & {
 		Id: string;
 	};
 
-type Methods<T> = {
-	[K in keyof T]: T[K] extends (...args: any) => any ? T[K] : never;
+type Fake<T> = {
+	[K in keyof T]: T[K] extends (...args: any[]) => any ? T[K] : never;
 };
 
-function createFake<Prototype extends object>(prototype: Prototype) {
-	return (Object.getOwnPropertyNames(prototype) as Array<keyof Prototype>)
+function createFake<T extends object>(prototype: T): Fake<T> {
+	return (Object.getOwnPropertyNames(prototype) as Array<keyof T>)
 		.filter((fn) => fn === 'constructor' || typeof prototype[fn] === 'function')
 		.reduce(
 			(res, fn) => ({
@@ -51,7 +51,7 @@ function createFake<Prototype extends object>(prototype: Prototype) {
 					);
 				},
 			}),
-			{} as Methods<Prototype>,
+			{} as Fake<T>,
 		);
 }
 
@@ -86,7 +86,7 @@ export function createNetwork(network: PartialNetworkInspectInfo) {
 		...networkInspect,
 	};
 
-	const fakeNetwork = createFake(dockerode.Network.prototype);
+	const fakeNetwork = createFake(Dockerode.Network.prototype);
 
 	return {
 		...fakeNetwork, // by default all methods fail unless overriden
@@ -103,7 +103,7 @@ export type MockNetwork = ReturnType<typeof createNetwork>;
 export function createContainer(container: PartialContainerInspectInfo) {
 	const createContainerInspectInfo = (
 		partial: PartialContainerInspectInfo,
-	): dockerode.ContainerInspectInfo => {
+	): Dockerode.ContainerInspectInfo => {
 		const {
 			Id,
 			State,
@@ -200,12 +200,12 @@ export function createContainer(container: PartialContainerInspectInfo) {
 			],
 
 			...ContainerInfo,
-		} as dockerode.ContainerInspectInfo;
+		} as Dockerode.ContainerInspectInfo;
 	};
 
 	const createContainerInfo = (
-		containerInspectInfo: dockerode.ContainerInspectInfo,
-	): dockerode.ContainerInfo => {
+		containerInspectInfo: Dockerode.ContainerInspectInfo,
+	): Dockerode.ContainerInfo => {
 		const {
 			Id,
 			Name,
@@ -239,7 +239,7 @@ export function createContainer(container: PartialContainerInspectInfo) {
 			NetworkSettings: {
 				Networks: NetworkSettings.Networks,
 			},
-			Mounts: Mounts as dockerode.ContainerInfo['Mounts'],
+			Mounts: Mounts as Dockerode.ContainerInfo['Mounts'],
 		};
 	};
 
@@ -248,7 +248,7 @@ export function createContainer(container: PartialContainerInspectInfo) {
 
 	const { Id: id } = inspectInfo;
 
-	const fakeContainer = createFake(dockerode.Container.prototype);
+	const fakeContainer = createFake(Dockerode.Container.prototype);
 
 	return {
 		...fakeContainer, // by default all methods fail unless overriden
@@ -318,7 +318,7 @@ export function createImage(
 ) {
 	const createImageInspectInfo = (
 		partialImage: PartialImageInspectInfo,
-	): dockerode.ImageInspectInfo => {
+	): Dockerode.ImageInspectInfo => {
 		const { Id, ContainerConfig, Config, GraphDriver, RootFS, ...Info } =
 			partialImage;
 
@@ -357,7 +357,7 @@ export function createImage(
 				Labels: {},
 
 				...ContainerConfig,
-			} as dockerode.ImageInspectInfo['ContainerConfig'],
+			} as Dockerode.ImageInspectInfo['ContainerConfig'],
 			DockerVersion: '17.05.0-ce',
 			Author: '',
 			Config: {
@@ -385,7 +385,7 @@ export function createImage(
 					...(Config?.Labels ?? {}),
 				},
 				...Config,
-			} as dockerode.ImageInspectInfo['Config'],
+			} as Dockerode.ImageInspectInfo['Config'],
 
 			Architecture: 'arm64',
 			Os: 'linux',
@@ -400,7 +400,7 @@ export function createImage(
 				Name: 'aufs',
 
 				...GraphDriver,
-			} as dockerode.ImageInspectInfo['GraphDriver'],
+			} as Dockerode.ImageInspectInfo['GraphDriver'],
 			RootFS: {
 				Type: 'layers',
 				Layers: [
@@ -410,13 +410,13 @@ export function createImage(
 				],
 
 				...RootFS,
-			} as dockerode.ImageInspectInfo['RootFS'],
+			} as Dockerode.ImageInspectInfo['RootFS'],
 
 			...Info,
 		};
 	};
 
-	const createImageInfo = (imageInspectInfo: dockerode.ImageInspectInfo) => {
+	const createImageInfo = (imageInspectInfo: Dockerode.ImageInspectInfo) => {
 		const {
 			Id,
 			Parent: ParentId,
@@ -470,7 +470,7 @@ export function createImage(
 	const info = createImageInfo(inspectInfo);
 	const { Id: id } = inspectInfo;
 
-	const fakeImage = createFake(dockerode.Image.prototype);
+	const fakeImage = createFake(Dockerode.Image.prototype);
 
 	return {
 		...fakeImage, // by default all methods fail unless overriden
@@ -492,20 +492,20 @@ export type MockImage = ReturnType<typeof createImage>;
 export function createVolume(volume: PartialVolumeInspectInfo) {
 	const { Name, Labels, ...partialVolumeInfo } = volume;
 
-	const inspectInfo: dockerode.VolumeInspectInfo = {
+	const inspectInfo: Dockerode.VolumeInspectInfo = {
 		Name,
 		Driver: 'local',
 		Mountpoint: '/var/lib/docker/volumes/resin-data',
 		Labels: {
 			...Labels,
-		} as dockerode.VolumeInspectInfo['Labels'],
+		} as Dockerode.VolumeInspectInfo['Labels'],
 		Scope: 'local',
 		Options: {},
 
 		...partialVolumeInfo,
 	};
 
-	const fakeVolume = createFake(dockerode.Volume.prototype);
+	const fakeVolume = createFake(Dockerode.Volume.prototype);
 	return {
 		...fakeVolume, // by default all methods fail unless overriden
 		name: Name,
@@ -630,7 +630,7 @@ export class MockEngine {
 		return Promise.resolve(delete this.networks[network.id]);
 	}
 
-	createNetwork(options: dockerode.NetworkCreateOptions) {
+	createNetwork(options: Dockerode.NetworkCreateOptions) {
 		const Id = uuidv4();
 		const network = createNetwork({ Id, ...options });
 
@@ -645,7 +645,7 @@ export class MockEngine {
 		);
 	}
 
-	createContainer(options: dockerode.ContainerCreateOptions) {
+	createContainer(options: Dockerode.ContainerCreateOptions) {
 		const Id = uuidv4();
 
 		const { name: Name, HostConfig, NetworkingConfig, ...Config } = options;
@@ -890,12 +890,12 @@ export class MockEngine {
 }
 
 export function createMockerode(engine: MockEngine) {
-	const dockerodeStubs: Stubs<dockerode> = (
-		Object.getOwnPropertyNames(dockerode.prototype) as Array<keyof dockerode>
+	const dockerodeStubs: Stubs<Dockerode> = (
+		Object.getOwnPropertyNames(Dockerode.prototype) as Array<keyof Dockerode>
 	)
-		.filter((fn) => typeof dockerode.prototype[fn] === 'function')
+		.filter((fn) => typeof Dockerode.prototype[fn] === 'function')
 		.reduce((stubMap, fn) => {
-			const stub = sinon.stub(dockerode.prototype, fn);
+			const stub = sinon.stub(Dockerode.prototype, fn);
 			const proto: any = MockEngine.prototype;
 
 			if (fn in proto) {
@@ -907,7 +907,7 @@ export function createMockerode(engine: MockEngine) {
 			}
 
 			return { ...stubMap, [fn]: stub };
-		}, {} as Stubs<dockerode>);
+		}, {} as Stubs<Dockerode>);
 
 	const { removeImage, removeNetwork, removeVolume, removeContainer } = engine;
 

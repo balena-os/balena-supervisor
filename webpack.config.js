@@ -131,6 +131,10 @@ module.exports = function (env) {
 						},
 					],
 				},
+				{
+					test: /\.node$/,
+					loader: 'node-loader',
+				},
 			],
 		},
 		externals: (_context, request, callback) => {

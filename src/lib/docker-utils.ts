@@ -5,7 +5,6 @@ import _ from 'lodash';
 import memoizee from 'memoizee';
 
 import { applyDelta, OutOfSyncError } from 'docker-delta';
-import DockerToolbelt = require('docker-toolbelt');
 
 import type { SchemaReturn } from '../config/schema-type';
 import { envArrayToObject } from './conversions';
@@ -43,9 +42,8 @@ type ImageNameParts = {
 const DELTA_TOKEN_TIMEOUT = 10 * 60 * 1000;
 
 export const docker = new Dockerode();
-export const dockerToolbelt = new DockerToolbelt(undefined);
 export const dockerProgress = new DockerProgress({
-	dockerToolbelt,
+	docker,
 });
 
 // Separate string containing registry and image name into its parts.
@@ -153,10 +151,10 @@ export async function fetchDeltaWithProgress(
 
 	logFn(`Starting delta to ${imgDest}`);
 
-	const [dstInfo, srcInfo] = await Promise.all([
-		dockerToolbelt.getRegistryAndName(imgDest),
-		dockerToolbelt.getRegistryAndName(deltaOpts.deltaSource),
-	]);
+	const [dstInfo, srcInfo] = [
+		getRegistryAndName(imgDest),
+		getRegistryAndName(deltaOpts.deltaSource),
+	];
 
 	const token = await getAuthToken(srcInfo, dstInfo, deltaOpts);
 
@@ -252,7 +250,7 @@ export async function fetchImageWithProgress(
 	{ uuid, currentApiKey }: FetchOptions,
 	onProgress: ProgressCallback,
 ): Promise<string> {
-	const { registry } = await dockerToolbelt.getRegistryAndName(image);
+	const { registry } = getRegistryAndName(image);
 
 	const dockerOpts =
 		// If no registry is specified, we assume the image is a public

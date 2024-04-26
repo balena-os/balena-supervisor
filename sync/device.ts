@@ -1,6 +1,6 @@
 import Docker from 'dockerode';
 import type { Dockerfile } from 'livepush';
-import { Builder } from 'resin-docker-build';
+import { build } from '@balena/compose';
 
 import { promises as fs } from 'fs';
 import * as Path from 'path';
@@ -9,6 +9,8 @@ import * as tar from 'tar-stream';
 import * as readline from 'readline';
 
 import { exec } from '../src/lib/fs-utils';
+
+const { Builder } = build;
 
 export function getDocker(deviceAddress: string): Docker {
 	return new Docker({
