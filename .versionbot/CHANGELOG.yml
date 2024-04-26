@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action action to v2.0.62
+      hash: 20f6cb07cb1989f99eaa54625d8e4b502e2e0919
+      body: |
+        Update balena-io/deploy-to-balena-action from 2.0.58 to 2.0.62
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.32
+  title: ""
+  date: 2024-04-26T01:51:50.589Z
+- commits:
     - subject: Move lib/fs-utils tests to testfs
       hash: 9c968b8d06a407e943d9f91eb5f89863280d7962
       body: |
