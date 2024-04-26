@@ -92,7 +92,7 @@
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "fp-ts": "^2.8.1",
     "got": "14.2.1",
-    "husky": "^8.0.1",
+    "husky": "^9.0.0",
     "io-ts": "^2.2.10",
     "io-ts-reporters": "^1.2.2",
     "json-mask": "^2.0.0",
