@@ -94,7 +94,7 @@
     "got": "14.2.1",
     "husky": "^9.0.11",
     "io-ts": "^2.2.10",
-    "io-ts-reporters": "^1.2.2",
+    "io-ts-reporters": "^2.0.0",
     "json-mask": "^2.0.0",
     "JSONStream": "^1.3.5",
     "knex": "^3.1.0",
