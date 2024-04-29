@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action action to v2.0.63
+      hash: 6c2a07bd776c27fda9d34e9205152b8aac0476eb
+      body: |
+        Update balena-io/deploy-to-balena-action from 2.0.62 to 2.0.63
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.2.37
+  title: ""
+  date: 2024-04-29T22:28:45.427Z
+- commits:
     - subject: Remove unused event-stream dependency
       hash: 23ba3e43849bca6172a3783c82216c360c986eb2
       body: ""
