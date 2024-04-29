@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update @types dependencies
+      hash: 4adf7105209a3aa407a93e22870100fe0b468015
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 16.2.35
+  title: ""
+  date: 2024-04-29T16:10:01.354Z
+- commits:
     - subject: "Dev: update husky to v9"
       hash: 7df3c1f5fca8ae3e2a1a015b5698420c278e06c1
       body: ""
