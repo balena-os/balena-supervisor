@@ -247,7 +247,7 @@ export function getHealthcheck(
 ): ServiceHealthcheck {
 	// get the image info healtcheck
 	const imageServiceHealthcheck = dockerHealthcheckToServiceHealthcheck(
-		_.get(imageInfo, 'Config.Healthcheck', null),
+		_.get(imageInfo, 'Config.Healthcheck'),
 	);
 	const composeServiceHealthcheck =
 		composeHealthcheckToServiceHealthcheck(composeHealthcheck);
