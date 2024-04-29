@@ -1,4 +1,16 @@
 - commits:
+    - subject: "Dev: update husky to v9"
+      hash: 7df3c1f5fca8ae3e2a1a015b5698420c278e06c1
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 16.2.34
+  title: ""
+  date: 2024-04-29T15:09:50.951Z
+- commits:
     - subject: Update docker related dependencies
       hash: ae823fea181e2b1680940538b04b5af37c1b3229
       body: |
