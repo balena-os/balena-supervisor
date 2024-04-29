@@ -27,7 +27,7 @@
     "clean": "rimraf build",
     "install-native-deps": "./build-utils/install-dbus.sh",
     "flowzone-preinstall": "npm run install-native-deps",
-    "prepare": "node -e \"try { require('husky').install() } catch (e) {if (e.code !== 'MODULE_NOT_FOUND') throw e}\""
+    "prepare": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module"
   },
   "private": true,
   "dependencies": {
@@ -92,7 +92,7 @@
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "fp-ts": "^2.8.1",
     "got": "14.2.1",
-    "husky": "^8.0.1",
+    "husky": "^9.0.11",
     "io-ts": "^2.2.10",
     "io-ts-reporters": "^1.2.2",
     "json-mask": "^2.0.0",
