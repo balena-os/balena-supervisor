@@ -109,7 +109,7 @@
     "node-loader": "^2.0.0",
     "nodemon": "^3.1.0",
     "pinejs-client-request": "^7.3.5",
-    "pretty-ms": "^7.0.1",
+    "pretty-ms": "^9.0.0",
     "request": "^2.88.2",
     "resumable-request": "^2.0.1",
     "rewire": "^7.0.0",
