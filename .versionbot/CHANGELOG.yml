@@ -1,4 +1,40 @@
 - commits:
+    - subject: Remove unused event-stream dependency
+      hash: 23ba3e43849bca6172a3783c82216c360c986eb2
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Update io-ts to 2.2.20, io-ts-reporters to 2.0.1, fp-ts to 2.16.5
+      hash: f510dd9a8068df4d0c14f6598388bf5c15e235b4
+      body: >
+        TODO: Upgrading io-ts to 2.2.21 will result in some unit tests for
+
+        io-ts type validation breaking, due to a change in t.record's handling
+
+        of decoding unknown objects. In <2.2.21, a record with a custom key type
+
+        will decode an unknown object to Left if it has a key is not of the
+        custom
+
+        type. Whereas in io-ts@2.2.21, t.record will strip the invalid key and
+
+        decode to Right. This is a breaking change for us.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.2.36
+  title: ""
+  date: 2024-04-29T19:54:50.854Z
+- commits:
     - subject: Update @types dependencies
       hash: 4adf7105209a3aa407a93e22870100fe0b468015
       body: ""
