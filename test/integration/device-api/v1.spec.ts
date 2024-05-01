@@ -816,5 +816,41 @@ describe('device-api/v1', () => {
 					);
 				});
 		});
+
+		it('responds with 200 if patch successful', async () => {
+			(actions.patchHostConfig as SinonStub).resolves();
+			await request(api)
+				.patch('/v1/device/host-config')
+				.send({ network: { hostname: 'deadbeef' } })
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
+				.expect(200);
+		});
+
+		it('responds with 423 for update lock errors', async () => {
+			(actions.patchHostConfig as SinonStub).throws(new UpdatesLockedError());
+			await request(api)
+				.patch('/v1/device/host-config')
+				.send({ network: { hostname: 'deadbeef' } })
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
+				.expect(423);
+		});
+
+		it('responds with 400 for BadRequestErrors', async () => {
+			(actions.patchHostConfig as SinonStub).throws(new BadRequestError());
+			await request(api)
+				.patch('/v1/device/host-config')
+				.send({ network: { hostname: 'deadbeef' } })
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
+				.expect(400);
+		});
+
+		it('responds with 503 for other errors that occur during patch', async () => {
+			(actions.patchHostConfig as SinonStub).throws(new Error());
+			await request(api)
+				.patch('/v1/device/host-config')
+				.send({ network: { hostname: 'deadbeef' } })
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
+				.expect(503);
+		});
 	});
 });
