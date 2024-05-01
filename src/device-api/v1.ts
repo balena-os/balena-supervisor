@@ -187,6 +187,12 @@ router.patch('/v1/device/host-config', async (req, res) => {
 		if (e instanceof UpdatesLockedError) {
 			return res.status(423).send(e?.message ?? e);
 		}
+
+		// User input cannot be parsed to type HostConfiguration or LegacyHostConfiguration
+		if (isBadRequestError(e)) {
+			return res.status(e.statusCode).send(e.statusMessage);
+		}
+
 		return res.status(503).send((e as Error)?.message ?? e ?? 'Unknown error');
 	}
 });

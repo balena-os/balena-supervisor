@@ -3,15 +3,17 @@ import path from 'path';
 import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
 
+import type { RedsocksConfig, HostProxyConfig } from './types';
 import { ProxyConfig } from './types';
-import type { RedsocksConfig } from './types';
-import { pathOnBoot, readFromBoot } from '../lib/host-utils';
-import { unlinkAll } from '../lib/fs-utils';
+import { pathOnBoot, readFromBoot, writeToBoot } from '../lib/host-utils';
+import { unlinkAll, mkdirp } from '../lib/fs-utils';
 import { isENOENT } from '../lib/errors';
 import log from '../lib/supervisor-console';
+import * as dbus from '../lib/dbus';
 
 const proxyBasePath = pathOnBoot('system-proxy');
 const noProxyPath = path.join(proxyBasePath, 'no_proxy');
+const redsocksConfPath = path.join(proxyBasePath, 'redsocks.conf');
 
 const disallowedProxyFields = ['local_ip', 'local_port'];
 
@@ -136,6 +138,87 @@ export class RedsocksConf {
 	}
 }
 
+export async function readProxy(): Promise<HostProxyConfig | undefined> {
+	// Get and parse redsocks.conf
+	let rawConf: string | undefined;
+	try {
+		rawConf = await readFromBoot(redsocksConfPath, 'utf-8');
+	} catch (e: unknown) {
+		if (!isENOENT(e)) {
+			throw e;
+		}
+		return undefined;
+	}
+	const redsocksConf = RedsocksConf.parse(rawConf);
+
+	// Get and parse no_proxy
+	const noProxy = await readNoProxy();
+
+	// Build proxy object
+	const proxy = {
+		...redsocksConf.redsocks,
+		...(noProxy.length && { noProxy }),
+	};
+
+	// Assumes mandatory proxy config fields (type, ip, port) are present,
+	// even if they very well may not be. It is up to the user to ensure
+	// that all the necessary fields are present in the redsocks.conf file.
+	return proxy as HostProxyConfig;
+}
+
+export async function setProxy(
+	conf: RedsocksConfig,
+	noProxy: Nullable<string[]>,
+) {
+	// Ensure proxy directory exists
+	await mkdirp(proxyBasePath);
+
+	// Set no_proxy
+	let noProxyChanged = false;
+	if (noProxy != null) {
+		noProxyChanged = await setNoProxy(noProxy);
+	}
+
+	// Write to redsocks.conf
+	const toWrite = RedsocksConf.stringify(conf);
+	if (toWrite) {
+		await writeToBoot(redsocksConfPath, toWrite);
+	}
+	// If target is empty aside from noProxy and noProxy got patched,
+	// do not change redsocks.conf to remain backwards compatible
+	else if (!noProxyChanged) {
+		await unlinkAll(redsocksConfPath);
+	}
+
+	// Restart services using dbus
+	await restartProxyServices();
+}
+
+async function restartProxyServices() {
+	// restart balena-proxy-config if it is loaded and NOT PartOf redsocks-conf.target
+	if (
+		(
+			await Promise.any([
+				dbus.servicePartOf('balena-proxy-config'),
+				dbus.servicePartOf('resin-proxy-config'),
+			])
+		).includes('redsocks-conf.target') === false
+	) {
+		await Promise.any([
+			dbus.restartService('balena-proxy-config'),
+			dbus.restartService('resin-proxy-config'),
+		]);
+	}
+
+	// restart redsocks if it is loaded and NOT PartOf redsocks-conf.target
+	if (
+		(await dbus.servicePartOf('redsocks')).includes('redsocks-conf.target') ===
+		false
+	) {
+		await dbus.restartService('redsocks');
+	}
+}
+
 export async function readNoProxy(): Promise<string[]> {
 	try {
 		const noProxy = await readFromBoot(noProxyPath, 'utf-8')
@@ -155,10 +238,17 @@ export async function readNoProxy(): Promise<string[]> {
 	}
 }
 
-export async function setNoProxy(list: string[]) {
+export async function setNoProxy(list: Nullable<string[]>) {
+	const current = await readNoProxy();
 	if (!list || !Array.isArray(list) || !list.length) {
 		await unlinkAll(noProxyPath);
 	} else {
 		await fs.writeFile(noProxyPath, list.join('\n'));
 	}
+	// If noProxy has changed, return true
+	return (
+		Array.isArray(list) &&
+		(current.length !== list.length ||
+			!current.every((addr) => list.includes(addr)))
+	);
 }

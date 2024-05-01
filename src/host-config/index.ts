@@ -4,9 +4,13 @@ import Reporter from 'io-ts-reporters';
 
 import type { RedsocksConfig, ProxyConfig } from './types';
 import { HostConfiguration, LegacyHostConfiguration } from './types';
+import { readProxy, setProxy } from './proxy';
 import * as config from '../config';
+// FIXME: The host-config module shouldn't be importing from compose
+import * as applicationManager from '../compose/application-manager';
 import { pathOnRoot } from '../lib/host-utils';
 import log from '../lib/supervisor-console';
+import * as updateLock from '../lib/update-lock';
 
 export * from './proxy';
 export * from './types';
@@ -33,7 +37,7 @@ export async function setHostname(val: string) {
 
 export function parse(
 	conf: unknown,
-): HostConfiguration | LegacyHostConfiguration | null {
+): HostConfiguration | LegacyHostConfiguration {
 	const decoded = HostConfiguration.decode(conf);
 
 	if (isRight(decoded)) {
@@ -52,7 +56,7 @@ export function parse(
 			return legacyDecoded.right;
 		}
 	}
-	return null;
+	throw new Error('Could not parse host config input to a valid format');
 }
 
 export function patchProxy(
@@ -79,4 +83,50 @@ export function patchProxy(
 		patchedConf.redsocks = patched as ProxyConfig;
 	}
 	return patchedConf;
+}
+
+export async function patch(
+	conf: HostConfiguration | LegacyHostConfiguration,
+	force: boolean = false,
+): Promise<void> {
+	const apps = await applicationManager.getCurrentApps();
+	const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
+
+	if (conf.network.hostname != null) {
+		await setHostname(conf.network.hostname);
+	}
+
+	if (conf.network.proxy != null) {
+		const targetConf = conf.network.proxy;
+		// It's possible for appIds to be an empty array, but patch shouldn't fail
+		// as it's not dependent on there being any running user applications.
+		return updateLock.lock(appIds, { force }, async () => {
+			const proxyConf = await readProxy();
+			let currentConf: ProxyConfig | undefined = undefined;
+			if (proxyConf) {
+				delete proxyConf.noProxy;
+				currentConf = proxyConf;
+			}
+
+			// Merge current & target redsocks.conf
+			const patchedConf = patchProxy(
+				{
+					redsocks: currentConf,
+				},
+				{
+					redsocks: targetConf,
+				},
+			);
+			await setProxy(patchedConf, targetConf.noProxy);
+		});
+	}
+}
+
+export async function get(): Promise<HostConfiguration> {
+	return {
+		network: {
+			hostname: await readHostname(),
+			proxy: await readProxy(),
+		},
+	};
 }

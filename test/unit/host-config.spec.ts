@@ -2,9 +2,9 @@ import { expect } from 'chai';
 import { stripIndent } from 'common-tags';
 import type { SinonStub } from 'sinon';
 
-import * as hostConfig from '~/src/host-config/index';
-import { RedsocksConf } from '~/src/host-config/index';
-import type { RedsocksConfig, ProxyConfig } from '~/src/host-config/types';
+import * as hostConfig from '~/src/host-config';
+import { RedsocksConf } from '~/src/host-config';
+import type { RedsocksConfig, ProxyConfig } from '~/src/host-config';
 import log from '~/lib/supervisor-console';
 
 describe('RedsocksConf', () => {
@@ -619,24 +619,30 @@ describe('src/host-config', () => {
 			(log.warn as SinonStub).resetHistory();
 		});
 
-		it('parses to null for HostConfiguration without network key', () => {
-			expect(hostConfig.parse({})).to.be.null;
+		it('throws error for HostConfiguration without network key', () => {
+			expect(() => hostConfig.parse({})).to.throw(
+				'Could not parse host config input to a valid format',
+			);
 		});
 
-		it('parses to null for HostConfiguration with invalid network key', () => {
+		it('throws error for HostConfiguration with invalid network key', () => {
 			const conf = {
 				network: 123,
 			};
-			expect(hostConfig.parse(conf)).to.be.null;
+			expect(() => hostConfig.parse(conf)).to.throw(
+				'Could not parse host config input to a valid format',
+			);
 		});
 
-		it('parses to null for HostConfiguration with invalid hostname', () => {
+		it('throws error for HostConfiguration with invalid hostname', () => {
 			const conf = {
 				network: {
 					hostname: 123,
 				},
 			};
-			expect(hostConfig.parse(conf)).to.be.null;
+			expect(() => hostConfig.parse(conf)).to.throw(
+				'Could not parse host config input to a valid format',
+			);
 		});
 	});
 });
