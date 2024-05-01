@@ -3,12 +3,14 @@ import { stripIndent } from 'common-tags';
 import type { SinonStub } from 'sinon';
 
 import * as hostConfig from '~/src/host-config/index';
+import type { RedsocksConfig, ProxyConfig } from '~/src/host-config/types';
+import { RedsocksConf } from '~/src/host-config/index';
 import log from '~/lib/supervisor-console';
 
 describe('RedsocksConf', () => {
 	describe('stringify', () => {
 		it('stringifies RedsocksConfig into config string', () => {
-			const conf: hostConfig.RedsocksConfig = {
+			const conf: RedsocksConfig = {
 				redsocks: {
 					type: 'socks5',
 					ip: 'example.org',
@@ -17,7 +19,7 @@ describe('RedsocksConf', () => {
 					password: '"bar"',
 				},
 			};
-			const confStr = hostConfig.RedsocksConf.stringify(conf);
+			const confStr = RedsocksConf.stringify(conf);
 			expect(confStr).to.equal(
 				stripIndent`
 				base {
@@ -42,7 +44,7 @@ describe('RedsocksConf', () => {
 		});
 
 		it('adds double quotes to auth fields if not exists', () => {
-			const conf: hostConfig.RedsocksConfig = {
+			const conf: RedsocksConfig = {
 				redsocks: {
 					type: 'socks5',
 					ip: 'example.org',
@@ -51,7 +53,7 @@ describe('RedsocksConf', () => {
 					password: 'bar',
 				},
 			};
-			const confStr = hostConfig.RedsocksConf.stringify(conf);
+			const confStr = RedsocksConf.stringify(conf);
 			expect(confStr).to.equal(
 				stripIndent`
 				base {
@@ -84,8 +86,8 @@ describe('RedsocksConf', () => {
 					login: 'foo',
 					password: 'bar',
 				},
-			} as unknown as hostConfig.RedsocksConfig;
-			const confStr = hostConfig.RedsocksConf.stringify(conf);
+			} as unknown as RedsocksConfig;
+			const confStr = RedsocksConf.stringify(conf);
 			expect(confStr).to.equal(
 				stripIndent`
 				base {
@@ -110,16 +112,16 @@ describe('RedsocksConf', () => {
 		});
 
 		it('stringifies to empty string when provided empty RedsocksConfig', () => {
-			const conf: hostConfig.RedsocksConfig = {};
-			const confStr = hostConfig.RedsocksConf.stringify(conf);
+			const conf: RedsocksConfig = {};
+			const confStr = RedsocksConf.stringify(conf);
 			expect(confStr).to.equal('');
 		});
 
 		it('stringifies to empty string when provided empty redsocks block', () => {
-			const conf: hostConfig.RedsocksConfig = {
-				redsocks: {} as hostConfig.ProxyConfig,
+			const conf: RedsocksConfig = {
+				redsocks: {} as ProxyConfig,
 			};
-			const confStr = hostConfig.RedsocksConf.stringify(conf);
+			const confStr = RedsocksConf.stringify(conf);
 			expect(confStr).to.equal('');
 		});
 	});
@@ -150,7 +152,7 @@ describe('RedsocksConf', () => {
 				}
 
             `;
-			const conf = hostConfig.RedsocksConf.parse(redsocksConfStr);
+			const conf = RedsocksConf.parse(redsocksConfStr);
 			expect(conf).to.deep.equal({
 				redsocks: {
 					type: 'socks5',
@@ -184,7 +186,7 @@ describe('RedsocksConf', () => {
                     redirector = iptables;
 				}
             `;
-			const conf = hostConfig.RedsocksConf.parse(redsocksConfStr);
+			const conf = RedsocksConf.parse(redsocksConfStr);
 			expect(conf).to.deep.equal({
 				redsocks: {
 					type: 'http-connect',
@@ -213,7 +215,7 @@ describe('RedsocksConf', () => {
 					login = "us}{er";
 					password = "p{}a}}s{{s";
 				}`; // No newlines
-			const conf2 = hostConfig.RedsocksConf.parse(redsocksConfStr2);
+			const conf2 = RedsocksConf.parse(redsocksConfStr2);
 			expect(conf2).to.deep.equal({
 				redsocks: {
 					type: 'http-connect',
@@ -244,7 +246,7 @@ describe('RedsocksConf', () => {
 					password = pass;
 				}
 			`;
-			const conf = hostConfig.RedsocksConf.parse(confStr);
+			const conf = RedsocksConf.parse(confStr);
 			expect(conf).to.deep.equal(expected);
 
 			const confStr2 = stripIndent`
@@ -256,7 +258,7 @@ describe('RedsocksConf', () => {
 					password = pass";
 				}
 			`;
-			const conf2 = hostConfig.RedsocksConf.parse(confStr2);
+			const conf2 = RedsocksConf.parse(confStr2);
 			expect(conf2).to.deep.equal(expected);
 
 			const confStr3 = stripIndent`
@@ -268,7 +270,7 @@ describe('RedsocksConf', () => {
 					password = "pass";
 				}
 			`;
-			const conf3 = hostConfig.RedsocksConf.parse(confStr3);
+			const conf3 = RedsocksConf.parse(confStr3);
 			expect(conf3).to.deep.equal(expected);
 		});
 
@@ -286,7 +288,7 @@ describe('RedsocksConf', () => {
                 }
             `;
 			(log.warn as SinonStub).resetHistory();
-			const conf = hostConfig.RedsocksConf.parse(redsocksConfStr);
+			const conf = RedsocksConf.parse(redsocksConfStr);
 			expect((log.warn as SinonStub).lastCall.args[0]).to.equal(
 				'Invalid redsocks block in redsocks.conf:\n' +
 					'Expecting NumericIdentifier at 0.port but instead got: "bar" (must be be an positive integer)\n' +
@@ -323,7 +325,7 @@ describe('RedsocksConf', () => {
                 }
             `;
 			(log.warn as SinonStub).resetHistory();
-			const conf = hostConfig.RedsocksConf.parse(redsocksConfStr);
+			const conf = RedsocksConf.parse(redsocksConfStr);
 			expect(
 				(log.warn as SinonStub).getCalls().map((call) => call.firstArg),
 			).to.deep.equal([
@@ -355,7 +357,7 @@ describe('RedsocksConf', () => {
                 }
             `;
 			(log.warn as SinonStub).resetHistory();
-			const conf = hostConfig.RedsocksConf.parse(redsocksConfStr);
+			const conf = RedsocksConf.parse(redsocksConfStr);
 			expect(
 				(log.warn as SinonStub).getCalls().map((call) => call.firstArg),
 			).to.deep.equal([
@@ -372,6 +374,59 @@ describe('RedsocksConf', () => {
 			]);
 			(log.warn as SinonStub).resetHistory();
 			expect(conf).to.deep.equal({});
+		});
+	});
+});
+
+describe('src/host-config', () => {
+	describe('patchProxy', () => {
+		it('patches RedsocksConfig with new values', () => {
+			const current = {
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: '"foo"',
+					password: '"bar"',
+				},
+			} as RedsocksConfig;
+			const input = {
+				redsocks: {
+					type: 'http-connect',
+					ip: 'test.balena.io',
+				},
+			} as any;
+			const patched = hostConfig.patchProxy(current, input);
+			expect(patched).to.deep.equal({
+				redsocks: {
+					// Patched fields are updated
+					type: 'http-connect',
+					ip: 'test.balena.io',
+					// Unpatched fields retain their original values
+					port: 1080,
+					login: '"foo"',
+					password: '"bar"',
+				},
+			});
+		});
+
+		it('returns empty RedsocksConfig if redsocks config block is empty or invalid', () => {
+			const current: RedsocksConfig = {
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: '"foo"',
+					password: '"bar"',
+				},
+			};
+			expect(hostConfig.patchProxy(current, { redsocks: {} })).to.deep.equal(
+				{},
+			);
+			expect(
+				hostConfig.patchProxy(current, { redsocks: true } as any),
+			).to.deep.equal({});
+			expect(hostConfig.patchProxy(current, {})).to.deep.equal({});
 		});
 	});
 });
