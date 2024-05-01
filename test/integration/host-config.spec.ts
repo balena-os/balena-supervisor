@@ -6,7 +6,8 @@ import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 import * as fs from 'fs/promises';
 
-import * as hostConfig from '~/src/host-config';
+import { get, patch } from '~/src/host-config';
+import * as hostConfig from '~/src/host-config/index';
 import * as config from '~/src/config';
 import * as applicationManager from '~/src/compose/application-manager';
 import type { InstancedAppState } from '~/src/compose/types';
@@ -80,8 +81,25 @@ describe('host-config', () => {
 		(dbus.restartService as SinonStub).restore();
 	});
 
+	describe('hostname', () => {
+		it('reads hostname', async () => {
+			expect(await hostConfig.readHostname()).to.equal('deadbeef');
+		});
+
+		it('sets hostname', async () => {
+			await hostConfig.setHostname('test');
+			expect(await config.get('hostname')).to.equal('test');
+		});
+
+		it('sets hostname to first 7 characters of UUID if empty', async () => {
+			await config.set({ uuid: '1234567' });
+			await hostConfig.setHostname('');
+			expect(await config.get('hostname')).to.equal('1234567');
+		});
+	});
+
 	it('reads proxy configs and hostname', async () => {
-		const { network } = await hostConfig.get();
+		const { network } = await get();
 		expect(network).to.have.property('hostname', 'deadbeef');
 		expect(network).to.have.property('proxy');
 		expect(network.proxy).to.have.property('ip', 'example.org');
@@ -99,7 +117,7 @@ describe('host-config', () => {
 		stub(applicationManager, 'getCurrentApps').resolves(currentApps);
 
 		try {
-			await hostConfig.patch({ network: { hostname: 'test' } });
+			await patch({ network: { hostname: 'test' } });
 			expect.fail('Expected hostConfig.patch to throw UpdatesLockedError');
 		} catch (e: unknown) {
 			expect(e).to.be.instanceOf(UpdatesLockedError);
@@ -112,7 +130,7 @@ describe('host-config', () => {
 		stub(applicationManager, 'getCurrentApps').resolves(currentApps);
 
 		try {
-			await hostConfig.patch({ network: { hostname: 'deadreef' } }, true);
+			await patch({ network: { hostname: 'deadreef' } }, true);
 			expect(await config.get('hostname')).to.equal('deadreef');
 		} catch (e: unknown) {
 			expect.fail(`Expected hostConfig.patch to not throw, but got ${e}`);
@@ -122,14 +140,14 @@ describe('host-config', () => {
 	});
 
 	it('patches hostname', async () => {
-		await hostConfig.patch({ network: { hostname: 'test' } });
+		await patch({ network: { hostname: 'test' } });
 		// /etc/hostname isn't changed until the balena-hostname service
 		// is restarted by the OS.
 		expect(await config.get('hostname')).to.equal('test');
 	});
 
 	it('patches proxy', async () => {
-		await hostConfig.patch({
+		await patch({
 			network: {
 				proxy: {
 					ip: 'example2.org',
@@ -141,7 +159,7 @@ describe('host-config', () => {
 				},
 			},
 		});
-		const { network } = await hostConfig.get();
+		const { network } = await get();
 		expect(network).to.have.property('proxy');
 		expect(network.proxy).to.have.property('ip', 'example2.org');
 		expect(network.proxy).to.have.property('port', 1090);
@@ -156,7 +174,7 @@ describe('host-config', () => {
 
 	it('skips restarting proxy services when part of redsocks-conf.target', async () => {
 		(dbus.servicePartOf as SinonStub).resolves(['redsocks-conf.target']);
-		await hostConfig.patch({
+		await patch({
 			network: {
 				proxy: {
 					ip: 'example2.org',
@@ -169,7 +187,7 @@ describe('host-config', () => {
 			},
 		});
 		expect(dbus.restartService as SinonStub).to.not.have.been.called;
-		const { network } = await hostConfig.get();
+		const { network } = await get();
 		expect(network).to.have.property('proxy');
 		expect(network.proxy).to.have.property('ip', 'example2.org');
 		expect(network.proxy).to.have.property('port', 1090);
@@ -183,8 +201,8 @@ describe('host-config', () => {
 	});
 
 	it('patches redsocks.conf to be empty if prompted', async () => {
-		await hostConfig.patch({ network: { proxy: {} } });
-		const { network } = await hostConfig.get();
+		await patch({ network: { proxy: {} } });
+		const { network } = await get();
 		expect(network).to.have.property('proxy', undefined);
 		expect(await fs.readdir(proxyBase)).to.not.have.members([
 			'redsocks.conf',
@@ -193,23 +211,23 @@ describe('host-config', () => {
 	});
 
 	it('patches no_proxy to be empty if prompted', async () => {
-		await hostConfig.patch({
+		await patch({
 			network: {
 				proxy: {
 					noProxy: [],
 				},
 			},
 		});
-		const { network } = await hostConfig.get();
+		const { network } = await get();
 		expect(network).to.have.property('proxy');
 		expect(network.proxy).to.not.have.property('noProxy');
 		expect(await fs.readdir(proxyBase)).to.not.have.members(['no_proxy']);
 	});
 
 	it("doesn't update hostname or proxy when both are empty", async () => {
-		const { network } = await hostConfig.get();
-		await hostConfig.patch({ network: {} });
-		const { network: newNetwork } = await hostConfig.get();
+		const { network } = await get();
+		await patch({ network: {} });
+		const { network: newNetwork } = await get();
 		expect(network.hostname).to.equal(newNetwork.hostname);
 		expect(network.proxy).to.deep.equal(newNetwork.proxy);
 	});

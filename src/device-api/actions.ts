@@ -449,10 +449,5 @@ export const patchHostConfig = async (
 	conf: Parameters<typeof hostConfig.patch>[0],
 	force: boolean,
 ) => {
-	// If hostname is an empty string, return first 7 digits of device uuid
-	if (conf.network?.hostname === '') {
-		const uuid = await config.get('uuid');
-		conf.network.hostname = uuid?.slice(0, 7);
-	}
 	await hostConfig.patch(conf, force);
 };

@@ -1,19 +1,13 @@
 import { stripIndent } from 'common-tags';
 import _ from 'lodash';
-import { promises as fs } from 'fs';
 import path from 'path';
 
-import * as config from './config';
 import * as applicationManager from './compose/application-manager';
+import { readHostname, setHostname } from './host-config/index';
 import * as dbus from './lib/dbus';
 import { isENOENT } from './lib/errors';
 import { mkdirp, unlinkAll } from './lib/fs-utils';
-import {
-	writeToBoot,
-	readFromBoot,
-	pathOnRoot,
-	pathOnBoot,
-} from './lib/host-utils';
+import { writeToBoot, readFromBoot, pathOnBoot } from './lib/host-utils';
 import * as updateLock from './lib/update-lock';
 
 const redsocksHeader = stripIndent`
@@ -176,19 +170,6 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 	) {
 		await dbus.restartService('redsocks');
 	}
-}
-
-const hostnamePath = pathOnRoot('/etc/hostname');
-async function readHostname() {
-	const hostnameData = await fs.readFile(hostnamePath, 'utf-8');
-	return _.trim(hostnameData);
-}
-
-async function setHostname(val: string) {
-	// Changing the hostname on config.json will trigger
-	// the OS config-json service to restart the necessary services
-	// so the change gets reflected on containers
-	await config.set({ hostname: val });
 }
 
 export async function get(): Promise<HostConfig> {
