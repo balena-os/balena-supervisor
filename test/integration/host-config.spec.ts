@@ -208,6 +208,49 @@ describe('host-config', () => {
 		]);
 	});
 
+	it('patches proxy fields specified while leaving unspecified fields unchanged', async () => {
+		await patch({
+			network: {
+				proxy: {
+					ip: 'example2.org',
+					port: 1090,
+				},
+			},
+		});
+		const { network } = await get();
+		expect(network).to.have.property('proxy');
+		expect(network.proxy).to.have.property('ip', 'example2.org');
+		expect(network.proxy).to.have.property('port', 1090);
+		expect(network.proxy).to.have.property('type', 'socks5');
+		expect(network.proxy).to.have.property('login', 'foo');
+		expect(network.proxy).to.have.property('password', 'bar');
+		expect(network.proxy).to.have.deep.property('noProxy', [
+			'152.10.30.4',
+			'253.1.1.0/16',
+		]);
+	});
+
+	it('patches proxy to empty if input is empty', async () => {
+		await patch({ network: { proxy: {} } });
+		const { network } = await get();
+		expect(network).to.have.property('proxy', undefined);
+	});
+
+	it('keeps current proxy if input is invalid', async () => {
+		await patch({ network: { proxy: null as any } });
+		const { network } = await get();
+		expect(network).to.have.property('proxy');
+		expect(network.proxy).to.have.property('ip', 'example.org');
+		expect(network.proxy).to.have.property('port', 1080);
+		expect(network.proxy).to.have.property('type', 'socks5');
+		expect(network.proxy).to.have.property('login', 'foo');
+		expect(network.proxy).to.have.property('password', 'bar');
+		expect(network.proxy).to.have.deep.property('noProxy', [
+			'152.10.30.4',
+			'253.1.1.0/16',
+		]);
+	});
+
 	it('skips restarting proxy services when part of redsocks-conf.target', async () => {
 		(dbus.servicePartOf as SinonStub).resolves(['redsocks-conf.target']);
 		await patch({

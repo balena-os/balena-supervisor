@@ -3,8 +3,8 @@ import { stripIndent } from 'common-tags';
 import type { SinonStub } from 'sinon';
 
 import * as hostConfig from '~/src/host-config/index';
-import type { RedsocksConfig, ProxyConfig } from '~/src/host-config/types';
 import { RedsocksConf } from '~/src/host-config/index';
+import type { RedsocksConfig, ProxyConfig } from '~/src/host-config/types';
 import log from '~/lib/supervisor-console';
 
 describe('RedsocksConf', () => {
@@ -427,6 +427,216 @@ describe('src/host-config', () => {
 				hostConfig.patchProxy(current, { redsocks: true } as any),
 			).to.deep.equal({});
 			expect(hostConfig.patchProxy(current, {})).to.deep.equal({});
+		});
+	});
+
+	describe('parse', () => {
+		it('parses valid HostConfiguration', () => {
+			const conf = {
+				network: {
+					proxy: {
+						type: 'socks4',
+						ip: 'balena.io',
+						port: 1079,
+						login: '"baz"',
+						password: '"foo"',
+						noProxy: ['8.8.8.8'],
+					},
+					hostname: 'balena',
+				},
+			};
+			expect(hostConfig.parse(conf)).to.deep.equal({
+				network: {
+					proxy: {
+						type: 'socks4',
+						ip: 'balena.io',
+						port: 1079,
+						login: '"baz"',
+						password: '"foo"',
+						noProxy: ['8.8.8.8'],
+					},
+					hostname: 'balena',
+				},
+			});
+		});
+
+		it('parses valid HostConfiguration with only hostname', () => {
+			const conf = {
+				network: {
+					hostname: 'balena2',
+				},
+			};
+			expect(hostConfig.parse(conf)).to.deep.equal({
+				network: {
+					hostname: 'balena2',
+				},
+			});
+		});
+
+		it('parses valid HostConfiguration with only proxy', () => {
+			const conf = {
+				network: {
+					proxy: {
+						type: 'http-connect',
+						ip: 'test.balena.io',
+						port: 1081,
+						login: '"foo"',
+						password: '"bar"',
+						noProxy: ['3.3.3.3'],
+					},
+				},
+			};
+			expect(hostConfig.parse(conf)).to.deep.equal({
+				network: {
+					proxy: {
+						type: 'http-connect',
+						ip: 'test.balena.io',
+						port: 1081,
+						login: '"foo"',
+						password: '"bar"',
+						noProxy: ['3.3.3.3'],
+					},
+				},
+			});
+		});
+
+		it('parses valid HostConfiguration with only noProxy', () => {
+			const conf = {
+				network: {
+					proxy: {
+						noProxy: ['1.1.1.1', '2.2.2.2'],
+					},
+				},
+			};
+			expect(hostConfig.parse(conf)).to.deep.equal({
+				network: {
+					proxy: {
+						noProxy: ['1.1.1.1', '2.2.2.2'],
+					},
+				},
+			});
+		});
+
+		it('parses HostConfiguration where auth fields are missing double quotes', () => {
+			const conf = {
+				network: {
+					proxy: {
+						type: 'http-connect',
+						ip: 'test.balena.io',
+						port: 1081,
+						login: 'foo',
+						password: 'bar',
+						noProxy: ['3.3.3.3'],
+					},
+				},
+			};
+			(log.warn as SinonStub).resetHistory();
+			expect(hostConfig.parse(conf)).to.deep.equal({
+				network: {
+					proxy: {
+						type: 'http-connect',
+						ip: 'test.balena.io',
+						port: 1081,
+						login: 'foo',
+						password: 'bar',
+						noProxy: ['3.3.3.3'],
+					},
+				},
+			});
+			// Should not warn about missing double quotes
+			expect(log.warn as SinonStub).to.not.have.been.called;
+		});
+
+		it('parses HostConfiguration where port is a string', () => {
+			const conf = {
+				network: {
+					proxy: {
+						type: 'http-connect',
+						ip: 'test.balena.io',
+						port: '1081',
+						login: '"foo"',
+						password: '"bar"',
+						noProxy: ['3.3.3.3'],
+					},
+				},
+			};
+			(log.warn as SinonStub).resetHistory();
+			expect(hostConfig.parse(conf)).to.deep.equal({
+				network: {
+					proxy: {
+						type: 'http-connect',
+						ip: 'test.balena.io',
+						port: 1081,
+						login: '"foo"',
+						password: '"bar"',
+						noProxy: ['3.3.3.3'],
+					},
+				},
+			});
+			// Should not warn about port being a string
+			expect(log.warn as SinonStub).to.not.have.been.called;
+		});
+
+		// Allow invalid fields through for backwards compatibility
+		it('parses input with invalid proxy as LegacyHostConfiguration with console warnings', () => {
+			const conf = {
+				network: {
+					proxy: {
+						type: 'socks6',
+						ip: 123,
+						port: 'abc',
+						login: 'user',
+						password: 'pass',
+						noProxy: true,
+					},
+				},
+			};
+			(log.warn as SinonStub).resetHistory();
+			expect(hostConfig.parse(conf)).to.deep.equal({
+				network: {
+					proxy: {
+						type: 'socks6',
+						ip: 123,
+						port: 'abc',
+						login: 'user',
+						password: 'pass',
+						noProxy: true,
+					},
+				},
+			});
+			expect((log.warn as SinonStub).lastCall.args[0]).to.equal(
+				'Malformed host config detected, things may not behave as expected:\n' +
+					'Expecting string at network.proxy.0.0.ip but instead got: 123\n' +
+					'Expecting NumericIdentifier at network.proxy.0.0.port but instead got: "abc" (must be be an positive integer)\n' +
+					'Expecting one of:\n' +
+					'    "socks4"\n' +
+					'    "socks5"\n' +
+					'    "http-connect"\n' +
+					'    "http-relay"\n' +
+					'at network.proxy.0.0.type but instead got: "socks6"\n' +
+					'Expecting Array<string> at network.proxy.1.noProxy but instead got: true',
+			);
+			(log.warn as SinonStub).resetHistory();
+		});
+
+		it('parses to null for HostConfiguration without network key', () => {
+			expect(hostConfig.parse({})).to.be.null;
+		});
+
+		it('parses to null for HostConfiguration with invalid network key', () => {
+			const conf = {
+				network: 123,
+			};
+			expect(hostConfig.parse(conf)).to.be.null;
+		});
+
+		it('parses to null for HostConfiguration with invalid hostname', () => {
+			const conf = {
+				network: {
+					hostname: 123,
+				},
+			};
+			expect(hostConfig.parse(conf)).to.be.null;
 		});
 	});
 });
