@@ -24,10 +24,31 @@ const isAuthField = (field: string): boolean =>
 const blockRegexFor = (blockLabel: string) =>
 	new RegExp(`${blockLabel}\\s?{([\\s\\S]+?)}(?=\\s|$)`);
 
+const baseBlock = {
+	log_debug: 'off',
+	log_info: 'on',
+	log: 'stderr',
+	daemon: 'off',
+	redirector: 'iptables',
+};
+
 export class RedsocksConf {
-	// public static stringify(_config: RedsocksConfig): string {
-	// 	return 'TODO';
-	// }
+	public static stringify(config: RedsocksConfig): string {
+		const blocks: string[] = [];
+
+		if (config.redsocks && Object.keys(config.redsocks).length > 0) {
+			blocks.push(RedsocksConf.stringifyBlock('base', baseBlock));
+			blocks.push(
+				RedsocksConf.stringifyBlock('redsocks', {
+					...config.redsocks,
+					local_ip: '127.0.0.1',
+					local_port: 12345,
+				}),
+			);
+		}
+
+		return blocks.length ? blocks.join('\n') : '';
+	}
 
 	public static parse(rawConf: string): RedsocksConfig {
 		const conf: RedsocksConfig = {};
@@ -61,6 +82,20 @@ export class RedsocksConf {
 			);
 			return {};
 		}
+	}
+
+	private static stringifyBlock(
+		label: string,
+		block: Record<string, any>,
+	): string {
+		const lines = Object.entries(block).map(([key, value]) => {
+			if (isAuthField(key)) {
+				// Add double quotes around login and password fields
+				value = `${value.startsWith('"') ? '' : '"'}${value}${value.endsWith('"') ? '' : '"'}`;
+			}
+			return `\t${key} = ${value};`;
+		});
+		return `${label} {\n${lines.join('\n')}\n}\n`;
 	}
 
 	/**

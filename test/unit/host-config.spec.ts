@@ -6,6 +6,124 @@ import * as hostConfig from '~/src/host-config/index';
 import log from '~/lib/supervisor-console';
 
 describe('RedsocksConf', () => {
+	describe('stringify', () => {
+		it('stringifies RedsocksConfig into config string', () => {
+			const conf: hostConfig.RedsocksConfig = {
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: '"foo"',
+					password: '"bar"',
+				},
+			};
+			const confStr = hostConfig.RedsocksConf.stringify(conf);
+			expect(confStr).to.equal(
+				stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+			` + '\n',
+			);
+		});
+
+		it('adds double quotes to auth fields if not exists', () => {
+			const conf: hostConfig.RedsocksConfig = {
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: 'foo',
+					password: 'bar',
+				},
+			};
+			const confStr = hostConfig.RedsocksConf.stringify(conf);
+			expect(confStr).to.equal(
+				stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+			` + '\n',
+			);
+		});
+
+		it('accepts port field of type string', () => {
+			const conf = {
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: '1080',
+					login: 'foo',
+					password: 'bar',
+				},
+			} as unknown as hostConfig.RedsocksConfig;
+			const confStr = hostConfig.RedsocksConf.stringify(conf);
+			expect(confStr).to.equal(
+				stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+			` + '\n',
+			);
+		});
+
+		it('stringifies to empty string when provided empty RedsocksConfig', () => {
+			const conf: hostConfig.RedsocksConfig = {};
+			const confStr = hostConfig.RedsocksConf.stringify(conf);
+			expect(confStr).to.equal('');
+		});
+
+		it('stringifies to empty string when provided empty redsocks block', () => {
+			const conf: hostConfig.RedsocksConfig = {
+				redsocks: {} as hostConfig.ProxyConfig,
+			};
+			const confStr = hostConfig.RedsocksConf.stringify(conf);
+			expect(confStr).to.equal('');
+		});
+	});
+
 	describe('parse', () => {
 		it('parses config string into RedsocksConfig', () => {
 			const redsocksConfStr = stripIndent`

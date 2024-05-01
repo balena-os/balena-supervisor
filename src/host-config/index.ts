@@ -4,6 +4,7 @@ import * as config from '../config';
 import { pathOnRoot } from '../lib/host-utils';
 
 export * from './proxy';
+export * from './types';
 
 const hostnamePath = pathOnRoot('/etc/hostname');
 
