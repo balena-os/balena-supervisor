@@ -3,6 +3,8 @@ import { promises as fs } from 'fs';
 import * as config from '../config';
 import { pathOnRoot } from '../lib/host-utils';
 
+export * from './proxy';
+
 const hostnamePath = pathOnRoot('/etc/hostname');
 
 export async function readHostname() {

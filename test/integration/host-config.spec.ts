@@ -98,6 +98,42 @@ describe('host-config', () => {
 		});
 	});
 
+	describe('noProxy', () => {
+		it('reads IPs to exclude from proxy', async () => {
+			expect(await hostConfig.readNoProxy()).to.deep.equal([
+				'152.10.30.4',
+				'253.1.1.0/16',
+			]);
+		});
+
+		it('sets IPs to exclude from proxy', async () => {
+			await hostConfig.setNoProxy(['balena.io', '1.1.1.1']);
+			expect(await fs.readFile(noProxy, 'utf-8')).to.equal(
+				'balena.io\n1.1.1.1',
+			);
+		});
+
+		it('removes no_proxy file if empty or invalid', async () => {
+			// Set initial no_proxy
+			await hostConfig.setNoProxy(['2.2.2.2']);
+			expect(await hostConfig.readNoProxy()).to.deep.equal(['2.2.2.2']);
+
+			// Set to empty array
+			await hostConfig.setNoProxy([]);
+			expect(await hostConfig.readNoProxy()).to.deep.equal([]);
+			expect(await fs.readdir(proxyBase)).to.not.have.members(['no_proxy']);
+
+			// Reset initial no_proxy
+			await hostConfig.setNoProxy(['2.2.2.2']);
+			expect(await hostConfig.readNoProxy()).to.deep.equal(['2.2.2.2']);
+
+			// Set to invalid value
+			await hostConfig.setNoProxy(null as any);
+			expect(await hostConfig.readNoProxy()).to.deep.equal([]);
+			expect(await fs.readdir(proxyBase)).to.not.have.members(['no_proxy']);
+		});
+	});
+
 	it('reads proxy configs and hostname', async () => {
 		const { network } = await get();
 		expect(network).to.have.property('hostname', 'deadbeef');

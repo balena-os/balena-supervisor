@@ -3,7 +3,12 @@ import _ from 'lodash';
 import path from 'path';
 
 import * as applicationManager from './compose/application-manager';
-import { readHostname, setHostname } from './host-config/index';
+import {
+	readHostname,
+	setHostname,
+	readNoProxy,
+	setNoProxy,
+} from './host-config/index';
 import * as dbus from './lib/dbus';
 import { isENOENT } from './lib/errors';
 import { mkdirp, unlinkAll } from './lib/fs-utils';
@@ -30,7 +35,6 @@ const proxyFields = ['type', 'ip', 'port', 'login', 'password'];
 
 const proxyBasePath = pathOnBoot('system-proxy');
 const redsocksConfPath = path.join(proxyBasePath, 'redsocks.conf');
-const noProxyPath = path.join(proxyBasePath, 'no_proxy');
 
 interface ProxyConfig {
 	[key: string]: string | string[] | number;
@@ -83,18 +87,9 @@ async function readProxy(): Promise<ProxyConfig | undefined> {
 		}
 	}
 
-	try {
-		const noProxy = await readFromBoot(noProxyPath, 'utf-8')
-			// Prevent empty newline from being reported as a noProxy address
-			.then((addrs) => addrs.split('\n').filter((addr) => addr !== ''));
-
-		if (noProxy.length) {
-			conf.noProxy = noProxy;
-		}
-	} catch (e: unknown) {
-		if (!isENOENT(e)) {
-			throw e;
-		}
+	const noProxy = await readNoProxy();
+	if (noProxy.length) {
+		conf.noProxy = noProxy;
 	}
 
 	// Convert port to number per API doc spec
@@ -121,14 +116,15 @@ function generateRedsocksConfEntries(conf: ProxyConfig): string {
 
 async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 	if (_.isEmpty(maybeConf)) {
-		await unlinkAll(redsocksConfPath, noProxyPath);
+		await unlinkAll(redsocksConfPath);
+		await setNoProxy([]);
 	} else {
 		// We know that maybeConf is not null due to the _.isEmpty check above,
 		// but the compiler doesn't
 		const conf = maybeConf as ProxyConfig;
 		await mkdirp(proxyBasePath);
 		if (Array.isArray(conf.noProxy)) {
-			await writeToBoot(noProxyPath, conf.noProxy.join('\n'));
+			await setNoProxy(conf.noProxy);
 		}
 
 		let currentConf: ProxyConfig | undefined;
