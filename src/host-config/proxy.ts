@@ -1,12 +1,105 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import { isRight } from 'fp-ts/lib/Either';
+import Reporter from 'io-ts-reporters';
 
+import type { RedsocksConfig } from './types';
+import { ProxyConfig } from './types';
 import { pathOnBoot, readFromBoot } from '../lib/host-utils';
 import { unlinkAll } from '../lib/fs-utils';
 import { isENOENT } from '../lib/errors';
+import log from '../lib/supervisor-console';
 
 const proxyBasePath = pathOnBoot('system-proxy');
 const noProxyPath = path.join(proxyBasePath, 'no_proxy');
+
+const disallowedProxyFields = ['local_ip', 'local_port'];
+
+const isAuthField = (field: string): boolean =>
+	['login', 'password'].includes(field);
+
+// ? is a lazy operator, so only the contents up until the first `}(?=\s|$)` is matched.
+// (?=\s|$) indicates that `}` must be followed by a whitespace or end of file to match,
+// in case there are user fields with brackets such as login or password fields.
+const blockRegexFor = (blockLabel: string) =>
+	new RegExp(`${blockLabel}\\s?{([\\s\\S]+?)}(?=\\s|$)`);
+
+export class RedsocksConf {
+	// public static stringify(_config: RedsocksConfig): string {
+	// 	return 'TODO';
+	// }
+
+	public static parse(rawConf: string): RedsocksConfig {
+		const conf: RedsocksConfig = {};
+		rawConf = rawConf.trim();
+		if (rawConf.length === 0) {
+			return conf;
+		}
+
+		// Extract contents of `redsocks {...}` using regex
+		const rawRedsocksBlockMatch = rawConf.match(blockRegexFor('redsocks'));
+		// No group was captured, indicating malformed config
+		if (!rawRedsocksBlockMatch) {
+			log.warn('Invalid redsocks block in redsocks.conf');
+			return conf;
+		}
+		const rawRedsocksBlock = RedsocksConf.parseBlock(
+			rawRedsocksBlockMatch[1],
+			disallowedProxyFields,
+		);
+		const maybeProxyConfig = ProxyConfig.decode(rawRedsocksBlock);
+		if (isRight(maybeProxyConfig)) {
+			conf.redsocks = {
+				...maybeProxyConfig.right,
+			};
+			return conf;
+		} else {
+			log.warn(
+				['Invalid redsocks block in redsocks.conf:']
+					.concat(Reporter.report(maybeProxyConfig))
+					.join('\n'),
+			);
+			return {};
+		}
+	}
+
+	/**
+	 * Given the raw contents of a block redsocks.conf file,
+	 * extract to a key-value object.
+	 */
+	private static parseBlock(
+		rawBlockConf: string,
+		unsupportedKeys: string[],
+	): Record<string, string> {
+		const parsedBlock: Record<string, string> = {};
+
+		// Split by newline and optional semicolon
+		for (const line of rawBlockConf.split(/;?\n/)) {
+			if (!line.trim().length) {
+				continue;
+			}
+			let [key, value] = line.split(/ *?= *?/).map((s) => s.trim());
+			// Don't parse unsupported keys
+			if (key && unsupportedKeys.some((k) => key.match(k))) {
+				continue;
+			}
+			if (key && value) {
+				if (isAuthField(key)) {
+					// Remove double quotes from login and password fields for readability
+					value = value.replace(/"/g, '');
+				}
+				parsedBlock[key] = value;
+			} else {
+				// Skip malformed lines
+				log.warn(
+					`Ignoring malformed redsocks.conf line ${isAuthField(key) ? `"${key}"` : `"${line.trim()}"`} due to missing key, value, or "="`,
+				);
+			}
+		}
+
+		return parsedBlock;
+	}
+}
 
 export async function readNoProxy(): Promise<string[]> {
 	try {
