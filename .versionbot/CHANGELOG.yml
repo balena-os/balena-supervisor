@@ -1,4 +1,18 @@
 - commits:
+    - subject: Update @balena/contrato to 0.9.4
+      hash: 1dcd156fc84376fcba8141f37c4901e176b5cdb4
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.3.1
+  title: ""
+  date: 2024-05-01T01:06:23.630Z
+- commits:
     - subject: Add rpi support to balenaOS secure boot
       hash: 3017ca6308ad8fce9e65882441a9ef5e123e9c6f
       body: |
