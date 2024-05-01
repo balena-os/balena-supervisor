@@ -20,6 +20,10 @@ export const ProxyConfig = t.intersection([
 ]);
 export type ProxyConfig = t.TypeOf<typeof ProxyConfig>;
 
+/**
+ * The internal object representation of redsocks.conf, obtained
+ * from RedsocksConf.parse
+ */
 export const RedsocksConfig = t.partial({
 	redsocks: ProxyConfig,
 });

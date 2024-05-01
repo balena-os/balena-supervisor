@@ -3,8 +3,8 @@ import path from 'path';
 import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
 
-import type { RedsocksConfig } from './types';
 import { ProxyConfig } from './types';
+import type { RedsocksConfig } from './types';
 import { pathOnBoot, readFromBoot } from '../lib/host-utils';
 import { unlinkAll } from '../lib/fs-utils';
 import { isENOENT } from '../lib/errors';
