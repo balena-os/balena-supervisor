@@ -3,6 +3,7 @@ import * as t from 'io-ts';
 // TODO: move all these exported types to ../compose/types
 import type { ComposeNetworkConfig } from '../compose/types/network';
 import type { ComposeVolumeConfig } from '../compose/volume';
+import type { ContractObject } from '../lib/contracts';
 
 import {
 	DockerName,
@@ -199,7 +200,7 @@ export const TargetService = t.intersection([
 	}),
 	t.partial({
 		running: withDefault(t.boolean, true),
-		contract: t.record(t.string, t.unknown),
+		contract: fromType<ContractObject>('ContractObject'),
 		// This will not be validated
 		// TODO: convert ServiceComposeConfig to a io-ts type
 		composition: t.record(t.string, t.unknown),
