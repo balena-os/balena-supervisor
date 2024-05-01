@@ -1,8 +1,12 @@
 import { promises as fs } from 'fs';
+import { isRight } from 'fp-ts/lib/Either';
+import Reporter from 'io-ts-reporters';
 
 import type { RedsocksConfig, ProxyConfig } from './types';
+import { HostConfiguration, LegacyHostConfiguration } from './types';
 import * as config from '../config';
 import { pathOnRoot } from '../lib/host-utils';
+import log from '../lib/supervisor-console';
 
 export * from './proxy';
 export * from './types';
@@ -25,6 +29,30 @@ export async function setHostname(val: string) {
 	// the OS config-json service to restart the necessary services
 	// so the change gets reflected on containers
 	await config.set({ hostname });
+}
+
+export function parse(
+	conf: unknown,
+): HostConfiguration | LegacyHostConfiguration | null {
+	const decoded = HostConfiguration.decode(conf);
+
+	if (isRight(decoded)) {
+		return decoded.right;
+	} else {
+		log.warn(
+			['Malformed host config detected, things may not behave as expected:']
+				.concat(Reporter.report(decoded))
+				.join('\n'),
+		);
+		// We haven't strictly validated user input since introducing the API,
+		// endpoint, so accept configs where values may not be of the right type
+		// but have the right shape for backwards compatibility.
+		const legacyDecoded = LegacyHostConfiguration.decode(conf);
+		if (isRight(legacyDecoded)) {
+			return legacyDecoded.right;
+		}
+	}
+	return null;
 }
 
 export function patchProxy(

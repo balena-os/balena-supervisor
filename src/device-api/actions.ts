@@ -7,6 +7,7 @@ import * as deviceState from '../device-state';
 import * as logger from '../logger';
 import * as config from '../config';
 import * as hostConfig from '../host-config';
+import { parse } from '../host-config/index';
 import * as applicationManager from '../compose/application-manager';
 import type { CompositionStepAction } from '../compose/composition-steps';
 import { generateStep } from '../compose/composition-steps';
@@ -445,9 +446,9 @@ export const getHostConfig = async () => {
  * Used by:
  * 	- PATCH /v1/device/host-config
  */
-export const patchHostConfig = async (
-	conf: Parameters<typeof hostConfig.patch>[0],
-	force: boolean,
-) => {
-	await hostConfig.patch(conf, force);
+export const patchHostConfig = async (conf: unknown, force: boolean) => {
+	const parsedConf = parse(conf);
+	if (parsedConf) {
+		await hostConfig.patch(parsedConf, force);
+	}
 };
