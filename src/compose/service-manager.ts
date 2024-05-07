@@ -1,6 +1,5 @@
 import type Dockerode from 'dockerode';
 import { EventEmitter } from 'events';
-import { isLeft } from 'fp-ts/lib/Either';
 import JSONStream from 'JSONStream';
 import _ from 'lodash';
 import { promises as fs } from 'fs';
@@ -10,7 +9,6 @@ import * as config from '../config';
 import { docker } from '../lib/docker-utils';
 import * as logger from '../logger';
 
-import { PermissiveNumber } from '../config/types';
 import * as constants from '../lib/constants';
 import type { StatusCodeError } from '../lib/errors';
 import {
@@ -38,7 +36,6 @@ type ServiceManagerEventEmitter = StrictEventEmitter<
 const events: ServiceManagerEventEmitter = new EventEmitter();
 
 interface KillOpts {
-	removeContainer?: boolean;
 	wait?: boolean;
 }
 
@@ -199,6 +196,15 @@ export async function killAllLegacy(): Promise<void> {
 			});
 		}
 	}
+}
+
+export function stop(service: Service) {
+	if (service.containerId == null) {
+		throw new InternalInconsistencyError(
+			`Attempt to stop container without containerId! Service :${service}`,
+		);
+	}
+	return stopContainer(service.containerId, service);
 }
 
 export function kill(service: Service, opts: KillOpts = {}) {
@@ -536,10 +542,43 @@ function reportNewStatus(
 	);
 }
 
+async function stopContainer(
+	containerId: string,
+	service: Partial<Service> = {},
+) {
+	logger.logSystemEvent(LogTypes.stopService, { service });
+	if (service.imageId != null) {
+		reportNewStatus(containerId, service, 'Stopping');
+	}
+
+	try {
+		await docker.getContainer(containerId).stop();
+		delete containerHasDied[containerId];
+		logger.logSystemEvent(LogTypes.stopServiceSuccess, { service });
+	} catch (e) {
+		if (isStatusError(e) && e.statusCode === 304) {
+			delete containerHasDied[containerId];
+			logger.logSystemEvent(LogTypes.stopServiceSuccess, { service });
+		} else if (isStatusError(e) && e.statusCode === 404) {
+			logger.logSystemEvent(LogTypes.stopService404Error, { service });
+			delete containerHasDied[containerId];
+		} else {
+			logger.logSystemEvent(LogTypes.stopServiceError, {
+				service,
+				error: e,
+			});
+		}
+	} finally {
+		if (service.imageId != null) {
+			reportChange(containerId);
+		}
+	}
+}
+
 async function killContainer(
 	containerId: string,
 	service: Partial<Service> = {},
-	{ removeContainer = true, wait = false }: KillOpts = {},
+	{ wait = false }: KillOpts = {},
 ): Promise<void> {
 	// To maintain compatibility of the `wait` flag, this function is not
 	// async, but it feels like whether or not the promise should be waited on
@@ -553,29 +592,9 @@ async function killContainer(
 
 	const containerObj = docker.getContainer(containerId);
 	const killPromise = containerObj
-		.stop()
-		.then(() => {
-			if (removeContainer) {
-				return containerObj.remove({ v: true });
-			}
-		})
+		.remove({ v: true, force: true })
 		.catch((e) => {
-			// Get the statusCode from the original cause and make sure it's
-			// definitely an int for comparison reasons
-			const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
-			if (isLeft(maybeStatusCode)) {
-				throw new Error(`Could not parse status code from docker error:  ${e}`);
-			}
-			const statusCode = maybeStatusCode.right;
-
-			// 304 means the container was already stopped, so we can just remove it
-			if (statusCode === 304) {
-				logger.logSystemEvent(LogTypes.stopServiceNoop, { service });
-				// Why do we attempt to remove the container again?
-				if (removeContainer) {
-					return containerObj.remove({ v: true });
-				}
-			} else if (statusCode === 404) {
+			if (isStatusError(e) && e.statusCode === 304) {
 				// 404 means the container doesn't exist, precisely what we want!
 				logger.logSystemEvent(LogTypes.stopRemoveServiceNoop, {
 					service,

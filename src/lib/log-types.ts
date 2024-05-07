@@ -19,6 +19,10 @@ export const stopRemoveServiceNoop: LogType = {
 	eventName: 'Service already stopped and container removed',
 	humanName: 'Service is already stopped and the container removed',
 };
+export const stopService404Error: LogType = {
+	eventName: 'Service stop error',
+	humanName: 'Service container not found',
+};
 export const stopServiceError: LogType = {
 	eventName: 'Service stop error',
 	humanName: 'Failed to kill service',

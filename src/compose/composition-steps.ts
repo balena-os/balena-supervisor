@@ -14,9 +14,6 @@ import type { DeviceLegacyReport } from '../types/state';
 interface CompositionStepArgs {
 	stop: {
 		current: Service;
-		options?: {
-			wait?: boolean;
-		};
 	};
 	kill: {
 		current: Service;
@@ -119,10 +116,7 @@ export function getExecutors(app: { callbacks: CompositionCallbacks }) {
 		stop: async (step) => {
 			// Should always be preceded by a takeLock step,
 			// so the call is executed assuming that the lock is taken.
-			await serviceManager.kill(step.current, {
-				removeContainer: false,
-				wait: step.options?.wait || false,
-			});
+			await serviceManager.stop(step.current);
 		},
 		kill: async (step) => {
 			// Should always be preceded by a takeLock step,
