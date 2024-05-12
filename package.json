@@ -1,7 +1,7 @@
 {
   "name": "balena-supervisor",
   "description": "This is balena's Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as the balena API informs it to.",
-  "version": "16.3.3",
+  "version": "16.3.4",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -135,6 +135,6 @@
     "yargs": "^17.7.2"
   },
   "versionist": {
-    "publishedAt": "2024-05-10T16:29:32.796Z"
+    "publishedAt": "2024-05-12T16:29:19.127Z"
   }
 }
