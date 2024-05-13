@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action action to v2.0.66
+      hash: 0786f6d95bf67c5ba7002dd10bdde2578a4b28ea
+      body: |
+        Update balena-io/deploy-to-balena-action from 2.0.65 to 2.0.66
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.3.5
+  title: ""
+  date: 2024-05-13T01:53:50.173Z
+- commits:
     - subject: Update semver to v7.6.2
       hash: da5fdc5d781ce2c6dcf61f7344ef7a75aa5eb180
       body: |
