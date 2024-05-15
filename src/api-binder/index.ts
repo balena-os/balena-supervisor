@@ -3,8 +3,7 @@ import { stripIndent } from 'common-tags';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import _ from 'lodash';
-import { PinejsClientRequest } from 'pinejs-client-request';
-import url from 'url';
+import type { PinejsClientRequest } from 'pinejs-client-request';
 
 import * as config from '../config';
 import * as deviceConfig from '../device-config';
@@ -17,7 +16,6 @@ import {
 	InternalInconsistencyError,
 	TargetStateError,
 } from '../lib/errors';
-import * as request from '../lib/request';
 
 import log from '../lib/supervisor-console';
 
@@ -511,31 +509,18 @@ async function reportInitialName(
 	}
 }
 
-export let balenaApi: PinejsClientRequest | null = null;
+let balenaApi: PinejsClientRequest | null = null;
 
 export const initialized = _.once(async () => {
 	await config.initialized();
 	await deviceState.initialized();
 
-	const { unmanaged, apiEndpoint, currentApiKey } = await config.getMany([
-		'unmanaged',
-		'apiEndpoint',
-		'currentApiKey',
-	]);
+	const unmanaged = await config.get('unmanaged');
 
 	if (unmanaged) {
 		log.debug('Unmanaged mode is set, skipping API client initialization');
 		return;
 	}
 
-	const baseUrl = url.resolve(apiEndpoint, '/v6/');
-	const passthrough = structuredClone(await request.getRequestOptions());
-	passthrough.headers = passthrough.headers != null ? passthrough.headers : {};
-	passthrough.headers.Authorization = `Bearer ${currentApiKey}`;
-	balenaApi = new PinejsClientRequest({
-		apiPrefix: baseUrl,
-		passthrough,
-	});
-
-	log.info(`API Binder bound to: ${baseUrl}`);
+	balenaApi = await apiHelper.getBalenaApi();
 });

@@ -1,4 +1,4 @@
-import type { PinejsClientRequest } from 'pinejs-client-request';
+import { PinejsClientRequest } from 'pinejs-client-request';
 
 import Bluebird from 'bluebird';
 import * as config from '../config';
@@ -14,6 +14,8 @@ import {
 	isHttpConflictError,
 } from './errors';
 import log from './supervisor-console';
+import memoizee from 'memoizee';
+import url from 'url';
 
 export type KeyExchangeOpts = config.ConfigType<'provisioningOptions'>;
 
@@ -22,6 +24,29 @@ export interface Device {
 
 	[key: string]: unknown;
 }
+
+export const getBalenaApi = memoizee(
+	async () => {
+		await config.initialized();
+
+		const { apiEndpoint, currentApiKey } = await config.getMany([
+			'apiEndpoint',
+			'currentApiKey',
+		]);
+
+		const baseUrl = url.resolve(apiEndpoint, '/v6/');
+		const passthrough = structuredClone(await request.getRequestOptions());
+		passthrough.headers =
+			passthrough.headers != null ? passthrough.headers : {};
+		passthrough.headers.Authorization = `Bearer ${currentApiKey}`;
+		log.info(`API Binder bound to: ${baseUrl}`);
+		return new PinejsClientRequest({
+			apiPrefix: baseUrl,
+			passthrough,
+		});
+	},
+	{ promise: true },
+);
 
 export const fetchDevice = async (
 	balenaApi: PinejsClientRequest,
