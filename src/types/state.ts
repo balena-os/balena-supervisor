@@ -1,6 +1,6 @@
 import * as t from 'io-ts';
 
-import type { ContractObject } from '../lib/contracts';
+import type { ContractObject } from '@balena/contrato';
 
 import {
 	DockerName,
