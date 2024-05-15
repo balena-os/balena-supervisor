@@ -6,6 +6,7 @@ import request from 'supertest';
 
 import * as config from '~/src/config';
 import * as db from '~/src/db';
+import * as apiKeys from '~/lib/api-keys';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
 import * as v2 from '~/src/device-api/v2';
@@ -50,7 +51,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/restart')
 				.send({ force: false })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(doRestartStub).to.have.been.calledWith(1234567, false);
 			doRestartStub.resetHistory();
@@ -59,7 +60,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/restart')
 				.send({ force: true })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(doRestartStub).to.have.been.calledWith(7654321, true);
 			doRestartStub.resetHistory();
@@ -67,7 +68,7 @@ describe('device-api/v2', () => {
 			// Defaults to force: false
 			await request(api)
 				.post('/v2/applications/7654321/restart')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(doRestartStub).to.have.been.calledWith(7654321, false);
 		});
@@ -75,12 +76,12 @@ describe('device-api/v2', () => {
 		it('responds with 400 if appId is missing', async () => {
 			await request(api)
 				.post('/v2/applications/badAppId/restart')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(400);
 		});
 
 		it("responds with 401 if caller's API key is not in scope of appId", async () => {
-			const scopedKey = await deviceApi.generateScopedKey(1234567, 'main');
+			const scopedKey = await apiKeys.generateScopedKey(1234567, 'main');
 			await request(api)
 				.post('/v2/applications/7654321/restart')
 				.set('Authorization', `Bearer ${scopedKey}`)
@@ -90,7 +91,7 @@ describe('device-api/v2', () => {
 		it('responds with 200 if restart succeeded', async () => {
 			await request(api)
 				.post('/v2/applications/1234567/restart')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 		});
 
@@ -98,7 +99,7 @@ describe('device-api/v2', () => {
 			doRestartStub.throws(new UpdatesLockedError());
 			await request(api)
 				.post('/v2/applications/1234567/restart')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(423);
 		});
 
@@ -106,7 +107,7 @@ describe('device-api/v2', () => {
 			doRestartStub.throws(new Error());
 			await request(api)
 				.post('/v2/applications/7654321/restart')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(503);
 		});
 	});
@@ -128,7 +129,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/purge')
 				.send({ force: false })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(doPurgeStub).to.have.been.calledWith(1234567, false);
 			doPurgeStub.resetHistory();
@@ -137,7 +138,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/purge')
 				.send({ force: true })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(doPurgeStub).to.have.been.calledWith(7654321, true);
 			doPurgeStub.resetHistory();
@@ -145,7 +146,7 @@ describe('device-api/v2', () => {
 			// Defaults to force: false
 			await request(api)
 				.post('/v2/applications/7654321/purge')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(doPurgeStub).to.have.been.calledWith(7654321, false);
 		});
@@ -153,12 +154,12 @@ describe('device-api/v2', () => {
 		it('responds with 400 if appId is missing', async () => {
 			await request(api)
 				.post('/v2/applications/badAppId/purge')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(400);
 		});
 
 		it("responds with 401 if caller's API key is not in scope of appId", async () => {
-			const scopedKey = await deviceApi.generateScopedKey(1234567, 'main');
+			const scopedKey = await apiKeys.generateScopedKey(1234567, 'main');
 			await request(api)
 				.post('/v2/applications/7654321/purge')
 				.set('Authorization', `Bearer ${scopedKey}`)
@@ -168,7 +169,7 @@ describe('device-api/v2', () => {
 		it('responds with 200 if purge succeeded', async () => {
 			await request(api)
 				.post('/v2/applications/1234567/purge')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 		});
 
@@ -176,7 +177,7 @@ describe('device-api/v2', () => {
 			doPurgeStub.throws(new UpdatesLockedError());
 			await request(api)
 				.post('/v2/applications/1234567/purge')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(423);
 		});
 
@@ -184,7 +185,7 @@ describe('device-api/v2', () => {
 			doPurgeStub.throws(new Error());
 			await request(api)
 				.post('/v2/applications/7654321/purge')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(503);
 		});
 	});
@@ -209,7 +210,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/stop-service')
 				.send({ force: false, serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'stop',
@@ -224,7 +225,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/stop-service')
 				.send({ force: true, serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'stop',
@@ -239,7 +240,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/stop-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'stop',
@@ -254,7 +255,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/stop-service')
 				.send({ imageId: 111 })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'stop',
@@ -269,7 +270,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/stop-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'stop',
@@ -281,7 +282,7 @@ describe('device-api/v2', () => {
 		});
 
 		it("responds with 401 if caller's API key is not in scope of appId", async () => {
-			const scopedKey = await deviceApi.generateScopedKey(1234567, 'main');
+			const scopedKey = await apiKeys.generateScopedKey(1234567, 'main');
 			await request(api)
 				.post('/v2/applications/7654321/stop-service')
 				.send({ serviceName: 'test' })
@@ -293,7 +294,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/stop-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 		});
 
@@ -302,21 +303,21 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/stop-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(404);
 		});
 
 		it('responds with 400 if invalid appId or missing serviceName/imageId from request body', async () => {
 			await request(api)
 				.post('/v2/applications/badAppId/stop-service')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(400);
 
 			executeServiceActionStub.throws(new BadRequestError());
 			await request(api)
 				.post('/v2/applications/1234567/stop-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(400);
 		});
 
@@ -325,7 +326,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/stop-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(423);
 		});
 
@@ -334,7 +335,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/stop-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(503);
 		});
 	});
@@ -359,7 +360,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/start-service')
 				.send({ force: false, serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'start',
@@ -374,7 +375,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/start-service')
 				.send({ force: true, serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'start',
@@ -389,7 +390,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/start-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'start',
@@ -404,7 +405,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/start-service')
 				.send({ imageId: 111 })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'start',
@@ -419,7 +420,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/start-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'start',
@@ -431,7 +432,7 @@ describe('device-api/v2', () => {
 		});
 
 		it("responds with 401 if caller's API key is not in scope of appId", async () => {
-			const scopedKey = await deviceApi.generateScopedKey(1234567, 'main');
+			const scopedKey = await apiKeys.generateScopedKey(1234567, 'main');
 			await request(api)
 				.post('/v2/applications/7654321/start-service')
 				.send({ serviceName: 'test' })
@@ -443,7 +444,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/start-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 		});
 
@@ -452,21 +453,21 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/start-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(404);
 		});
 
 		it('responds with 400 if invalid appId or missing serviceName/imageId from request body', async () => {
 			await request(api)
 				.post('/v2/applications/badAppId/start-service')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(400);
 
 			executeServiceActionStub.throws(new BadRequestError());
 			await request(api)
 				.post('/v2/applications/1234567/start-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(400);
 		});
 
@@ -475,7 +476,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/start-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(423);
 		});
 
@@ -484,7 +485,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/start-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(503);
 		});
 	});
@@ -509,7 +510,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/restart-service')
 				.send({ force: false, serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'restart',
@@ -524,7 +525,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/restart-service')
 				.send({ force: true, serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'restart',
@@ -539,7 +540,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/restart-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'restart',
@@ -554,7 +555,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/restart-service')
 				.send({ imageId: 111 })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'restart',
@@ -569,7 +570,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/restart-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 			expect(executeServiceActionStub).to.have.been.calledWith({
 				action: 'restart',
@@ -581,7 +582,7 @@ describe('device-api/v2', () => {
 		});
 
 		it("responds with 401 if caller's API key is not in scope of appId", async () => {
-			const scopedKey = await deviceApi.generateScopedKey(1234567, 'main');
+			const scopedKey = await apiKeys.generateScopedKey(1234567, 'main');
 			await request(api)
 				.post('/v2/applications/7654321/restart-service')
 				.send({ serviceName: 'test' })
@@ -593,7 +594,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/restart-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 		});
 
@@ -602,21 +603,21 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/restart-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(404);
 		});
 
 		it('responds with 400 if invalid appId or missing serviceName/imageId from request body', async () => {
 			await request(api)
 				.post('/v2/applications/badAppId/restart-service')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(400);
 
 			executeServiceActionStub.throws(new BadRequestError());
 			await request(api)
 				.post('/v2/applications/1234567/restart-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(400);
 		});
 
@@ -625,7 +626,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/1234567/restart-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(423);
 		});
 
@@ -634,7 +635,7 @@ describe('device-api/v2', () => {
 			await request(api)
 				.post('/v2/applications/7654321/restart-service')
 				.send({ serviceName: 'test' })
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(503);
 		});
 	});

@@ -26,7 +26,7 @@ import {
 	BadRequestError,
 } from '../lib/errors';
 import { isVPNActive } from '../network';
-import type { AuthorizedRequest } from './api-keys';
+import type { AuthorizedRequest } from '../lib/api-keys';
 import { fromV2TargetState } from '../lib/legacy';
 import * as actions from './actions';
 import { v2ServiceEndpointError } from './messages';

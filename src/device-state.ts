@@ -25,7 +25,7 @@ import {
 import * as updateLock from './lib/update-lock';
 import { takeGlobalLockRO, takeGlobalLockRW } from './lib/process-lock';
 import * as dbFormat from './device-state/db-format';
-import { getGlobalApiKey } from './device-api';
+import { getGlobalApiKey } from './lib/api-keys';
 import * as sysInfo from './lib/system-info';
 import { log } from './lib/supervisor-console';
 import { loadTargetFromFile } from './device-state/preload';

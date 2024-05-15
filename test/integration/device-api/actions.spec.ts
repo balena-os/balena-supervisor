@@ -9,7 +9,7 @@ import { testfs } from 'mocha-pod';
 import * as deviceState from '~/src/device-state';
 import * as config from '~/src/config';
 import * as hostConfig from '~/src/host-config';
-import * as deviceApi from '~/src/device-api';
+import * as apiKeys from '~/lib/api-keys';
 import * as actions from '~/src/device-api/actions';
 import * as TargetState from '~/src/device-state/target-state';
 import * as updateLock from '~/lib/update-lock';
@@ -56,10 +56,10 @@ describe('regenerates API keys', () => {
 	afterEach(() => (deviceState.reportCurrentState as SinonStub).restore());
 
 	it("communicates new key to cloud if it's a global key", async () => {
-		const originalGlobalKey = await deviceApi.getGlobalApiKey();
+		const originalGlobalKey = await apiKeys.getGlobalApiKey();
 		const newKey = await actions.regenerateKey(originalGlobalKey);
 		expect(originalGlobalKey).to.not.equal(newKey);
-		expect(newKey).to.equal(await deviceApi.getGlobalApiKey());
+		expect(newKey).to.equal(await apiKeys.getGlobalApiKey());
 		expect(deviceState.reportCurrentState as SinonStub).to.have.been.calledOnce;
 		expect(
 			(deviceState.reportCurrentState as SinonStub).firstCall.args[0],
@@ -69,10 +69,10 @@ describe('regenerates API keys', () => {
 	});
 
 	it("doesn't communicate new key if it's a service key", async () => {
-		const originalScopedKey = await deviceApi.generateScopedKey(111, 'main');
+		const originalScopedKey = await apiKeys.generateScopedKey(111, 'main');
 		const newKey = await actions.regenerateKey(originalScopedKey);
 		expect(originalScopedKey).to.not.equal(newKey);
-		expect(newKey).to.not.equal(await deviceApi.getGlobalApiKey());
+		expect(newKey).to.not.equal(await apiKeys.getGlobalApiKey());
 		expect(deviceState.reportCurrentState as SinonStub).to.not.have.been.called;
 	});
 });

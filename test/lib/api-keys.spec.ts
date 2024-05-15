@@ -4,9 +4,9 @@ import { expect } from 'chai';
 
 import * as config from '~/src/config';
 import * as testDb from '~/src/db';
-import * as deviceApi from '~/src/device-api';
+import * as apiKeys from '~/lib/api-keys';
 import * as middleware from '~/src/device-api/middleware';
-import type { AuthorizedRequest } from '~/src/device-api/api-keys';
+import type { AuthorizedRequest } from '~/lib/api-keys';
 
 describe('device-api/api-keys', () => {
 	let app: express.Application;
@@ -30,8 +30,8 @@ describe('device-api/api-keys', () => {
 	});
 
 	it('should generate a key which is scoped for a single application', async () => {
-		const appOneKey = await deviceApi.generateScopedKey(111, 'one');
-		const appTwoKey = await deviceApi.generateScopedKey(222, 'two');
+		const appOneKey = await apiKeys.generateScopedKey(111, 'one');
+		const appTwoKey = await apiKeys.generateScopedKey(222, 'two');
 
 		await request(app)
 			.get('/test/111')
@@ -55,7 +55,7 @@ describe('device-api/api-keys', () => {
 	});
 
 	it('should generate a key which is scoped for multiple applications', async () => {
-		const multiAppKey = await deviceApi.generateScopedKey(111, 'three', {
+		const multiAppKey = await apiKeys.generateScopedKey(111, 'three', {
 			scopes: [111, 222].map((appId) => ({ type: 'app', appId })),
 		});
 
@@ -73,54 +73,54 @@ describe('device-api/api-keys', () => {
 	it('should generate a key which is scoped for all applications', async () => {
 		await request(app)
 			.get('/test/111')
-			.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+			.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 			.expect(200);
 
 		await request(app)
 			.get('/test/222')
-			.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+			.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 			.expect(200);
 	});
 
 	it('should have a cached lookup of key scopes', async () => {
-		const globalScopes = await deviceApi.getScopesForKey(
-			await deviceApi.getGlobalApiKey(),
+		const globalScopes = await apiKeys.getScopesForKey(
+			await apiKeys.getGlobalApiKey(),
 		);
 
 		const key = 'my-new-key';
 		await testDb
 			.models('apiSecret')
-			.where({ key: await deviceApi.getGlobalApiKey() })
+			.where({ key: await apiKeys.getGlobalApiKey() })
 			.update({ key });
 
 		// Key has been changed, but cache should retain the old key
 		expect(
-			await deviceApi.getScopesForKey(await deviceApi.getGlobalApiKey()),
+			await apiKeys.getScopesForKey(await apiKeys.getGlobalApiKey()),
 		).to.deep.equal(globalScopes);
 
 		// Bust the cache and generate a new global API key
-		const refreshedKey = await deviceApi.refreshKey(
-			await deviceApi.getGlobalApiKey(),
+		const refreshedKey = await apiKeys.refreshKey(
+			await apiKeys.getGlobalApiKey(),
 		);
 
 		// Key that we changed in db is no longer valid
-		expect(await deviceApi.getScopesForKey(key)).to.be.null;
+		expect(await apiKeys.getScopesForKey(key)).to.be.null;
 
 		// Refreshed key should have the global scopes
-		expect(await deviceApi.getScopesForKey(refreshedKey)).to.deep.equal(
+		expect(await apiKeys.getScopesForKey(refreshedKey)).to.deep.equal(
 			globalScopes,
 		);
 	});
 
 	it('should regenerate a key and invalidate the old one', async () => {
-		const appScopedKey = await deviceApi.generateScopedKey(111, 'four');
+		const appScopedKey = await apiKeys.generateScopedKey(111, 'four');
 
 		await request(app)
 			.get('/test/111')
 			.set('Authorization', `Bearer ${appScopedKey}`)
 			.expect(200);
 
-		const newScopedKey = await deviceApi.refreshKey(appScopedKey);
+		const newScopedKey = await apiKeys.refreshKey(appScopedKey);
 
 		await request(app)
 			.get('/test/111')

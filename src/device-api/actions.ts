@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import { getGlobalApiKey, refreshKey } from '.';
+import { getGlobalApiKey, refreshKey } from '../lib/api-keys';
 import * as messages from './messages';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';

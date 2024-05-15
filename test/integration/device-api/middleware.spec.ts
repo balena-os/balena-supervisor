@@ -3,7 +3,7 @@ import request from 'supertest';
 
 import * as config from '~/src/config';
 import * as testDb from '~/src/db';
-import * as deviceApi from '~/src/device-api';
+import * as apiKeys from '~/lib/api-keys';
 import * as middleware from '~/src/device-api/middleware';
 
 describe('device-api/middleware', () => {
@@ -35,7 +35,7 @@ describe('device-api/middleware', () => {
 
 		it('validates API key from request query', async () => {
 			await request(app)
-				.get(`/?apikey=${await deviceApi.getGlobalApiKey()}`)
+				.get(`/?apikey=${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 
 			await request(app).get(`/?apikey=${INVALID_KEY}`).expect(401);
@@ -44,7 +44,7 @@ describe('device-api/middleware', () => {
 			const cases = ['ApiKey', 'apiKey', 'APIKEY', 'ApIKeY'];
 			for (const query of cases) {
 				await request(app)
-					.get(`/?${query}=${await deviceApi.getGlobalApiKey()}`)
+					.get(`/?${query}=${await apiKeys.getGlobalApiKey()}`)
 					.expect(401);
 			}
 		});
@@ -55,10 +55,7 @@ describe('device-api/middleware', () => {
 			for (const scheme of cases) {
 				await request(app)
 					.get('/')
-					.set(
-						'Authorization',
-						`${scheme} ${await deviceApi.getGlobalApiKey()}`,
-					)
+					.set('Authorization', `${scheme} ${await apiKeys.getGlobalApiKey()}`)
 					.expect(200);
 
 				await request(app)
@@ -74,10 +71,7 @@ describe('device-api/middleware', () => {
 			for (const scheme of cases) {
 				await request(app)
 					.get('/')
-					.set(
-						'Authorization',
-						`${scheme} ${await deviceApi.getGlobalApiKey()}`,
-					)
+					.set('Authorization', `${scheme} ${await apiKeys.getGlobalApiKey()}`)
 					.expect(200);
 
 				await request(app)

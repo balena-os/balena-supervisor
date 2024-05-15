@@ -1,7 +1,7 @@
 import express from 'express';
 
 import * as middleware from './middleware';
-import * as apiKeys from './api-keys';
+import type * as apiKeys from '../lib/api-keys';
 import * as actions from './actions';
 import log from '../lib/supervisor-console';
 
@@ -15,10 +15,6 @@ interface SupervisorAPIConstructOpts {
 // API key methods
 // For better black boxing, device-api should serve as the interface
 // to the rest of the Supervisor code for accessing API key related methods.
-export const getGlobalApiKey = apiKeys.getGlobalApiKey;
-export const refreshKey = apiKeys.refreshKey;
-export const generateScopedKey = apiKeys.generateScopedKey;
-export const getScopesForKey = apiKeys.getScopesForKey;
 
 export class SupervisorAPI {
 	private routers: express.Router[];
