@@ -1,8 +1,5 @@
 import * as t from 'io-ts';
 
-// TODO: move all these exported types to ../compose/types
-import type { ComposeNetworkConfig } from '../compose/types';
-import type { ComposeVolumeConfig } from '../compose/volume';
 import type { ContractObject } from '../lib/contracts';
 
 import {
@@ -16,7 +13,10 @@ import {
 	nonEmptyRecord,
 } from './basic';
 
-import type { App } from '../compose/app';
+import type {
+	ComposeVolumeConfig,
+	ComposeNetworkConfig,
+} from '../compose/types';
 
 export type DeviceLegacyReport = Partial<{
 	api_port: number;
@@ -356,13 +356,3 @@ export const AppsJsonFormat = t.intersection([
 	t.partial({ pinDevice: t.boolean }),
 ]);
 export type AppsJsonFormat = t.TypeOf<typeof AppsJsonFormat>;
-
-export type InstancedAppState = { [appId: number]: App };
-
-export interface InstancedDeviceState {
-	local: {
-		name: string;
-		config: Dictionary<string>;
-		apps: InstancedAppState;
-	};
-}

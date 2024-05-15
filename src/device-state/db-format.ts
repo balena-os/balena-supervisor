@@ -8,12 +8,12 @@ import { App } from '../compose/app';
 import * as images from '../compose/images';
 
 import type {
-	InstancedAppState,
 	TargetApp,
 	TargetApps,
 	TargetRelease,
 	TargetService,
 } from '../types/state';
+import type { InstancedAppState } from '../compose/types';
 
 type InstancedApp = InstancedAppState[0];
 

@@ -21,26 +21,29 @@ import { getServicesLockedByAppId, LocksTakenMap } from '../lib/update-lock';
 import { checkTruthy } from '../lib/validation';
 
 import { App } from './app';
-import type { UpdateState } from './app';
 import * as volumeManager from './volume-manager';
 import * as networkManager from './network-manager';
 import * as serviceManager from './service-manager';
 import * as imageManager from './images';
 import * as commitStore from './commit';
-import type { Service } from './service';
-import type { Network } from './network';
-import type { Volume } from './volume';
 import { generateStep, getExecutors } from './composition-steps';
 
 import type {
-	InstancedAppState,
 	TargetApps,
 	DeviceLegacyReport,
 	AppState,
 	ServiceState,
-} from '../types/state';
-import type { Image } from './images';
-import type { CompositionStep, CompositionStepT } from './composition-steps';
+} from '../types';
+import type {
+	CompositionStep,
+	CompositionStepT,
+	UpdateState,
+	Service,
+	Network,
+	Volume,
+	Image,
+	InstancedAppState,
+} from './types';
 
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,

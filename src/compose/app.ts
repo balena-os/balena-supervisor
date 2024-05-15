@@ -6,11 +6,6 @@ import { Network } from './network';
 import { Volume } from './volume';
 import { Service } from './service';
 import * as imageManager from './images';
-import type { Image } from './images';
-import type {
-	CompositionStep,
-	CompositionStepAction,
-} from './composition-steps';
 import { generateStep } from './composition-steps';
 import type * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
@@ -25,7 +20,16 @@ import { checkTruthy } from '../lib/validation';
 import type { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
-import type { LocksTakenMap } from '../lib/update-lock';
+import type {
+	App as AppIface,
+	UpdateState,
+	AppsToLockMap,
+	CompositionStep,
+	CompositionStepAction,
+} from './types';
+
+// Re export the type
+export type App = AppIface;
 
 export interface AppConstructOpts {
 	appId: number;
@@ -40,41 +44,9 @@ export interface AppConstructOpts {
 	networks: Network[];
 }
 
-export interface UpdateState {
-	availableImages: Image[];
-	containerIds: Dictionary<string>;
-	downloading: string[];
-	locksTaken: LocksTakenMap;
-	force: boolean;
-}
-
 interface ChangingPair<T> {
 	current?: T;
 	target?: T;
-}
-
-export interface AppsToLockMap {
-	[appId: number]: Set<string>;
-}
-
-export interface App {
-	appId: number;
-	appUuid?: string;
-	// When setting up an application from current state, these values are not available
-	appName?: string;
-	commit?: string;
-	source?: string;
-	isHost?: boolean;
-	// Services are stored as an array, as at any one time we could have more than one
-	// service for a single service ID running (for example handover)
-	services: Service[];
-	networks: Network[];
-	volumes: Volume[];
-
-	nextStepsForAppUpdate(state: UpdateState, target: App): CompositionStep[];
-	stepsToRemoveApp(
-		state: Omit<UpdateState, 'availableImages'> & { keepVolumes: boolean },
-	): CompositionStep[];
 }
 
 class AppImpl implements App {

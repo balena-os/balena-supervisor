@@ -10,28 +10,13 @@ import type { LabelObject } from '../types';
 import * as logger from '../logger';
 import * as ComposeUtils from './utils';
 
-export interface VolumeConfig {
-	labels: LabelObject;
-	driver: string;
-	driverOpts: Docker.VolumeInspectInfo['Options'];
-}
+import type {
+	Volume as VolumeIface,
+	VolumeConfig,
+	ComposeVolumeConfig,
+} from './types';
 
-export interface ComposeVolumeConfig {
-	driver: string;
-	driver_opts: Dictionary<string>;
-	labels: LabelObject;
-}
-
-export interface Volume {
-	name: string;
-	appId: number;
-	appUuid: string;
-	config: VolumeConfig;
-
-	isEqualConfig(volume: Volume): boolean;
-	create(): Promise<void>;
-	remove(): Promise<void>;
-}
+export type Volume = VolumeIface;
 
 class VolumeImpl implements Volume {
 	private constructor(

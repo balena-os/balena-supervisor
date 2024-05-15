@@ -20,8 +20,8 @@ import {
 } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import { checkInt, isValidDeviceName } from '../lib/validation';
-import type { ServiceStatus } from './service';
 import { Service } from './service';
+import type { ServiceStatus } from './types';
 import { serviceNetworksToDockerNetworks } from './utils';
 
 import log from '../lib/supervisor-console';

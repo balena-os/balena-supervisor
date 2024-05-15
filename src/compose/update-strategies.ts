@@ -2,7 +2,7 @@ import * as imageManager from './images';
 import type { Service } from './service';
 import type { CompositionStep } from './composition-steps';
 import { generateStep } from './composition-steps';
-import type { AppsToLockMap } from './app';
+import type { AppsToLockMap } from './types';
 import { InternalInconsistencyError } from '../lib/errors';
 import { checkString } from '../lib/validation';
 

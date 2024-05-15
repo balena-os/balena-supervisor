@@ -9,7 +9,7 @@ import type {
 	CompositionStep,
 	CompositionStepAction,
 } from '~/src/compose/composition-steps';
-import type { InstancedAppState } from '~/src/types/state';
+import type { InstancedAppState } from '~/src/compose/types';
 
 export const DEFAULT_NETWORK = Network.fromComposeObject(
 	'default',

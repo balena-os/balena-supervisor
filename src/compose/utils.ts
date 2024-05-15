@@ -5,7 +5,6 @@ import { parse as parseCommand } from 'shell-quote';
 
 import * as constants from '../lib/constants';
 import { checkTruthy } from '../lib/validation';
-import type { Service } from './service';
 import type {
 	ComposeHealthcheck,
 	ConfigMap,
@@ -16,6 +15,7 @@ import type {
 	ServiceHealthcheck,
 	LongDefinition,
 	LongBind,
+	Service,
 } from './types';
 
 import log from '../lib/supervisor-console';
