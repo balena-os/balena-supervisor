@@ -14,7 +14,7 @@ import {
 import { docker } from './docker-utils';
 import { log } from './supervisor-console';
 import { pathOnData } from './host-utils';
-import type Volume from '../compose/volume';
+import type { Volume } from '../compose/volume';
 import * as logger from '../logger';
 import type {
 	DatabaseApp,

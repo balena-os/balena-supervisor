@@ -7,7 +7,7 @@ import * as apiBinder from '../api-binder';
 import * as applicationManager from '../compose/application-manager';
 import type { CompositionStepAction } from '../compose/composition-steps';
 import type { Service } from '../compose/service';
-import Volume from '../compose/volume';
+import { Volume } from '../compose/volume';
 import * as commitStore from '../compose/commit';
 import * as config from '../config';
 import * as db from '../db';

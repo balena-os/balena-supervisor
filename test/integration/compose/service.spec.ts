@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import Service from '~/src/compose/service';
+import { Service } from '~/src/compose/service';
 import * as deviceApi from '~/src/device-api';
 
 describe('compose/service: integration tests', () => {

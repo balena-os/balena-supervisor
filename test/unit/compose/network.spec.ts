@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import type * as sinon from 'sinon';
 
 import { Network } from '~/src/compose/network';
-import type { NetworkInspectInfo } from '~/src/compose/types/network';
+import type { NetworkInspectInfo } from '~/src/compose/types';
 
 import { log } from '~/lib/supervisor-console';
 

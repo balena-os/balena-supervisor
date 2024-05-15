@@ -11,12 +11,27 @@ import type {
 	ComposeNetworkConfig,
 	NetworkConfig,
 	NetworkInspectInfo,
-} from './types/network';
+} from './types';
 
 import { InvalidNetworkNameError } from './errors';
 import { InternalInconsistencyError } from '../lib/errors';
 
-export class Network {
+export interface Network {
+	appId: number;
+	appUuid?: string;
+	name: string;
+	config: NetworkConfig;
+
+	isEqualConfig(network: Network): boolean;
+	create(): Promise<void>;
+	remove(): Promise<void>;
+	toDockerConfig(): dockerode.NetworkCreateOptions & {
+		ConfigOnly: boolean;
+	};
+	toComposeObject(): ComposeNetworkConfig;
+}
+
+class NetworkImpl implements Network {
 	public appId: number;
 	public appUuid?: string;
 	public name: string;
@@ -303,4 +318,4 @@ export class Network {
 	}
 }
 
-export default Network;
+export const Network = NetworkImpl;

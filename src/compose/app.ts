@@ -2,9 +2,9 @@ import _ from 'lodash';
 import { promises as fs } from 'fs';
 import type { ImageInspectInfo } from 'dockerode';
 
-import Network from './network';
-import Volume from './volume';
-import Service from './service';
+import { Network } from './network';
+import { Volume } from './volume';
+import { Service } from './service';
 import * as imageManager from './images';
 import type { Image } from './images';
 import type {
@@ -57,7 +57,27 @@ export interface AppsToLockMap {
 	[appId: number]: Set<string>;
 }
 
-export class App {
+export interface App {
+	appId: number;
+	appUuid?: string;
+	// When setting up an application from current state, these values are not available
+	appName?: string;
+	commit?: string;
+	source?: string;
+	isHost?: boolean;
+	// Services are stored as an array, as at any one time we could have more than one
+	// service for a single service ID running (for example handover)
+	services: Service[];
+	networks: Network[];
+	volumes: Volume[];
+
+	nextStepsForAppUpdate(state: UpdateState, target: App): CompositionStep[];
+	stepsToRemoveApp(
+		state: Omit<UpdateState, 'availableImages'> & { keepVolumes: boolean },
+	): CompositionStep[];
+}
+
+class AppImpl implements App {
 	public appId: number;
 	public appUuid?: string;
 	// When setting up an application from current state, these values are not available
@@ -1027,7 +1047,7 @@ export class App {
 				}),
 		);
 
-		return new App(
+		return new AppImpl(
 			{
 				appId: app.appId,
 				appUuid: app.uuid,
@@ -1044,4 +1064,4 @@ export class App {
 	}
 }
 
-export default App;
+export const App = AppImpl;

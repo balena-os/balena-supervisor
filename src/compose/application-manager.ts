@@ -20,16 +20,16 @@ import {
 import { getServicesLockedByAppId, LocksTakenMap } from '../lib/update-lock';
 import { checkTruthy } from '../lib/validation';
 
-import App from './app';
+import { App } from './app';
 import type { UpdateState } from './app';
 import * as volumeManager from './volume-manager';
 import * as networkManager from './network-manager';
 import * as serviceManager from './service-manager';
 import * as imageManager from './images';
 import * as commitStore from './commit';
-import type Service from './service';
-import type Network from './network';
-import type Volume from './volume';
+import type { Service } from './service';
+import type { Network } from './network';
+import type { Volume } from './volume';
 import { generateStep, getExecutors } from './composition-steps';
 
 import type {

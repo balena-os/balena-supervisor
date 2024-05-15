@@ -16,7 +16,7 @@ import type {
 	ServiceHealthcheck,
 	LongDefinition,
 	LongBind,
-} from './types/service';
+} from './types';
 
 import log from '../lib/supervisor-console';
 

@@ -1,7 +1,7 @@
 import * as t from 'io-ts';
 
 // TODO: move all these exported types to ../compose/types
-import type { ComposeNetworkConfig } from '../compose/types/network';
+import type { ComposeNetworkConfig } from '../compose/types';
 import type { ComposeVolumeConfig } from '../compose/volume';
 import type { ContractObject } from '../lib/contracts';
 
@@ -16,7 +16,7 @@ import {
 	nonEmptyRecord,
 } from './basic';
 
-import type App from '../compose/app';
+import type { App } from '../compose/app';
 
 export type DeviceLegacyReport = Partial<{
 	api_port: number;

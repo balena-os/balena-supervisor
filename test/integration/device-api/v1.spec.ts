@@ -7,7 +7,7 @@ import request from 'supertest';
 import * as config from '~/src/config';
 import * as db from '~/src/db';
 import * as hostConfig from '~/src/host-config';
-import type Service from '~/src/compose/service';
+import type { Service } from '~/src/compose/service';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
 import * as v1 from '~/src/device-api/v1';

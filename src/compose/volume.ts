@@ -22,7 +22,18 @@ export interface ComposeVolumeConfig {
 	labels: LabelObject;
 }
 
-export class Volume {
+export interface Volume {
+	name: string;
+	appId: number;
+	appUuid: string;
+	config: VolumeConfig;
+
+	isEqualConfig(volume: Volume): boolean;
+	create(): Promise<void>;
+	remove(): Promise<void>;
+}
+
+class VolumeImpl implements Volume {
 	private constructor(
 		public name: string,
 		public appId: number,
@@ -162,4 +173,4 @@ export class Volume {
 	}
 }
 
-export default Volume;
+export const Volume = VolumeImpl;
