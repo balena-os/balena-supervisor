@@ -1,16 +1,11 @@
 import type { LabelObject } from '../../types';
 import type { VolumeInspectInfo } from 'dockerode';
+export type { ComposeVolumeConfig } from '../../types';
 
 export interface VolumeConfig {
 	labels: LabelObject;
 	driver: string;
 	driverOpts: VolumeInspectInfo['Options'];
-}
-
-export interface ComposeVolumeConfig {
-	driver: string;
-	driver_opts: Dictionary<string>;
-	labels: LabelObject;
 }
 
 export interface Volume {

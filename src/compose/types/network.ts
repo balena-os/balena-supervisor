@@ -8,27 +8,9 @@ import type {
 export interface NetworkInspectInfo extends DockerNetworkInspectInfo {
 	ConfigOnly: boolean;
 }
+import type { ComposeNetworkConfig } from '../../types';
+export type { ComposeNetworkConfig } from '../../types';
 
-export interface ComposeNetworkConfig {
-	driver: string;
-	driver_opts: Dictionary<string>;
-	ipam: {
-		driver: string;
-		config: Array<
-			Partial<{
-				subnet: string;
-				ip_range: string;
-				gateway: string;
-				aux_addresses: Dictionary<string>;
-			}>
-		>;
-		options: Dictionary<string>;
-	};
-	enable_ipv6: boolean;
-	internal: boolean;
-	labels: Dictionary<string>;
-	config_only: boolean;
-}
 export interface NetworkConfig {
 	driver: string;
 	ipam: {

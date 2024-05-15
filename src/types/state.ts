@@ -13,10 +13,32 @@ import {
 	nonEmptyRecord,
 } from './basic';
 
-import type {
-	ComposeVolumeConfig,
-	ComposeNetworkConfig,
-} from '../compose/types';
+export interface ComposeVolumeConfig {
+	driver: string;
+	driver_opts: Dictionary<string>;
+	labels: LabelObject;
+}
+
+export interface ComposeNetworkConfig {
+	driver: string;
+	driver_opts: Dictionary<string>;
+	ipam: {
+		driver: string;
+		config: Array<
+			Partial<{
+				subnet: string;
+				ip_range: string;
+				gateway: string;
+				aux_addresses: Dictionary<string>;
+			}>
+		>;
+		options: Dictionary<string>;
+	};
+	enable_ipv6: boolean;
+	internal: boolean;
+	labels: Dictionary<string>;
+	config_only: boolean;
+}
 
 export type DeviceLegacyReport = Partial<{
 	api_port: number;
