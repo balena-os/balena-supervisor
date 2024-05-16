@@ -4,7 +4,6 @@ import { promises as fs } from 'fs';
 import { InternalInconsistencyError } from './errors';
 import { exec } from './fs-utils';
 import log from './supervisor-console';
-import * as conf from '../config';
 
 // Retrieve the data for the OS once only per path
 const getOSReleaseData = _.memoize(
@@ -53,12 +52,15 @@ export async function getOSVersion(path: string): Promise<string | undefined> {
 	return getOSReleaseField(path, 'PRETTY_NAME');
 }
 
+/**
+ * Returns the OS variant information from /etc/release
+ *
+ * OS variants no longer exist and this function only exists for legacy reasons
+ *
+ * @deprecated
+ */
 export async function getOSVariant(path: string): Promise<string | undefined> {
 	const osVariant = await getOSReleaseField(path, 'VARIANT_ID');
-	if (osVariant === undefined) {
-		const developmentMode = await conf.get('developmentMode');
-		return developmentMode === true ? 'dev' : 'prod';
-	}
 	return osVariant;
 }
 

@@ -2,9 +2,7 @@ import Bluebird from 'bluebird';
 import once = require('lodash/once');
 import requestLib from 'request';
 import resumableRequestLib from 'resumable-request';
-
-import * as constants from './constants';
-import * as osRelease from './os-release';
+import * as config from '../config';
 
 import supervisorVersion = require('./supervisor-version');
 
@@ -41,9 +39,12 @@ type PromisifiedRequest = typeof requestLib & {
 };
 
 const getRequestInstances = once(async () => {
+	await config.initialized();
 	// Generate the user agents with out versions
-	const osVersion = await osRelease.getOSVersion(constants.hostOSVersionPath);
-	const osVariant = await osRelease.getOSVariant(constants.hostOSVersionPath);
+	const { osVersion, osVariant } = await config.getMany([
+		'osVersion',
+		'osVariant',
+	]);
 	let userAgent = `Supervisor/${supervisorVersion}`;
 	if (osVersion != null) {
 		if (osVariant != null) {
