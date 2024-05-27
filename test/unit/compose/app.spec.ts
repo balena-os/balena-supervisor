@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import type { Image } from '~/src/compose/images';
-import Network from '~/src/compose/network';
-import Volume from '~/src/compose/volume';
+import { Network } from '~/src/compose/network';
+import { Volume } from '~/src/compose/volume';
 import { LocksTakenMap } from '~/lib/update-lock';
 
 import {

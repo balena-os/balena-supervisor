@@ -10,8 +10,8 @@ import * as LogTypes from '../lib/log-types';
 import log from '../lib/supervisor-console';
 import * as logger from '../logger';
 import { ResourceRecreationAttemptError } from './errors';
-import type { VolumeConfig } from './volume';
-import Volume from './volume';
+import type { VolumeConfig } from './types';
+import { Volume } from './volume';
 
 export interface VolumeNameOpts {
 	name: string;

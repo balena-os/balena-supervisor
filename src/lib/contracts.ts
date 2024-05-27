@@ -3,13 +3,12 @@ import * as t from 'io-ts';
 import Reporter from 'io-ts-reporters';
 import _ from 'lodash';
 
-import { Blueprint, Contract, ContractObject } from '@balena/contrato';
+import type { ContractObject } from '@balena/contrato';
+import { Blueprint, Contract } from '@balena/contrato';
 
 import { ContractValidationError, InternalInconsistencyError } from './errors';
 import { checkTruthy } from './validation';
 import type { TargetApps } from '../types';
-
-export { ContractObject };
 
 export interface ApplicationContractResult {
 	valid: boolean;

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import Volume from '~/src/compose/volume';
+import { Volume } from '~/src/compose/volume';
 
 describe('compose/volume: unit tests', () => {
 	describe('creating a volume from a compose object', () => {

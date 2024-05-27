@@ -1,4 +1,4 @@
-import * as apiKeys from '../api-keys';
+import * as apiKeys from '../../lib/api-keys';
 import * as config from '../../config';
 
 import type { Request } from 'express';

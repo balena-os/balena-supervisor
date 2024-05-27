@@ -11,12 +11,15 @@ import type {
 	ComposeNetworkConfig,
 	NetworkConfig,
 	NetworkInspectInfo,
-} from './types/network';
+	Network as NetworkIface,
+} from './types';
 
 import { InvalidNetworkNameError } from './errors';
 import { InternalInconsistencyError } from '../lib/errors';
 
-export class Network {
+export type Network = NetworkIface;
+
+class NetworkImpl implements Network {
 	public appId: number;
 	public appUuid?: string;
 	public name: string;
@@ -303,4 +306,4 @@ export class Network {
 	}
 }
 
-export default Network;
+export const Network = NetworkImpl;

@@ -4,16 +4,16 @@ import type * as db from '../db';
 import * as targetStateCache from './target-state-cache';
 import type { DatabaseApp, DatabaseService } from './target-state-cache';
 
-import App from '../compose/app';
+import { App } from '../compose/app';
 import * as images from '../compose/images';
 
 import type {
-	InstancedAppState,
 	TargetApp,
 	TargetApps,
 	TargetRelease,
 	TargetService,
 } from '../types/state';
+import type { InstancedAppState } from '../compose/types';
 
 type InstancedApp = InstancedAppState[0];
 

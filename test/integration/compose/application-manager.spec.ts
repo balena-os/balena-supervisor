@@ -4,9 +4,9 @@ import Docker from 'dockerode';
 import * as applicationManager from '~/src/compose/application-manager';
 import * as imageManager from '~/src/compose/images';
 import * as serviceManager from '~/src/compose/service-manager';
-import Network from '~/src/compose/network';
+import { Network } from '~/src/compose/network';
 import * as networkManager from '~/src/compose/network-manager';
-import Volume from '~/src/compose/volume';
+import { Volume } from '~/src/compose/volume';
 import * as config from '~/src/config';
 import { LocksTakenMap } from '~/lib/update-lock';
 import { createDockerImage } from '~/test-lib/docker-helper';
@@ -19,7 +19,7 @@ import {
 	expectSteps,
 	expectNoStep,
 } from '~/test-lib/state-helper';
-import type { InstancedAppState } from '~/src/types';
+import type { InstancedAppState } from '~/src/compose/types';
 
 // TODO: application manager inferNextSteps still queries some stuff from
 // the engine instead of receiving that information as parameter. Refactoring

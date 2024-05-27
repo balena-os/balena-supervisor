@@ -336,3 +336,58 @@ export interface DockerDevice {
 	PathInContainer: string;
 	CgroupPermissions: string;
 }
+
+export type ServiceStatus =
+	| 'Stopping'
+	| 'Running'
+	| 'Installing'
+	| 'Installed'
+	| 'Dead'
+	| 'paused'
+	| 'restarting'
+	| 'removing'
+	| 'exited';
+
+export interface Service {
+	appId: number;
+	appUuid?: string;
+	imageId: number;
+	config: ServiceConfig;
+	serviceName: string;
+	commit: string;
+	releaseId: number;
+	serviceId: number;
+	imageName: string | null;
+	containerId: string | null;
+	exitErrorMessage: string | null;
+
+	dependsOn: string[] | null;
+
+	dockerImageId: string | null;
+	// This looks weird, and it is. The lowercase statuses come from Docker,
+	// except the dashboard takes these values and displays them on the dashboard.
+	// What we should be doin is defining these container statuses, and have the
+	// dashboard make these human readable instead. Until that happens we have
+	// this halfways state of some captalised statuses, and others coming directly
+	// from docker
+	status: ServiceStatus;
+	createdAt: Date | null;
+
+	hasNetwork(networkName: string): boolean;
+	hasVolume(volumeName: string): boolean;
+	isEqualExceptForRunningState(
+		service: Service,
+		currentContainerIds: Dictionary<string>,
+	): boolean;
+	isEqualConfig(
+		service: Service,
+		currentContainerIds: Dictionary<string>,
+	): boolean;
+	hasNetworkMode(networkName: string): boolean;
+	extraNetworksToJoin(): ServiceConfig['networks'];
+	toDockerContainer(opts: {
+		deviceName: string;
+		containerIds: Dictionary<string>;
+	}): Dockerode.ContainerCreateOptions;
+	handoverCompleteFullPathsOnHost(): string[];
+}

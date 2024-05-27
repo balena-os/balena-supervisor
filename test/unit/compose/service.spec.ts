@@ -3,8 +3,8 @@ import * as _ from 'lodash';
 import { expect } from 'chai';
 import { createContainer } from '~/test-lib/mockerode';
 
-import Service from '~/src/compose/service';
-import Volume from '~/src/compose/volume';
+import { Service } from '~/src/compose/service';
+import { Volume } from '~/src/compose/volume';
 import * as ServiceT from '~/src/compose/types/service';
 import * as constants from '~/lib/constants';
 

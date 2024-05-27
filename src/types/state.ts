@@ -1,9 +1,6 @@
 import * as t from 'io-ts';
 
-// TODO: move all these exported types to ../compose/types
-import type { ComposeNetworkConfig } from '../compose/types/network';
-import type { ComposeVolumeConfig } from '../compose/volume';
-import type { ContractObject } from '../lib/contracts';
+import type { ContractObject } from '@balena/contrato';
 
 import {
 	DockerName,
@@ -16,7 +13,32 @@ import {
 	nonEmptyRecord,
 } from './basic';
 
-import type App from '../compose/app';
+export interface ComposeVolumeConfig {
+	driver: string;
+	driver_opts: Dictionary<string>;
+	labels: LabelObject;
+}
+
+export interface ComposeNetworkConfig {
+	driver: string;
+	driver_opts: Dictionary<string>;
+	ipam: {
+		driver: string;
+		config: Array<
+			Partial<{
+				subnet: string;
+				ip_range: string;
+				gateway: string;
+				aux_addresses: Dictionary<string>;
+			}>
+		>;
+		options: Dictionary<string>;
+	};
+	enable_ipv6: boolean;
+	internal: boolean;
+	labels: Dictionary<string>;
+	config_only: boolean;
+}
 
 export type DeviceLegacyReport = Partial<{
 	api_port: number;
@@ -356,13 +378,3 @@ export const AppsJsonFormat = t.intersection([
 	t.partial({ pinDevice: t.boolean }),
 ]);
 export type AppsJsonFormat = t.TypeOf<typeof AppsJsonFormat>;
-
-export type InstancedAppState = { [appId: number]: App };
-
-export interface InstancedDeviceState {
-	local: {
-		name: string;
-		config: Dictionary<string>;
-		apps: InstancedAppState;
-	};
-}

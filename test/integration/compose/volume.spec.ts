@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
-import Volume from '~/src/compose/volume';
+import { Volume } from '~/src/compose/volume';
 import * as logTypes from '~/lib/log-types';
 import * as logger from '~/src/logger';
 

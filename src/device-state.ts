@@ -25,7 +25,7 @@ import {
 import * as updateLock from './lib/update-lock';
 import { takeGlobalLockRO, takeGlobalLockRW } from './lib/process-lock';
 import * as dbFormat from './device-state/db-format';
-import { getGlobalApiKey } from './device-api';
+import { getGlobalApiKey } from './lib/api-keys';
 import * as sysInfo from './lib/system-info';
 import { log } from './lib/supervisor-console';
 import { loadTargetFromFile } from './device-state/preload';
@@ -34,7 +34,6 @@ import * as commitStore from './compose/commit';
 
 import type {
 	DeviceLegacyState,
-	InstancedDeviceState,
 	DeviceState,
 	DeviceReport,
 	AppState,
@@ -47,10 +46,19 @@ import type {
 import * as fsUtils from './lib/fs-utils';
 import { pathOnRoot } from './lib/host-utils';
 import { setTimeout } from 'timers/promises';
+import type { InstancedAppState } from './compose/types';
 
 const TARGET_STATE_CONFIG_DUMP = pathOnRoot(
 	'/tmp/balena-supervisor/target-state-config',
 );
+
+interface InstancedDeviceState {
+	local: {
+		name: string;
+		config: Dictionary<string>;
+		apps: InstancedAppState;
+	};
+}
 
 function parseTargetState(state: unknown): TargetState {
 	const res = TargetState.decode(state);

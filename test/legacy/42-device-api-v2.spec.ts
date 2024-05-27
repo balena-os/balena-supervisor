@@ -8,7 +8,7 @@ import mockedAPI = require('~/test-lib/mocked-device-api');
 import * as apiBinder from '~/src/api-binder';
 import * as deviceState from '~/src/device-state';
 import type SupervisorAPI from '~/src/device-api';
-import * as deviceApi from '~/src/device-api';
+import * as apiKeys from '~/lib/api-keys';
 import * as serviceManager from '~/src/compose/service-manager';
 import * as images from '~/src/compose/images';
 import * as config from '~/src/config';
@@ -78,7 +78,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 			await request
 				.get('/v2/device/vpn')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect('Content-Type', /json/)
 				.expect(sampleResponses.V2.GET['/device/vpn'].statusCode)
 				.then((response) => {
@@ -94,7 +94,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 			await request
 				.get('/v2/applications/1/state')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(sampleResponses.V2.GET['/applications/1/state'].statusCode)
 				.expect('Content-Type', /json/)
 				.then((response) => {
@@ -108,7 +108,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 			await request
 				.get('/v2/applications/123invalid/state')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect('Content-Type', /json/)
 				.expect(
 					sampleResponses.V2.GET['/applications/123invalid/state'].statusCode,
@@ -124,7 +124,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 			await request
 				.get('/v2/applications/9000/state')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(sampleResponses.V2.GET['/applications/9000/state'].statusCode)
 				.then((response) => {
 					expect(response.body).to.deep.equal(
@@ -135,7 +135,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		describe('Scoped API Keys', () => {
 			it('returns 409 because app is out of scope of the key', async () => {
-				const apiKey = await deviceApi.generateScopedKey(3, 'main');
+				const apiKey = await apiKeys.generateScopedKey(3, 'main');
 				await request
 					.get('/v2/applications/2/state')
 					.set('Accept', 'application/json')
@@ -157,7 +157,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		it('should return scoped application', async () => {
 			// Create scoped key for application
-			const appScopedKey = await deviceApi.generateScopedKey(1658654, 'main');
+			const appScopedKey = await apiKeys.generateScopedKey(1658654, 'main');
 			// Setup device conditions
 			serviceManagerMock.resolves([mockedAPI.mockService({ appId: 1658654 })]);
 			imagesMock.resolves([mockedAPI.mockImage({ appId: 1658654 })]);
@@ -181,7 +181,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		it('should return no application info due to lack of scope', async () => {
 			// Create scoped key for wrong application
-			const appScopedKey = await deviceApi.generateScopedKey(1, 'main');
+			const appScopedKey = await apiKeys.generateScopedKey(1, 'main');
 			// Setup device conditions
 			serviceManagerMock.resolves([mockedAPI.mockService({ appId: 1658654 })]);
 			imagesMock.resolves([mockedAPI.mockImage({ appId: 1658654 })]);
@@ -204,7 +204,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		it('should return success when device has no applications', async () => {
 			// Create scoped key for any application
-			const appScopedKey = await deviceApi.generateScopedKey(1658654, 'main');
+			const appScopedKey = await apiKeys.generateScopedKey(1658654, 'main');
 			// Setup device conditions
 			serviceManagerMock.resolves([]);
 			imagesMock.resolves([]);
@@ -227,7 +227,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		it('should only return 1 application when N > 1 applications on device', async () => {
 			// Create scoped key for application
-			const appScopedKey = await deviceApi.generateScopedKey(1658654, 'main');
+			const appScopedKey = await apiKeys.generateScopedKey(1658654, 'main');
 			// Setup device conditions
 			serviceManagerMock.resolves([
 				mockedAPI.mockService({ appId: 1658654 }),

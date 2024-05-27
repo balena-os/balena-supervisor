@@ -1,6 +1,7 @@
 import type * as express from 'express';
 import request from 'supertest';
 
+import * as apiKeys from '~/lib/api-keys';
 import * as deviceApi from '~/src/device-api';
 
 describe('device-api/index', () => {
@@ -22,7 +23,7 @@ describe('device-api/index', () => {
 
 			await request(api)
 				.get('/ping')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(200);
 		});
 	});

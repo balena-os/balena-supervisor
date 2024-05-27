@@ -9,7 +9,7 @@ import * as fs from 'fs/promises';
 import * as hostConfig from '~/src/host-config';
 import * as config from '~/src/config';
 import * as applicationManager from '~/src/compose/application-manager';
-import type { InstancedAppState } from '~/src/types/state';
+import type { InstancedAppState } from '~/src/compose/types';
 import * as updateLock from '~/lib/update-lock';
 import { UpdatesLockedError } from '~/lib/errors';
 import * as dbus from '~/lib/dbus';

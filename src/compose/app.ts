@@ -2,15 +2,10 @@ import _ from 'lodash';
 import { promises as fs } from 'fs';
 import type { ImageInspectInfo } from 'dockerode';
 
-import Network from './network';
-import Volume from './volume';
-import Service from './service';
+import { Network } from './network';
+import { Volume } from './volume';
+import { Service } from './service';
 import * as imageManager from './images';
-import type { Image } from './images';
-import type {
-	CompositionStep,
-	CompositionStepAction,
-} from './composition-steps';
 import { generateStep } from './composition-steps';
 import type * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
@@ -25,7 +20,16 @@ import { checkTruthy } from '../lib/validation';
 import type { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
-import type { LocksTakenMap } from '../lib/update-lock';
+import type {
+	App as AppIface,
+	UpdateState,
+	AppsToLockMap,
+	CompositionStep,
+	CompositionStepAction,
+} from './types';
+
+// Re export the type
+export type App = AppIface;
 
 export interface AppConstructOpts {
 	appId: number;
@@ -40,24 +44,12 @@ export interface AppConstructOpts {
 	networks: Network[];
 }
 
-export interface UpdateState {
-	availableImages: Image[];
-	containerIds: Dictionary<string>;
-	downloading: string[];
-	locksTaken: LocksTakenMap;
-	force: boolean;
-}
-
 interface ChangingPair<T> {
 	current?: T;
 	target?: T;
 }
 
-export interface AppsToLockMap {
-	[appId: number]: Set<string>;
-}
-
-export class App {
+class AppImpl implements App {
 	public appId: number;
 	public appUuid?: string;
 	// When setting up an application from current state, these values are not available
@@ -1027,7 +1019,7 @@ export class App {
 				}),
 		);
 
-		return new App(
+		return new AppImpl(
 			{
 				appId: app.appId,
 				appUuid: app.uuid,
@@ -1044,4 +1036,4 @@ export class App {
 	}
 }
 
-export default App;
+export const App = AppImpl;

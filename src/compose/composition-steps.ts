@@ -1,104 +1,19 @@
 import * as config from '../config';
-import type { Image } from './images';
+import type { CompositionStepArgs, Image, CompositionStep } from './types';
 import * as images from './images';
-import type Network from './network';
-import type Service from './service';
 import * as serviceManager from './service-manager';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
-import type Volume from './volume';
 import * as commitStore from './commit';
 import * as updateLock from '../lib/update-lock';
 import type { DeviceLegacyReport } from '../types/state';
+import type { CompositionStepAction, CompositionStepT } from './types';
 
-interface CompositionStepArgs {
-	stop: {
-		current: Service;
-		options?: {
-			wait?: boolean;
-		};
-	};
-	kill: {
-		current: Service;
-		options?: {
-			wait?: boolean;
-		};
-	};
-	remove: {
-		current: Service;
-	};
-	updateMetadata: {
-		current: Service;
-		target: Service;
-	};
-	restart: {
-		current: Service;
-		target: Service;
-	};
-	start: {
-		target: Service;
-	};
-	updateCommit: {
-		target: string;
-		appId: number;
-	};
-	handover: {
-		current: Service;
-		target: Service;
-		options?: {
-			timeout?: number;
-		};
-	};
-	fetch: {
-		image: Image;
-		serviceName: string;
-	};
-	removeImage: {
-		image: Image;
-	};
-	saveImage: {
-		image: Image;
-	};
-	cleanup: object;
-	createNetwork: {
-		target: Network;
-	};
-	createVolume: {
-		target: Volume;
-	};
-	removeNetwork: {
-		current: Network;
-	};
-	removeVolume: {
-		current: Volume;
-	};
-	ensureSupervisorNetwork: object;
-	noop: object;
-	takeLock: {
-		appId: number;
-		services: string[];
-		force: boolean;
-	};
-	releaseLock: {
-		appId: number;
-	};
-}
-
-export type CompositionStepAction = keyof CompositionStepArgs;
-export type CompositionStepT<T extends CompositionStepAction> = {
-	action: T;
-} & CompositionStepArgs[T];
-export type CompositionStep = CompositionStepT<CompositionStepAction>;
-
-export function generateStep<T extends CompositionStepAction>(
-	action: T,
-	args: CompositionStepArgs[T],
-): CompositionStep {
-	return {
-		action,
-		...args,
-	};
-}
+export type {
+	CompositionStep,
+	CompositionStepT,
+	CompositionStepAction,
+} from './types';
 
 type Executors<T extends CompositionStepAction> = {
 	[key in T]: (step: CompositionStepT<key>) => Promise<unknown>;
@@ -112,6 +27,16 @@ interface CompositionCallbacks {
 	fetchTime: (time: number) => void;
 	stateReport: (state: DeviceLegacyReport) => void;
 	bestDeltaSource: (image: Image, available: Image[]) => string | null;
+}
+
+export function generateStep<T extends CompositionStepAction>(
+	action: T,
+	args: CompositionStepArgs[T],
+): CompositionStep {
+	return {
+		action,
+		...args,
+	};
 }
 
 export function getExecutors(app: { callbacks: CompositionCallbacks }) {

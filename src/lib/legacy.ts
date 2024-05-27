@@ -1,5 +1,4 @@
 import * as path from 'path';
-import * as apiBinder from '../api-binder';
 import * as config from '../config';
 import * as db from '../db';
 import * as volumeManager from '../compose/volume-manager';
@@ -14,12 +13,13 @@ import {
 import { docker } from './docker-utils';
 import { log } from './supervisor-console';
 import { pathOnData } from './host-utils';
-import type Volume from '../compose/volume';
+import type { Volume } from '../compose/volume';
 import * as logger from '../logger';
 import type {
 	DatabaseApp,
 	DatabaseService,
 } from '../device-state/target-state-cache';
+import { getBalenaApi } from '../lib/api-helper';
 
 import type { TargetApp, TargetApps, TargetState } from '../types';
 
@@ -54,13 +54,7 @@ async function createVolumeFromLegacyData(
  * Gets proper database ids from the cloud for the app and app services
  */
 export async function normaliseLegacyDatabase() {
-	await apiBinder.initialized();
-
-	if (apiBinder.balenaApi == null) {
-		throw new InternalInconsistencyError(
-			'API binder is not initialized correctly',
-		);
-	}
+	const balenaApi = await getBalenaApi();
 
 	// When legacy apps are present, we kill their containers and migrate their /data to a named volume
 	log.info('Migrating ids for legacy app...');
@@ -97,7 +91,7 @@ export async function normaliseLegacyDatabase() {
 		}
 
 		log.debug(`Getting release ${app.commit} for app ${app.appId} from API`);
-		const releases = await apiBinder.balenaApi.get({
+		const releases = await balenaApi.get({
 			resource: 'release',
 			options: {
 				$filter: {
@@ -266,15 +260,7 @@ export async function fromV2TargetState(
  * @param appId
  */
 const getUUIDFromAPI = async (appId: number) => {
-	await apiBinder.initialized();
-
-	if (apiBinder.balenaApi == null) {
-		throw new InternalInconsistencyError(
-			'API binder is not initialized correctly',
-		);
-	}
-
-	const { balenaApi } = apiBinder;
+	const balenaApi = await getBalenaApi();
 
 	const appDetails = await balenaApi.get({
 		resource: 'application',

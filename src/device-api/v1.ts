@@ -2,7 +2,7 @@ import express from 'express';
 import type { Response } from 'express';
 
 import * as actions from './actions';
-import type { AuthorizedRequest } from './api-keys';
+import type { AuthorizedRequest } from '../lib/api-keys';
 import * as eventTracker from '../event-tracker';
 import type * as deviceState from '../device-state';
 

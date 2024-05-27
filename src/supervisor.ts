@@ -58,8 +58,9 @@ export class Supervisor {
 
 		await deviceState.initialized();
 
+		const unmanaged = await config.get('unmanaged');
 		logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');
-		if (conf.legacyAppsPresent && apiBinder.balenaApi != null) {
+		if (conf.legacyAppsPresent && !unmanaged) {
 			log.info('Legacy app detected, running migration');
 			await normaliseLegacyDatabase();
 		}

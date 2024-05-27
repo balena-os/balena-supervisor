@@ -23,7 +23,9 @@ import type {
 	ConfigMap,
 	DeviceMetadata,
 	DockerDevice,
-} from './types/service';
+	ServiceStatus,
+	Service as ServiceIface,
+} from './types';
 import {
 	ShortMount,
 	ShortBind,
@@ -34,25 +36,16 @@ import {
 	LongBind,
 	LongAnonymousVolume,
 	LongNamedVolume,
-} from './types/service';
+} from './types';
 
 const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
 const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
 
 const unsupportedSecurityOpt = (opt: string) => /label=.*/.test(opt);
 
-export type ServiceStatus =
-	| 'Stopping'
-	| 'Running'
-	| 'Installing'
-	| 'Installed'
-	| 'Dead'
-	| 'paused'
-	| 'restarting'
-	| 'removing'
-	| 'exited';
+export type Service = ServiceIface;
 
-export class Service {
+class ServiceImpl implements Service {
 	public appId: number;
 	public appUuid?: string;
 	public imageId: number;
@@ -64,17 +57,8 @@ export class Service {
 	public imageName: string | null;
 	public containerId: string | null;
 	public exitErrorMessage: string | null;
-
 	public dependsOn: string[] | null;
-
 	public dockerImageId: string | null;
-
-	// This looks weird, and it is. The lowercase statuses come from Docker,
-	// except the dashboard takes these values and displays them on the dashboard.
-	// What we should be doin is defining these container statuses, and have the
-	// dashboard make these human readable instead. Until that happens we have
-	// this halfways state of some captalised statuses, and others coming directly
-	// from docker
 	public status: ServiceStatus;
 	public createdAt: Date | null;
 
@@ -95,7 +79,7 @@ export class Service {
 		'dnsSearch',
 	];
 	public static allConfigArrayFields: ServiceConfigArrayField[] =
-		Service.configArrayFields.concat(Service.orderedConfigArrayFields);
+		ServiceImpl.configArrayFields.concat(ServiceImpl.orderedConfigArrayFields);
 
 	// A list of fields to ignore when comparing container configuration
 	private static omitFields = [
@@ -109,7 +93,7 @@ export class Service {
 		// These fields are special case, due to network_mode:service:<service>
 		'networkMode',
 		'hostname',
-	].concat(Service.allConfigArrayFields);
+	].concat(ServiceImpl.allConfigArrayFields);
 
 	private constructor() {
 		/* do not allow instancing a service object with `new` */
@@ -1170,4 +1154,4 @@ export class Service {
 	}
 }
 
-export default Service;
+export const Service = ServiceImpl;

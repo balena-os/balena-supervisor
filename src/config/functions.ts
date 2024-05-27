@@ -31,8 +31,13 @@ export const fnSchema = {
 	osVersion: () => {
 		return osRelease.getOSVersion(constants.hostOSVersionPath);
 	},
-	osVariant: () => {
-		return osRelease.getOSVariant(constants.hostOSVersionPath);
+	osVariant: async () => {
+		const osVariant = await osRelease.getOSVariant(constants.hostOSVersionPath);
+		if (osVariant === undefined) {
+			const developmentMode = await config.get('developmentMode');
+			return developmentMode === true ? 'dev' : 'prod';
+		}
+		return osVariant;
 	},
 	macAddress: () => {
 		return macAddress.getAll(constants.macAddressPath);

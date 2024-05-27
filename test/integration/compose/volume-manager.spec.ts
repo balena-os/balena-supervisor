@@ -2,7 +2,7 @@ import { expect } from 'chai';
 
 import * as sinon from 'sinon';
 import * as volumeManager from '~/src/compose/volume-manager';
-import Volume from '~/src/compose/volume';
+import { Volume } from '~/src/compose/volume';
 import { createDockerImage } from '~/test-lib/docker-helper';
 
 import Docker from 'dockerode';

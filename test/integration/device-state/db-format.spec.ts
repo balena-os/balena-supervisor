@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { isRight } from 'fp-ts/lib/Either';
-import App from '~/src/compose/app';
-import Network from '~/src/compose/network';
+import { App } from '~/src/compose/app';
+import { Network } from '~/src/compose/network';
 import * as config from '~/src/config';
 import * as testDb from '~/src/db';
 import * as dbFormat from '~/src/device-state/db-format';
