@@ -13,7 +13,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: balena-io/deploy-to-balena-action@fd55e44742b6d670abea005ca7193a0f7f71091e # v2.0.68
+    - uses: balena-io/deploy-to-balena-action@157b99bf46acb3b2bb61ad92f751f20fd593d58b # v2.0.69
       with:
         balena_token: ${{ fromJSON(inputs.secrets).BALENA_STAGING_TOKEN }}
         fleet: ${{ env.matrix_value }}
