@@ -12,7 +12,7 @@ import Log from '~/lib/supervisor-console';
 import balenaAPI = require('~/test-lib/mocked-balena-api');
 import { schema } from '~/src/config/schema';
 import ConfigJsonConfigBackend from '~/src/config/configJson';
-import * as TargetState from '~/src/device-state/target-state';
+import * as TargetState from '~/src/api-binder/poll';
 import * as ApiHelper from '~/lib/api-helper';
 import supervisorVersion = require('~/lib/supervisor-version');
 import * as eventTracker from '~/src/event-tracker';

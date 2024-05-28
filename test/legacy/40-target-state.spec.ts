@@ -5,7 +5,7 @@ import _ from 'lodash';
 import rewire from 'rewire';
 import { expect } from 'chai';
 
-import * as TargetState from '~/src/device-state/target-state';
+import * as TargetState from '~/src/api-binder/poll';
 import Log from '~/lib/supervisor-console';
 import * as request from '~/lib/request';
 import * as deviceConfig from '~/src/device-config';
