@@ -7,46 +7,46 @@ import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
 import prettyMs from 'pretty-ms';
 
-import * as config from './config';
-import * as db from './db';
-import * as logger from './logger';
+import * as config from '../config';
+import * as db from '../db';
+import * as logger from '../logger';
 
-import * as globalEventBus from './event-bus';
-import * as network from './network';
-import * as deviceConfig from './device-config';
+import * as globalEventBus from '../event-bus';
+import * as network from '../network';
+import * as deviceConfig from '../device-config';
 
-import * as constants from './lib/constants';
-import * as dbus from './lib/dbus';
+import * as constants from '../lib/constants';
+import * as dbus from '../lib/dbus';
 import {
 	InternalInconsistencyError,
 	TargetStateError,
 	UpdatesLockedError,
-} from './lib/errors';
-import * as updateLock from './lib/update-lock';
-import { takeGlobalLockRO, takeGlobalLockRW } from './lib/process-lock';
-import * as dbFormat from './device-state/db-format';
-import { getGlobalApiKey } from './lib/api-keys';
-import * as sysInfo from './lib/system-info';
-import { log } from './lib/supervisor-console';
-import { loadTargetFromFile } from './device-state/preload';
-import * as applicationManager from './compose/application-manager';
-import * as commitStore from './compose/commit';
+} from '../lib/errors';
+import * as updateLock from '../lib/update-lock';
+import { takeGlobalLockRO, takeGlobalLockRW } from '../lib/process-lock';
+import * as dbFormat from './db-format';
+import { getGlobalApiKey } from '../lib/api-keys';
+import * as sysInfo from '../lib/system-info';
+import { log } from '../lib/supervisor-console';
+import { loadTargetFromFile } from './preload';
+import * as applicationManager from '../compose/application-manager';
+import * as commitStore from '../compose/commit';
 
 import type {
 	DeviceLegacyState,
 	DeviceState,
 	DeviceReport,
 	AppState,
-} from './types';
-import { TargetState } from './types';
+} from '../types';
+import { TargetState } from '../types';
 import type {
 	CompositionStepT,
 	CompositionStepAction,
-} from './compose/composition-steps';
-import * as fsUtils from './lib/fs-utils';
-import { pathOnRoot } from './lib/host-utils';
+} from '../compose/composition-steps';
+import * as fsUtils from '../lib/fs-utils';
+import { pathOnRoot } from '../lib/host-utils';
 import { setTimeout } from 'timers/promises';
-import type { InstancedAppState } from './compose/types';
+import type { InstancedAppState } from '../compose/types';
 
 const TARGET_STATE_CONFIG_DUMP = pathOnRoot(
 	'/tmp/balena-supervisor/target-state-config',
