@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action action to v2.0.70
+      hash: d7a325b80a5c79d290b7bb232dabb4a7ac2737f9
+      body: |
+        Update balena-io/deploy-to-balena-action from 2.0.69 to 2.0.70
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.3.12
+  title: ""
+  date: 2024-06-03T01:55:57.227Z
+- commits:
     - subject: Move OS variant retrieval to config module
       hash: 027c2575b1147b5395c61e3d824f9dff95e7f1d0
       body: |
