@@ -1,4 +1,37 @@
 - commits:
+    - subject: Split target state set/get into separate module
+      hash: 45d1f1f964e777b5168b089858af0cec33f98c68
+      body: |
+        This removes the circular dependency between device state index and
+        preloading and cleans up the device state module code
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Move device-state.ts into the device-state/index.ts
+      hash: fedeb518e5315a7cb593818c2e80a5d8e459cefa
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Move device-state/target state to api-binder/poll
+      hash: 9497eed380e63f3b5d794071879ad9e8e4369178
+      body: |
+        This goes in the direction of grouping modules by responsibility. The
+        api-binder module is the middleware between the device and the backend,
+        thus the target state polling code makes more sense there.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.3.13
+  title: ""
+  date: 2024-06-05T20:43:08.205Z
+- commits:
     - subject: Update balena-io/deploy-to-balena-action action to v2.0.70
       hash: d7a325b80a5c79d290b7bb232dabb4a7ac2737f9
       body: |
