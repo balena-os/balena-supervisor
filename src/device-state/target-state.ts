@@ -1,243 +1,145 @@
-import { EventEmitter } from 'events';
-import url from 'url';
-import { setTimeout } from 'timers/promises';
 import Bluebird from 'bluebird';
-import type StrictEventEmitter from 'strict-event-emitter-types';
+import { isRight } from 'fp-ts/lib/Either';
+import Reporter from 'io-ts-reporters';
 
-import type { TargetState } from '../types/state';
-import { InternalInconsistencyError } from '../lib/errors';
-import { getGotInstance } from '../lib/request';
 import * as config from '../config';
-import { takeGlobalLockRW } from '../lib/process-lock';
-import * as constants from '../lib/constants';
-import log from '../lib/supervisor-console';
+import * as db from '../db';
 
-export class ApiResponseError extends Error {}
+import * as globalEventBus from '../event-bus';
+import * as deviceConfig from '../device-config';
 
-interface TargetStateEvents {
-	'target-state-update': (
-		targetState: TargetState,
-		force: boolean,
-		isFromApi: boolean,
-	) => void;
-	'target-state-apply': (force: boolean, isFromApi: boolean) => void;
-}
-export const emitter: StrictEventEmitter<EventEmitter, TargetStateEvents> =
-	new EventEmitter();
+import { TargetStateError } from '../lib/errors';
+import { takeGlobalLockRO, takeGlobalLockRW } from '../lib/process-lock';
+import * as dbFormat from './db-format';
+import * as applicationManager from '../compose/application-manager';
 
-const lockGetTarget = () =>
-	takeGlobalLockRW('getTarget').disposer((release) => release());
+import { TargetState } from '../types';
+import * as fsUtils from '../lib/fs-utils';
+import { pathOnRoot } from '../lib/host-utils';
+import type { InstancedAppState } from '../compose/types';
 
-type CachedResponse = {
-	etag?: string | string[];
-	body: TargetState;
-	emitted?: boolean;
-};
+const TARGET_STATE_CONFIG_DUMP = pathOnRoot(
+	'/tmp/balena-supervisor/target-state-config',
+);
 
-let cache: CachedResponse;
-
-/**
- * appUpdatePollInterval is set when startPoll successfuly queries the config
- */
-let appUpdatePollInterval: number;
-
-/**
- * Emit target state event based on if the CacheResponse has/was emitted.
- *
- * Returns false if the CacheResponse is not emitted.
- *
- * @param cachedResponse the response to emit
- * @param force Emitted with the 'target-state-update' event update as necessary
- * @param isFromApi Emitted with the 'target-state-update' event update as necessary
- * @return true if the response has been emitted or false otherwise
- */
-const emitTargetState = (
-	cachedResponse: CachedResponse,
-	force = false,
-	isFromApi = false,
-): boolean => {
-	if (
-		!cachedResponse.emitted &&
-		emitter.listenerCount('target-state-update') > 0
-	) {
-		// CachedResponse has not been emitted before so emit as an update
-		emitter.emit(
-			'target-state-update',
-			structuredClone(cachedResponse.body),
-			force,
-			isFromApi,
-		);
-		return true;
-	} else if (
-		cachedResponse.emitted &&
-		isFromApi &&
-		emitter.listenerCount('target-state-apply') > 0
-	) {
-		// CachedResponse has been emitted but a client triggered the check so emit an apply
-		emitter.emit('target-state-apply', force, isFromApi);
-		return true;
-	}
-	// Return the same emitted value but normalized to be a boolean
-	return !!cache.emitted;
-};
-
-/**
- * The last fetch attempt
- *
- * We set a value rather then being undeclared because having it undefined
- * adds more overhead to dealing with this value without any benefits.
- */
-export let lastFetch: ReturnType<typeof process.hrtime> = process.hrtime();
-
-/**
- * Attempts to update the target state
- * @param force Emitted with the 'target-state-update' event update as necessary
- * @param isFromApi Emitted with the 'target-state-update' event update as necessary
- */
-export const update = async (
-	// TODO: Is there a better way than passing these params here just to emit them if there is an update?
-	force = false,
-	isFromApi = false,
-): Promise<void> => {
-	await config.initialized();
-	return Bluebird.using(lockGetTarget(), async () => {
-		const { uuid, apiEndpoint, apiTimeout, deviceApiKey } =
-			await config.getMany([
-				'uuid',
-				'apiEndpoint',
-				'apiTimeout',
-				'deviceApiKey',
-			]);
-
-		if (typeof apiEndpoint !== 'string') {
-			throw new InternalInconsistencyError(
-				'Non-string apiEndpoint passed to ApiBinder.getTargetState',
-			);
-		}
-
-		const endpoint = url.resolve(apiEndpoint, `/device/v3/${uuid}/state`);
-		const got = await getGotInstance();
-
-		const { statusCode, headers, body } = await got(endpoint, {
-			headers: {
-				Authorization: `Bearer ${deviceApiKey}`,
-				'If-None-Match': cache?.etag,
-			},
-			timeout: {
-				// TODO: We use the same default timeout for all of these in order to have a timeout generally
-				// but it would probably make sense to tune them individually
-				lookup: apiTimeout,
-				connect: apiTimeout,
-				secureConnect: apiTimeout,
-				socket: apiTimeout,
-				send: apiTimeout,
-				response: apiTimeout,
-			},
-		});
-
-		if (statusCode === 304 && cache?.etag != null) {
-			// There's no change so no need to update the cache
-			// only emit the target state if it hasn't been emitted yet
-			cache.emitted = emitTargetState(cache, force, isFromApi);
-			return;
-		}
-
-		if (statusCode < 200 || statusCode >= 300) {
-			log.error(`Error from the API: ${statusCode}`);
-			throw new ApiResponseError(`Error from the API: ${statusCode}`);
-		}
-
-		cache = {
-			etag: headers.etag,
-			body: body as any,
-		};
-
-		// Emit the target state and update the cache
-		cache.emitted = emitTargetState(cache, force, isFromApi);
-	}).finally(() => {
-		lastFetch = process.hrtime();
-	});
-};
-
-const poll = async (
-	skipFirstGet: boolean = false,
-	fetchErrors: number = 0,
-): Promise<void> => {
-	// Add random jitter up to `maxApiJitterDelay` to space out poll requests
-	// NOTE: the jitter has as objective to reduce the load on networks that have
-	// devices on the 1000s. It's not meant to ease the load on the API as the backend performs
-	// other operations to deal with scaling issues
-	let pollInterval =
-		Math.random() * constants.maxApiJitterDelay + appUpdatePollInterval;
-
-	// Convenience function used for delaying poll loops
-	const delayedLoop = async (delayBy: number) => {
-		// Wait until we want to poll again
-		await setTimeout(delayBy);
-		// Poll again
-		await poll(false, fetchErrors);
+export interface InstancedDeviceState {
+	local: {
+		name: string;
+		config: Dictionary<string>;
+		apps: InstancedAppState;
 	};
+}
 
-	// Check if we want to skip first request and just loop again
-	if (skipFirstGet) {
-		return delayedLoop(pollInterval);
+function parseTargetState(state: unknown): TargetState {
+	const res = TargetState.decode(state);
+
+	if (isRight(res)) {
+		return res.right;
 	}
 
-	// Try to fetch latest target state
-	try {
-		await update();
-		// Reset fetchErrors because we successfuly updated
-		fetchErrors = 0;
-	} catch {
-		// Exponential back off if request fails
-		pollInterval = Math.min(appUpdatePollInterval, 15000 * 2 ** fetchErrors);
-		++fetchErrors;
-	} finally {
-		// Wait to poll again
-		await delayedLoop(pollInterval);
+	const errors = ['Invalid target state.'].concat(Reporter.report(res));
+	throw new TargetStateError(errors.join('\n'));
+}
+
+// TODO: avoid singletons
+let failedUpdates: number = 0;
+let intermediateTarget: InstancedDeviceState | null = null;
+
+const readLockTarget = () =>
+	takeGlobalLockRO('target').disposer((release) => release());
+const writeLockTarget = () =>
+	takeGlobalLockRW('target').disposer((release) => release());
+function usingReadLockTarget<T extends () => any, U extends ReturnType<T>>(
+	fn: T,
+): Bluebird<UnwrappedPromise<U>> {
+	return Bluebird.using(readLockTarget, () => fn());
+}
+function usingWriteLockTarget<T extends () => any, U extends ReturnType<T>>(
+	fn: T,
+): Bluebird<UnwrappedPromise<U>> {
+	return Bluebird.using(writeLockTarget, () => fn());
+}
+
+export function resetFailedUpdates() {
+	failedUpdates = 0;
+}
+
+export function increaseFailedUpdates() {
+	failedUpdates += 1;
+}
+
+export function getFailedUpdates() {
+	return failedUpdates;
+}
+
+export function setIntermediateTarget(tgt: InstancedDeviceState | null) {
+	intermediateTarget = tgt;
+}
+
+export async function setTarget(target: TargetState, localSource?: boolean) {
+	await db.initialized();
+	await config.initialized();
+
+	// When we get a new target state, clear any built up apply errors
+	// This means that we can attempt to apply the new state instantly
+	if (localSource == null) {
+		localSource = false;
 	}
-};
+	failedUpdates = 0;
 
-/**
- * Checks for target state changes and then returns the latest target state
- */
-export const get = async (): Promise<TargetState> => {
-	await update();
-	return structuredClone(cache.body);
-};
+	// This will throw if target state is invalid
+	target = parseTargetState(target);
 
-/**
- * Start polling for target state updates
- *
- * startPoll will try to query the config for all values needed
- * to being polling. If there is an issue obtaining these values
- * the function will wait 10 seconds and retry until successful.
- */
-export const startPoll = async (): Promise<void> => {
-	let instantUpdates;
-	try {
-		await config.initialized();
+	globalEventBus.getInstance().emit('targetStateChanged', target);
 
-		/**
-		 * Listen for config changes to appUpdatePollInterval
-		 */
-		config.on('change', (changedConfig) => {
-			if (changedConfig.appUpdatePollInterval) {
-				appUpdatePollInterval = changedConfig.appUpdatePollInterval;
+	const { uuid, apiEndpoint } = await config.getMany(['uuid', 'apiEndpoint']);
+
+	if (!uuid || !target[uuid]) {
+		throw new Error(
+			`Expected target state for local device with uuid '${uuid}'.`,
+		);
+	}
+
+	const localTarget = target[uuid];
+
+	await fsUtils.writeAndSyncFile(
+		TARGET_STATE_CONFIG_DUMP,
+		JSON.stringify(localTarget.config),
+	);
+
+	await usingWriteLockTarget(async () => {
+		await db.transaction(async (trx) => {
+			await config.set({ name: localTarget.name }, trx);
+			await deviceConfig.setTarget(localTarget.config, trx);
+
+			if (localSource || apiEndpoint == null || apiEndpoint === '') {
+				await applicationManager.setTarget(localTarget.apps, 'local', trx);
+			} else {
+				await applicationManager.setTarget(localTarget.apps, apiEndpoint, trx);
 			}
+			await config.set({ targetStateSet: true }, trx);
 		});
+	});
+}
 
-		// Query and set config values we need to avoid multiple db hits
-		const { instantUpdates: updates, appUpdatePollInterval: interval } =
-			await config.getMany(['instantUpdates', 'appUpdatePollInterval']);
-		instantUpdates = updates;
-		appUpdatePollInterval = interval;
-	} catch {
-		// Delay 10 seconds and retry loading config
-		await setTimeout(10000);
-		// Attempt to start poll again
-		return startPoll();
-	}
-	// All config values fetch, start polling!
-	return poll(!instantUpdates);
-};
+export function getTarget({
+	initial = false,
+	intermediate = false,
+}: {
+	initial?: boolean;
+	intermediate?: boolean;
+} = {}): Bluebird<InstancedDeviceState> {
+	return usingReadLockTarget(async () => {
+		if (intermediate) {
+			return intermediateTarget!;
+		}
+
+		return {
+			local: {
+				name: await config.get('name'),
+				config: await deviceConfig.getTarget({ initial }),
+				apps: await dbFormat.getApps(),
+			},
+		};
+	});
+}

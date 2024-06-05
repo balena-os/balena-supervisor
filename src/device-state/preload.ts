@@ -4,7 +4,7 @@ import { promises as fs } from 'fs';
 import type { Image } from '../compose/images';
 import { imageFromService } from '../compose/images';
 import { NumericIdentifier } from '../types';
-import * as deviceState from '../device-state';
+import { setTarget } from './target-state';
 import * as config from '../config';
 import * as deviceConfig from '../device-config';
 import * as eventTracker from '../event-tracker';
@@ -136,7 +136,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 			},
 		};
 
-		await deviceState.setTarget(localState);
+		await setTarget(localState);
 		await migrateAppsJson(appsPath);
 		log.success('Preloading complete');
 		if (preloadState.pinDevice) {

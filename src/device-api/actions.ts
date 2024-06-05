@@ -13,7 +13,7 @@ import { generateStep } from '../compose/composition-steps';
 import * as commitStore from '../compose/commit';
 import type { Service } from '../compose/service';
 import { getApp } from '../device-state/db-format';
-import * as TargetState from '../device-state/target-state';
+import * as TargetState from '../api-binder/poll';
 import log from '../lib/supervisor-console';
 import blink = require('../lib/blink');
 import * as constants from '../lib/constants';

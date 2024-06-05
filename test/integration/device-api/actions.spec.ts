@@ -11,7 +11,7 @@ import * as config from '~/src/config';
 import * as hostConfig from '~/src/host-config';
 import * as apiKeys from '~/lib/api-keys';
 import * as actions from '~/src/device-api/actions';
-import * as TargetState from '~/src/device-state/target-state';
+import * as TargetState from '~/src/api-binder/poll';
 import * as updateLock from '~/lib/update-lock';
 import { pathOnRoot } from '~/lib/host-utils';
 import { exec } from '~/lib/fs-utils';
