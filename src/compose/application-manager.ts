@@ -880,9 +880,9 @@ export async function getLegacyState() {
 	return { local: apps };
 }
 
-// TODO: this function is probably more inefficient than it needs to be, since
-// it tried to optimize for readability, look for a way to make it simpler
-export async function getState() {
+type AppsReport = { [uuid: string]: AppState };
+
+export async function getState(): Promise<AppsReport> {
 	const [services, images] = await Promise.all([
 		serviceManager.getState(),
 		imageManager.getState(),
@@ -995,7 +995,7 @@ export async function getState() {
 	);
 
 	// Assemble the state of apps
-	const state: { [appUuid: string]: AppState } = {};
+	const state: AppsReport = {};
 	for (const {
 		appId,
 		appUuid,
@@ -1004,21 +1004,48 @@ export async function getState() {
 		createdAt,
 		...svc
 	} of servicesToReport) {
-		state[appUuid] = {
-			...state[appUuid],
+		const app = state[appUuid] || {
 			// Add the release_uuid if the commit has been stored in the database
 			...(commitsForApp[appId] && { release_uuid: commitsForApp[appId] }),
-			releases: {
-				...state[appUuid]?.releases,
-				[commit]: {
-					...state[appUuid]?.releases[commit],
-					services: {
-						...state[appUuid]?.releases[commit]?.services,
-						[serviceName]: svc,
-					},
-				},
-			},
+			releases: {},
 		};
+
+		const releases = app.releases;
+		releases[commit] = releases[commit] || {
+			update_status: 'done',
+			services: {},
+		};
+
+		const svcs = releases[commit].services;
+		svcs[serviceName] = svc;
+
+		if (svc.download_progress != null && svc.download_progress !== 100) {
+			releases[commit].update_status = 'downloading';
+		}
+
+		if (
+			// If any image is downloading, the release is reported as downloading
+			releases[commit].update_status !== 'downloading' &&
+			(svc.download_progress === 100 || svc.status === 'Downloaded')
+		) {
+			releases[commit].update_status = 'downloaded';
+		}
+
+		if (
+			// The applying state has lower precedence over the downloading/downloaded
+			// state
+			!['downloading', 'downloaded'].includes(
+				releases[commit].update_status!,
+			) &&
+			['installing', `stopping`, 'awaiting handover'].includes(
+				svc.status.toLowerCase(),
+			)
+		) {
+			releases[commit].update_status = 'applying';
+		}
+
+		// Update the state object
+		state[appUuid] = app;
 	}
 	return state;
 }
