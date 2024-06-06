@@ -865,9 +865,9 @@ export async function getLegacyState() {
 	return { local: apps };
 }
 
-// TODO: this function is probably more inefficient than it needs to be, since
-// it tried to optimize for readability, look for a way to make it simpler
-export async function getState() {
+type AppsReport = { [uuid: string]: AppState };
+
+export async function getState(): Promise<AppsReport> {
 	const [services, images] = await Promise.all([
 		serviceManager.getState(),
 		imageManager.getState(),
@@ -980,7 +980,7 @@ export async function getState() {
 	);
 
 	// Assemble the state of apps
-	const state: { [appUuid: string]: AppState } = {};
+	const state: AppsReport = {};
 	for (const {
 		appId,
 		appUuid,
@@ -989,21 +989,54 @@ export async function getState() {
 		createdAt,
 		...svc
 	} of servicesToReport) {
-		state[appUuid] = {
-			...state[appUuid],
+		const app = state[appUuid] ?? {
 			// Add the release_uuid if the commit has been stored in the database
 			...(commitsForApp[appId] && { release_uuid: commitsForApp[appId] }),
-			releases: {
-				...state[appUuid]?.releases,
-				[commit]: {
-					...state[appUuid]?.releases[commit],
-					services: {
-						...state[appUuid]?.releases[commit]?.services,
-						[serviceName]: svc,
-					},
-				},
-			},
+			releases: {},
 		};
+
+		const releases = app.releases;
+		releases[commit] = releases[commit] ?? {
+			update_status: 'done',
+			services: {},
+		};
+
+		releases[commit].services[serviceName] = svc;
+
+		// The update_status precedence order is as follows
+		// - aborted
+		// - downloading
+		// - downloaded
+		// - applying changes
+		// - done
+		if (svc.status === 'Aborted') {
+			releases[commit].update_status = 'aborted';
+		} else if (
+			releases[commit].update_status !== 'aborted' &&
+			svc.download_progress != null &&
+			svc.download_progress !== 100
+		) {
+			releases[commit].update_status = 'downloading';
+		} else if (
+			!['aborted', 'downloading'].includes(releases[commit].update_status!) &&
+			(svc.download_progress === 100 || svc.status === 'Downloaded')
+		) {
+			releases[commit].update_status = 'downloaded';
+		} else if (
+			// The `applying changes` state has lower precedence over the aborted/downloading/downloaded
+			// state
+			!['aborted', 'downloading', 'downloaded'].includes(
+				releases[commit].update_status!,
+			) &&
+			['installing', 'installed', 'awaiting handover'].includes(
+				svc.status.toLowerCase(),
+			)
+		) {
+			releases[commit].update_status = 'applying changes';
+		}
+
+		// Update the state object
+		state[appUuid] = app;
 	}
 	return state;
 }

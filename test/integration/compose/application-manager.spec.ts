@@ -2444,6 +2444,7 @@ describe('compose/application-manager', () => {
 									download_progress: 50,
 								},
 							},
+							update_status: 'downloading',
 						},
 					},
 				},
@@ -2456,6 +2457,7 @@ describe('compose/application-manager', () => {
 									status: 'Downloaded',
 								},
 							},
+							update_status: 'downloaded',
 						},
 						newrelease: {
 							services: {
@@ -2465,6 +2467,7 @@ describe('compose/application-manager', () => {
 									download_progress: 75,
 								},
 							},
+							update_status: 'downloading',
 						},
 					},
 				},
@@ -2548,6 +2551,7 @@ describe('compose/application-manager', () => {
 									download_progress: 0,
 								},
 							},
+							update_status: 'downloading',
 						},
 					},
 				},
@@ -2560,6 +2564,81 @@ describe('compose/application-manager', () => {
 									status: 'exited',
 								},
 							},
+							update_status: 'done',
+						},
+					},
+				},
+			});
+		});
+
+		it('reports aborted state if one of the services/images status is aborted', async () => {
+			getImagesState.resolves([
+				{
+					name: 'ubuntu:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Downloaded',
+				},
+				{
+					name: 'node:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'node',
+					status: 'Downloaded',
+					downloadProgress: 100,
+				},
+				{
+					name: 'alpine:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Aborted',
+					downloadProgress: 0,
+				},
+			]);
+			getServicesState.resolves([
+				{
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Running',
+					createdAt: new Date('2021-09-01T13:00:00'),
+				},
+				{
+					appUuid: 'myapp',
+					commit: 'latestrelease',
+					serviceName: 'node',
+					// we don't have a way to abort a failing service install yet, but
+					// once we do it will need to use the status field
+					status: 'Aborted',
+					createdAt: new Date('2021-09-01T12:00:00'),
+				},
+			]);
+
+			expect(await applicationManager.getState()).to.deep.equal({
+				myapp: {
+					releases: {
+						latestrelease: {
+							services: {
+								ubuntu: {
+									image: 'ubuntu:latest',
+									status: 'Running',
+								},
+								alpine: {
+									image: 'alpine:latest',
+									// we don't have a way to abort a failing download yet, but
+									// once we do it will need to use the status field
+									status: 'Aborted',
+									download_progress: 0,
+								},
+								node: {
+									image: 'node:latest',
+									status: 'Aborted',
+									download_progress: 100,
+								},
+							},
+							update_status: 'aborted',
 						},
 					},
 				},
@@ -2610,6 +2689,7 @@ describe('compose/application-manager', () => {
 									status: 'Awaiting handover',
 								},
 							},
+							update_status: 'applying changes',
 						},
 						oldrelease: {
 							services: {
@@ -2618,6 +2698,7 @@ describe('compose/application-manager', () => {
 									status: 'Handing over',
 								},
 							},
+							update_status: 'done',
 						},
 					},
 				},
