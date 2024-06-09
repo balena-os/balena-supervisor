@@ -89,7 +89,7 @@
     "express": "^4.17.1",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "fp-ts": "^2.16.5",
-    "got": "14.3.0",
+    "got": "14.4.1",
     "husky": "^9.0.11",
     "io-ts": "^2.2.20",
     "io-ts-reporters": "^2.0.1",
