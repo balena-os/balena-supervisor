@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update got to v14.4.1
+      hash: 11628cda16986b76f67969970fe708e24d3ab125
+      body: |
+        Update got from 14.3.0 to 14.4.1
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.3.14
+  title: ""
+  date: 2024-06-09T13:29:56.248Z
+- commits:
     - subject: Split target state set/get into separate module
       hash: 45d1f1f964e777b5168b089858af0cec33f98c68
       body: |
