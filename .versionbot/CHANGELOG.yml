@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action action to v2.0.71
+      hash: 552f77cef5aa4ff0107c5bd558755e4ed4c81ab2
+      body: |
+        Update balena-io/deploy-to-balena-action from 2.0.70 to 2.0.71
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.3.15
+  title: ""
+  date: 2024-06-10T01:57:02.800Z
+- commits:
     - subject: Update got to v14.4.1
       hash: 11628cda16986b76f67969970fe708e24d3ab125
       body: |
