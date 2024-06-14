@@ -4,18 +4,14 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
 import type { Transaction } from '../db';
-import { transaction } from '../db';
 import * as logger from '../logger';
 import LocalModeManager from '../local-mode';
 
 import * as dbFormat from '../device-state/db-format';
-import { validateTargetContracts } from '../lib/contracts';
+import * as contracts from '../lib/contracts';
 import * as constants from '../lib/constants';
 import log from '../lib/supervisor-console';
-import {
-	ContractViolationError,
-	InternalInconsistencyError,
-} from '../lib/errors';
+import { InternalInconsistencyError } from '../lib/errors';
 import { getServicesLockedByAppId, LocksTakenMap } from '../lib/update-lock';
 import { checkTruthy } from '../lib/validation';
 
@@ -503,14 +499,14 @@ export async function executeStep(
 export async function setTarget(
 	apps: TargetApps,
 	source: string,
-	maybeTrx?: Transaction,
+	trx: Transaction,
 ) {
 	const setInTransaction = async (
 		$filteredApps: TargetApps,
-		trx: Transaction,
+		$trx: Transaction,
 	) => {
-		await dbFormat.setApps($filteredApps, source, trx);
-		await trx('app')
+		await dbFormat.setApps($filteredApps, source, $trx);
+		await $trx('app')
 			.where({ source })
 			.whereNotIn(
 				'appId',
@@ -534,49 +530,43 @@ export async function setTarget(
 	// useless - The exception to this rule is when the only
 	// failing services are marked as optional, then we
 	// filter those out and add the target state to the database
-	const contractViolators: { [appName: string]: string[] } = {};
-	const fulfilledContracts = validateTargetContracts(apps);
+	const contractViolators: contracts.ContractViolators = {};
+	const fulfilledContracts = contracts.validateTargetContracts(apps);
 	const filteredApps = structuredClone(apps);
-	_.each(
-		fulfilledContracts,
-		(
-			{ valid, unmetServices, fulfilledServices, unmetAndOptional },
-			appUuid,
-		) => {
-			if (!valid) {
-				contractViolators[apps[appUuid].name] = unmetServices;
-				return delete filteredApps[appUuid];
-			} else {
-				// valid is true, but we could still be missing
-				// some optional containers, and need to filter
-				// these out of the target state
-				const [releaseUuid] = Object.keys(filteredApps[appUuid].releases);
-				if (releaseUuid) {
-					const services =
-						filteredApps[appUuid].releases[releaseUuid].services ?? {};
-					filteredApps[appUuid].releases[releaseUuid].services = _.pick(
-						services,
-						Object.keys(services).filter((serviceName) =>
-							fulfilledServices.includes(serviceName),
-						),
-					);
-				}
+	for (const [
+		appUuid,
+		{ valid, unmetServices, unmetAndOptional },
+	] of Object.entries(fulfilledContracts)) {
+		if (!valid) {
+			contractViolators[appUuid] = {
+				appId: apps[appUuid].id,
+				appName: apps[appUuid].name,
+				services: unmetServices.map(({ serviceName }) => serviceName),
+			};
 
-				if (unmetAndOptional.length !== 0) {
-					return reportOptionalContainers(unmetAndOptional);
-				}
+			// Remove the invalid app from the list
+			delete filteredApps[appUuid];
+		} else {
+			// App is valid, but we could still be missing
+			// some optional containers, and need to filter
+			// these out of the target state
+			const app = filteredApps[appUuid];
+			for (const { commit, serviceName } of unmetAndOptional) {
+				delete app.releases[commit].services[serviceName];
 			}
-		},
-	);
-	let promise;
-	if (maybeTrx != null) {
-		promise = setInTransaction(filteredApps, maybeTrx);
-	} else {
-		promise = transaction((trx) => setInTransaction(filteredApps, trx));
+
+			if (unmetAndOptional.length !== 0) {
+				reportOptionalContainers(
+					unmetAndOptional.map(({ serviceName }) => serviceName),
+				);
+			}
+		}
 	}
-	await promise;
+
+	await setInTransaction(filteredApps, trx);
 	if (!_.isEmpty(contractViolators)) {
-		throw new ContractViolationError(contractViolators);
+		// TODO: add rejected state for contract violator apps
+		throw new contracts.ContractViolationError(contractViolators);
 	}
 }
 

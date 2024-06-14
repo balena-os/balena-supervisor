@@ -2,23 +2,66 @@ import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import Reporter from 'io-ts-reporters';
 import _ from 'lodash';
+import { TypedError } from 'typed-error';
 
 import type { ContractObject } from '@balena/contrato';
 import { Blueprint, Contract } from '@balena/contrato';
 
-import { ContractValidationError, InternalInconsistencyError } from './errors';
+import { InternalInconsistencyError } from './errors';
 import { checkTruthy } from './validation';
 import type { TargetApps } from '../types';
 
-export interface ApplicationContractResult {
-	valid: boolean;
-	unmetServices: string[];
-	fulfilledServices: string[];
-	unmetAndOptional: string[];
+/**
+ * This error is thrown when a container contract does not
+ * match the minimum we expect from it
+ */
+export class ContractValidationError extends TypedError {
+	constructor(serviceName: string, error: string) {
+		super(
+			`The contract for service ${serviceName} failed validation, with error: ${error}`,
+		);
+	}
 }
 
-export interface ServiceContracts {
-	[serviceName: string]: { contract?: ContractObject; optional: boolean };
+export interface ContractViolators {
+	[appUuid: string]: { appName: string; appId: number; services: string[] };
+}
+
+/**
+ * This error is thrown when one or releases cannot be ran
+ * as one or more of their container have unmet requirements.
+ * It accepts a map of app names to arrays of service names
+ * which have unmet requirements.
+ */
+export class ContractViolationError extends TypedError {
+	constructor(violators: ContractViolators) {
+		const appStrings = Object.values(violators).map(
+			({ appName, services }) =>
+				`${appName}: Services with unmet requirements: ${services.join(', ')}`,
+		);
+		super(
+			`Some releases were rejected due to having unmet requirements:\n  ${appStrings.join(
+				'\n  ',
+			)}`,
+		);
+	}
+}
+
+export interface ServiceCtx {
+	serviceName: string;
+	commit: string;
+}
+
+export interface AppContractResult {
+	valid: boolean;
+	unmetServices: ServiceCtx[];
+	fulfilledServices: ServiceCtx[];
+	unmetAndOptional: ServiceCtx[];
+}
+
+interface ServiceWithContract extends ServiceCtx {
+	contract?: ContractObject;
+	optional: boolean;
 }
 
 type PotentialContractRequirements =
@@ -51,13 +94,30 @@ function isValidRequirementType(
 	return requirement in requirementVersions;
 }
 
+function partition<T>(arr: T[], predicate: (t: T) => boolean) {
+	return arr.reduce(
+		({ pass, fail }, elem) => {
+			if (predicate(elem)) {
+				pass.push(elem);
+			} else {
+				fail.push(elem);
+			}
+			return { pass, fail };
+		},
+		{ pass: [] as T[], fail: [] as T[] },
+	);
+}
+
 export function containerContractsFulfilled(
-	serviceContracts: ServiceContracts,
-): ApplicationContractResult {
-	const containers = _(serviceContracts).map('contract').compact().value();
+	servicesWithContract: ServiceWithContract[],
+): AppContractResult {
+	const containers = servicesWithContract
+		.map(({ contract }) => contract)
+		.filter((c) => !!c) as ContractObject[];
+	const contractTypes = Object.keys(contractRequirementVersions);
 
 	const blueprintMembership: Dictionary<number> = {};
-	for (const component of _.keys(contractRequirementVersions)) {
+	for (const component of contractTypes) {
 		blueprintMembership[component] = 1;
 	}
 	const blueprint = new Blueprint(
@@ -89,10 +149,11 @@ export function containerContractsFulfilled(
 			'More than one solution available for container contracts when only one is expected!',
 		);
 	}
+
 	if (solution.length === 0) {
 		return {
 			valid: false,
-			unmetServices: _.keys(serviceContracts),
+			unmetServices: servicesWithContract,
 			fulfilledServices: [],
 			unmetAndOptional: [],
 		};
@@ -108,7 +169,7 @@ export function containerContractsFulfilled(
 		return {
 			valid: true,
 			unmetServices: [],
-			fulfilledServices: _.keys(serviceContracts),
+			fulfilledServices: servicesWithContract,
 			unmetAndOptional: [],
 		};
 	} else {
@@ -117,26 +178,22 @@ export function containerContractsFulfilled(
 		// those containers whose contract was not met are
 		// marked as optional, the target state is still valid,
 		// but we ignore the optional containers
-
-		const [fulfilledServices, unfulfilledServices] = _.partition(
-			_.keys(serviceContracts),
-			(serviceName) => {
-				const { contract } = serviceContracts[serviceName];
+		const { pass: fulfilledServices, fail: unfulfilledServices } = partition(
+			servicesWithContract,
+			({ contract }) => {
 				if (!contract) {
 					return true;
 				}
 				// Did we find the contract in the generated state?
-				return _.some(children, (child) =>
+				return children.some((child) =>
 					_.isEqual((child as any).raw, contract),
 				);
 			},
 		);
 
-		const [unmetAndRequired, unmetAndOptional] = _.partition(
+		const { pass: unmetAndRequired, fail: unmetAndOptional } = partition(
 			unfulfilledServices,
-			(serviceName) => {
-				return !serviceContracts[serviceName].optional;
-			},
+			({ optional }) => !optional,
 		);
 
 		return {
@@ -198,67 +255,37 @@ export function validateContract(contract: unknown): boolean {
 
 	return true;
 }
+
 export function validateTargetContracts(
 	apps: TargetApps,
-): Dictionary<ApplicationContractResult> {
-	return Object.keys(apps)
-		.map((appUuid): [string, ApplicationContractResult] => {
-			const app = apps[appUuid];
-			const [release] = Object.values(app.releases);
-			const serviceContracts = Object.keys(release?.services ?? [])
-				.map((serviceName) => {
-					const service = release.services[serviceName];
-					const { contract } = service;
-					if (contract) {
-						try {
-							// Validate the contract syntax
-							validateContract(contract);
-
-							return {
-								serviceName,
-								contract,
-								optional: checkTruthy(
-									service.labels?.['io.balena.features.optional'],
-								),
-							};
-						} catch (e: any) {
-							throw new ContractValidationError(serviceName, e.message);
+): Dictionary<AppContractResult> {
+	return Object.fromEntries(
+		Object.entries(apps).flatMap(([appUuid, app]) =>
+			Object.entries(app.releases).map(([commit, release]) => {
+				const servicesWithContract = Object.entries(release.services ?? {}).map(
+					([serviceName, { contract, labels = {} }]) => {
+						if (contract) {
+							try {
+								validateContract(contract);
+							} catch (e: any) {
+								throw new ContractValidationError(serviceName, e.message);
+							}
 						}
-					}
 
-					// Return a default contract for the service if no contract is defined
-					return { serviceName, contract: undefined, optional: false };
-				})
-				// map by serviceName
-				.reduce(
-					(contracts, { serviceName, ...serviceContract }) => ({
-						...contracts,
-						[serviceName]: serviceContract,
-					}),
-					{} as ServiceContracts,
+						return {
+							serviceName,
+							commit,
+							contract,
+							optional: checkTruthy(labels['io.balena.features.optional']),
+						};
+					},
 				);
 
-			if (Object.keys(serviceContracts).length > 0) {
-				// Validate service contracts if any
-				return [appUuid, containerContractsFulfilled(serviceContracts)];
-			}
+				const appContractResult =
+					containerContractsFulfilled(servicesWithContract);
 
-			// Return success if no services are found
-			return [
-				appUuid,
-				{
-					valid: true,
-					fulfilledServices: Object.keys(release?.services ?? []),
-					unmetAndOptional: [],
-					unmetServices: [],
-				},
-			];
-		})
-		.reduce(
-			(result, [appUuid, contractFulfilled]) => ({
-				...result,
-				[appUuid]: contractFulfilled,
+				return [appUuid, appContractResult];
 			}),
-			{} as Dictionary<ApplicationContractResult>,
-		);
+		),
+	);
 }
