@@ -9,12 +9,11 @@ import * as deviceConfig from '../device-config';
 import * as eventTracker from '../event-tracker';
 import { loadBackupFromMigration } from '../lib/migration';
 
+import { InternalInconsistencyError, TargetStateError } from '../lib/errors';
 import {
 	ContractValidationError,
 	ContractViolationError,
-	InternalInconsistencyError,
-	TargetStateError,
-} from '../lib/errors';
+} from '../lib/contracts';
 
 import log from '../lib/supervisor-console';
 

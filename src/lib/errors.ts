@@ -1,4 +1,4 @@
-import { endsWith, map } from 'lodash';
+import { endsWith } from 'lodash';
 import { TypedError } from 'typed-error';
 
 import { checkInt } from './validation';
@@ -103,39 +103,6 @@ export class TargetStateError extends TypedError {}
  * See LocalModeManager for a usage example.
  */
 export class SupervisorContainerNotFoundError extends TypedError {}
-
-/**
- * This error is thrown when a container contract does not
- * match the minimum we expect from it
- */
-export class ContractValidationError extends TypedError {
-	constructor(serviceName: string, error: string) {
-		super(
-			`The contract for service ${serviceName} failed validation, with error: ${error}`,
-		);
-	}
-}
-
-/**
- * This error is thrown when one or releases cannot be ran
- * as one or more of their container have unmet requirements.
- * It accepts a map of app names to arrays of service names
- * which have unmet requirements.
- */
-export class ContractViolationError extends TypedError {
-	constructor(violators: { [appName: string]: string[] }) {
-		const appStrings = map(
-			violators,
-			(svcs, name) =>
-				`${name}: Services with unmet requirements: ${svcs.join(', ')}`,
-		);
-		super(
-			`Some releases were rejected due to having unmet requirements:\n  ${appStrings.join(
-				'\n  ',
-			)}`,
-		);
-	}
-}
 
 export class AppsJsonParseError extends TypedError {}
 export class DatabaseParseError extends TypedError {}
