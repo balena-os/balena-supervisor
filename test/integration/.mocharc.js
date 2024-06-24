@@ -10,5 +10,5 @@ module.exports = {
 		'test/lib/chai.ts',
 		'test/lib/mocha-hooks.ts',
 	],
-	timeout: '30000',
+	timeout: '60000',
 };

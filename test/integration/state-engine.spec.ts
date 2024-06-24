@@ -380,4 +380,115 @@ describe('state engine', () => {
 				Options: {},
 			});
 	});
+
+	it('updates an app with two services with a network removal', async () => {
+		await setTargetState({
+			config: {},
+			apps: {
+				'123': {
+					name: 'test-app',
+					commit: 'deadbeef',
+					releaseId: 1,
+					services: {
+						'1': {
+							image: 'alpine:3.18',
+							imageId: 11,
+							serviceName: 'one',
+							restart: 'unless-stopped',
+							running: true,
+							command: 'sleep infinity',
+							stop_signal: 'SIGKILL',
+							labels: {},
+							environment: {},
+							networks: ['balena'],
+						},
+						'2': {
+							image: 'ubuntu:focal',
+							imageId: 12,
+							serviceName: 'two',
+							restart: 'unless-stopped',
+							running: true,
+							command: 'sleep infinity',
+							labels: {},
+							environment: {},
+							network_mode: 'host',
+						},
+					},
+					networks: {
+						balena: {},
+					},
+					volumes: {},
+				},
+			},
+		});
+
+		const state = await getCurrentState();
+		expect(
+			state.apps['123'].services.map((s: any) => s.serviceName),
+		).to.deep.equal(['one', 'two']);
+
+		const containers = await docker.listContainers();
+		expect(
+			containers.map(({ Names, State }) => ({ Name: Names[0], State })),
+		).to.have.deep.members([
+			{ Name: '/one_11_1_deadbeef', State: 'running' },
+			{ Name: '/two_12_1_deadbeef', State: 'running' },
+		]);
+		const containerIds = containers.map(({ Id }) => Id);
+		await expect(docker.getNetwork('123_balena').inspect()).to.not.be.rejected;
+
+		await setTargetState({
+			config: {},
+			apps: {
+				'123': {
+					name: 'test-app',
+					commit: 'deadca1f',
+					releaseId: 2,
+					services: {
+						'1': {
+							image: 'alpine:latest',
+							imageId: 21,
+							serviceName: 'one',
+							restart: 'unless-stopped',
+							running: true,
+							command: 'sleep infinity',
+							stop_signal: 'SIGKILL',
+							networks: ['default'],
+							labels: {},
+							environment: {},
+						},
+						'2': {
+							image: 'ubuntu:latest',
+							imageId: 22,
+							serviceName: 'two',
+							restart: 'unless-stopped',
+							running: true,
+							command: 'sh -c "echo two && sleep infinity"',
+							stop_signal: 'SIGKILL',
+							network_mode: 'host',
+							labels: {},
+							environment: {},
+						},
+					},
+					networks: {},
+					volumes: {},
+				},
+			},
+		});
+
+		const updatedContainers = await docker.listContainers();
+		expect(
+			updatedContainers.map(({ Names, State }) => ({ Name: Names[0], State })),
+		).to.have.deep.members([
+			{ Name: '/one_21_2_deadca1f', State: 'running' },
+			{ Name: '/two_22_2_deadca1f', State: 'running' },
+		]);
+
+		// Container ids must have changed
+		expect(updatedContainers.map(({ Id }) => Id)).to.not.have.members(
+			containerIds,
+		);
+
+		await expect(docker.getNetwork('123_balena').inspect()).to.be.rejected;
+	});
 });
