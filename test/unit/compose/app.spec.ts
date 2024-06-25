@@ -692,6 +692,77 @@ describe('compose/app', () => {
 			expectNoStep('removeNetwork', steps2);
 		});
 
+		it('should perform fetch steps first even for services that reference deleted networks', async () => {
+			const current = createApp({
+				appUuid: 'deadbeef',
+				services: [
+					await createService({
+						appId: 1,
+						appUuid: 'deadbeef',
+						image: 'test-image',
+						serviceName: 'test',
+						composition: { networks: ['test-network'] },
+					}),
+					await createService({
+						appId: 1,
+						appUuid: 'deadbeef',
+						image: 'other-image',
+						serviceName: 'other',
+						composition: { network_mode: 'host' },
+					}),
+				],
+				networks: [
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+					DEFAULT_NETWORK,
+				],
+			});
+			const target = createApp({
+				appUuid: 'deadbeef',
+				services: [
+					await createService({
+						appId: 1,
+						appUuid: 'deadbeef',
+						serviceName: 'test',
+						image: 'new-test-image',
+						commit: 'new-commit',
+					}),
+					await createService({
+						appId: 1,
+						appUuid: 'deadbeef',
+						serviceName: 'other',
+						image: 'new-other-image',
+						commit: 'new-commit',
+						composition: { network_mode: 'host' },
+					}),
+				],
+				networks: [],
+				isTarget: true,
+			});
+
+			const availableImages = [
+				createImage({
+					appUuid: 'deadbeef',
+					name: 'test-image',
+					serviceName: 'test',
+				}),
+				createImage({
+					appUuid: 'deadbeef',
+					name: 'other-image',
+					serviceName: 'other',
+				}),
+			];
+			// Take lock first
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, availableImages },
+				target,
+			);
+
+			const fetchSteps = expectSteps('fetch', steps, 2);
+			expect(fetchSteps.map((s) => (s as any).image.name)).to.have.deep.members(
+				['new-test-image', 'new-other-image'],
+			);
+		});
+
 		it('should kill dependencies of networks before changing config', async () => {
 			const current = createApp({
 				services: [

@@ -379,9 +379,9 @@ class AppImpl implements App {
 				);
 			}
 		}
-		const toBeRemoved = _(currentServiceNames)
+
+		const maybeRemove = _(currentServiceNames)
 			.difference(targetServiceNames)
-			.union(dependentServices.map((s) => s.serviceName))
 			.map((id) => ({ current: currentByServiceName[id] }))
 			.value();
 
@@ -409,7 +409,7 @@ class AppImpl implements App {
 					currentByServiceName[serviceName],
 				);
 				for (const service of otherContainers) {
-					toBeRemoved.push({ current: service });
+					maybeRemove.push({ current: service });
 				}
 			} else {
 				currentByServiceName[serviceName] = currentServiceContainers[0];
@@ -488,6 +488,33 @@ class AppImpl implements App {
 				serviceCurrent.status === 'Stopping'
 			);
 		};
+
+		/**
+		 * Services with changing configuration will have their containers recreated
+		 */
+		const toBeRecreated = maybeUpdate
+			.map((serviceName) => ({
+				current: currentByServiceName[serviceName],
+				target: targetByServiceName[serviceName],
+			}))
+			.filter(
+				({ current: c, target: t }) => !isEqualExceptForRunningState(c, t),
+			);
+
+		/**
+		 * Services that depend on network changes should be added to the removal
+		 * list if they are not being recreated already
+		 */
+		const toBeRemoved = maybeRemove.concat(
+			dependentServices
+				.filter(
+					(s) =>
+						!toBeRecreated.some(
+							({ current: c }) => c.serviceName === s.serviceName,
+						),
+				)
+				.map((s) => ({ current: s })),
+		);
 
 		/**
 		 * Checks if a service is destined for removal due to a network or volume change
