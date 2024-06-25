@@ -204,6 +204,16 @@ router.patch('/v1/device/host-config', async (req, res) => {
 				log.warn('noProxy field must be an array of addresses');
 			}
 		}
+
+		// Validate dns config if it exists
+		const { dns } = req.body.network;
+		if (dns && typeof dns !== 'boolean' && typeof dns !== 'string') {
+			return res
+				.status(400)
+				.send(
+					'Expected dns to be a boolean or string, received: ' + typeof dns,
+				);
+		}
 	} catch (e) {
 		/* noop */
 	}

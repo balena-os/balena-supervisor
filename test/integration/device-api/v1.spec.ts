@@ -861,5 +861,30 @@ describe('device-api/v1', () => {
 					);
 				});
 		});
+
+		it('responds with 200 if request successful', async () => {
+			await request(api)
+				.patch('/v1/device/host-config')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.send({
+					network: {
+						hostname: 'new-hostname',
+						proxy: { type: 'socks5' },
+						dns: true,
+					},
+				})
+				.expect(200);
+		});
+
+		it('responds with 400 if invalid dns field', async () => {
+			await request(api)
+				.patch('/v1/device/host-config')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.send({ network: { dns: {} } })
+				.expect(
+					400,
+					'Expected dns to be a boolean or string, received: object',
+				);
+		});
 	});
 });
