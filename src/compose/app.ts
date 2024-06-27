@@ -38,6 +38,7 @@ export interface AppConstructOpts {
 	commit?: string;
 	source?: string;
 	isHost?: boolean;
+	isRejected?: boolean;
 
 	services: Service[];
 	volumes: Volume[];
@@ -57,6 +58,7 @@ class AppImpl implements App {
 	public commit?: string;
 	public source?: string;
 	public isHost?: boolean;
+	public isRejected?: boolean;
 	// Services are stored as an array, as at any one time we could have more than one
 	// service for a single service ID running (for example handover)
 	public services: Service[];
@@ -76,6 +78,10 @@ class AppImpl implements App {
 		this.volumes = opts.volumes;
 		this.networks = opts.networks;
 		this.isHost = !!opts.isHost;
+
+		if (isTargetState) {
+			this.isRejected = !!opts.isRejected;
+		}
 
 		if (
 			this.networks.find((n) => n.name === 'default') == null &&
@@ -1054,6 +1060,7 @@ class AppImpl implements App {
 				appName: app.name,
 				source: app.source,
 				isHost: app.isHost,
+				isRejected: app.rejected,
 				services,
 				volumes,
 				networks,

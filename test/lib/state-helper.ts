@@ -85,6 +85,7 @@ export function createApp({
 	isTarget = false,
 	appId = 1,
 	appUuid = 'appuuid',
+	isRejected = false,
 } = {}) {
 	return new App(
 		{
@@ -93,6 +94,7 @@ export function createApp({
 			services,
 			networks,
 			volumes,
+			isRejected,
 		},
 		isTarget,
 	);
@@ -103,6 +105,7 @@ export function createApps(
 		services = [] as Service[],
 		networks = [] as Network[],
 		volumes = [] as Volume[],
+		rejectedAppIds = [] as number[],
 	},
 	target = false,
 ) {
@@ -129,6 +132,7 @@ export function createApps(
 
 	const apps: InstancedAppState = {};
 	for (const appId of allAppIds) {
+		const isRejected = rejectedAppIds.includes(appId);
 		apps[appId] = createApp({
 			services: servicesByAppId[appId] ?? [],
 			networks: networksByAppId[appId] ?? [],
@@ -136,6 +140,7 @@ export function createApps(
 			appId,
 			appUuid: servicesByAppId[appId]?.[0]?.appUuid ?? 'deadbeef',
 			isTarget: target,
+			isRejected,
 		});
 	}
 

@@ -1595,6 +1595,97 @@ describe('compose/application-manager', () => {
 			.that.deep.includes({ name: 'main-image' });
 	});
 
+	it('should not calculate steps for a rejected app', async () => {
+		const targetApps = createApps(
+			{
+				services: [
+					await createService({
+						running: true,
+						image: 'main-image-1',
+						appId: 1,
+						appUuid: 'app-one',
+						commit: 'commit-for-app-1',
+					}),
+					await createService({
+						running: true,
+						image: 'main-image-2',
+						appId: 2,
+						appUuid: 'app-two',
+						commit: 'commit-for-app-2',
+					}),
+				],
+				networks: [
+					// Default networks for two apps
+					Network.fromComposeObject('default', 1, 'app-one', {}),
+					Network.fromComposeObject('default', 2, 'app-two', {}),
+				],
+				rejectedAppIds: [1],
+			},
+			true,
+		);
+		const { currentApps, availableImages, downloading, containerIdsByAppId } =
+			createCurrentState({
+				services: [
+					await createService({
+						running: true,
+						image: 'old-image-1',
+						appId: 1,
+						appUuid: 'app-one',
+						commit: 'commit-for-app-0',
+					}),
+				],
+				networks: [
+					// Default networks for two apps
+					Network.fromComposeObject('default', 1, 'app-one', {}),
+					Network.fromComposeObject('default', 2, 'app-two', {}),
+				],
+				images: [
+					createImage({
+						name: 'main-image-1',
+						appId: 1,
+						appUuid: 'app-one',
+						serviceName: 'main',
+						commit: 'commit-for-app-1',
+					}),
+					createImage({
+						name: 'main-image-2',
+						appId: 2,
+						appUuid: 'app-two',
+						serviceName: 'main',
+						commit: 'commit-for-app-2',
+					}),
+				],
+			});
+
+		const steps = await applicationManager.inferNextSteps(
+			currentApps,
+			targetApps,
+			{
+				downloading,
+				availableImages,
+				containerIdsByAppId,
+				// Mock locks taken to avoid takeLock step
+				locksTaken: new LocksTakenMap([{ appId: 2, services: ['main'] }]),
+			},
+		);
+
+		// Expect a start step for both apps
+		expect(
+			steps.filter((s: any) => s.target && s.target.appId === 1),
+		).to.have.lengthOf(0);
+		expect(
+			steps.filter((s: any) => s.image && s.image.appId === 1),
+		).to.have.lengthOf(0);
+		expect(
+			steps.filter(
+				(s: any) =>
+					s.action === 'start' &&
+					s.target.appId === 2 &&
+					s.target.serviceName === 'main',
+			),
+		).to.have.lengthOf(1);
+	});
+
 	it('should correctly generate steps for multiple apps', async () => {
 		const targetApps = createApps(
 			{

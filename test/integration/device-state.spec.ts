@@ -368,6 +368,7 @@ describe('device-state', () => {
 		const app = targetState.local.apps[1234];
 		expect(app).to.have.property('appName').that.equals('superapp');
 		expect(app).to.have.property('commit').that.equals('one');
+		expect(app).to.have.property('isRejected').that.is.false;
 		// Only a single service should be on the target state
 		expect(app).to.have.property('services').that.is.an('array').with.length(1);
 		expect(app.services[0])
@@ -375,7 +376,8 @@ describe('device-state', () => {
 			.that.equals('valid');
 	});
 
-	it('rejects a target state with invalid contract and non optional service', async () => {
+	it('accepts target state with invalid contract setting isRejected to true and resets state when a valid target is received', async () => {
+		// Set the rejected target
 		await expect(
 			deviceState.setTarget({
 				local: {
@@ -424,7 +426,66 @@ describe('device-state', () => {
 					},
 				},
 			} as TargetState),
-		).to.be.rejected;
+		).to.not.be.rejected;
+		const targetState = await deviceState.getTarget();
+		const app = targetState.local.apps[1234];
+		expect(app).to.have.property('appName').that.equals('superapp');
+		expect(app).to.have.property('commit').that.equals('one');
+		expect(app).to.have.property('isRejected').that.is.true;
+
+		// Now set a good target for the same app
+		await deviceState.setTarget({
+			local: {
+				name: 'aDeviceWithDifferentName',
+				config: {},
+				apps: {
+					myapp: {
+						id: 1234,
+						name: 'superapp',
+						class: 'fleet',
+						releases: {
+							two: {
+								id: 2,
+								services: {
+									valid: {
+										id: 23,
+										image_id: 12345,
+										image: 'registry2.resin.io/superapp/valid',
+										environment: {},
+										labels: {},
+									},
+									alsoValid: {
+										id: 24,
+										image_id: 12346,
+										image: 'registry2.resin.io/superapp/afaff',
+										contract: {
+											type: 'sw.container',
+											slug: 'supervisor-version',
+											name: 'Enforce supervisor version',
+											requires: [
+												{
+													type: 'sw.supervisor',
+													version: '>=11.0.0',
+												},
+											],
+										},
+										environment: {},
+										labels: {},
+									},
+								},
+								volumes: {},
+								networks: {},
+							},
+						},
+					},
+				},
+			},
+		} as TargetState);
+
+		const targetState2 = await deviceState.getTarget();
+		const app2 = targetState2.local.apps[1234];
+		expect(app2).to.have.property('commit').that.equals('two');
+		expect(app2).to.have.property('isRejected').that.is.false;
 	});
 
 	// TODO: There is no easy way to test this behaviour with the current

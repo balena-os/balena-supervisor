@@ -8,6 +8,8 @@ import type { TargetAppClass } from '../types';
 // at all, and we can use the below type for both insertion and retrieval.
 export interface DatabaseApp {
 	name: string;
+	// releaseId and commit may be empty as the device could
+	// have been moved to an app without any releases
 	/**
 	 * @deprecated to be removed in target state v4
 	 */
@@ -24,6 +26,7 @@ export interface DatabaseApp {
 	source: string;
 	class: TargetAppClass;
 	isHost: boolean;
+	rejected: boolean;
 }
 
 export type DatabaseService = {

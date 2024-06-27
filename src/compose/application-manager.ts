@@ -191,8 +191,19 @@ export async function inferNextSteps(
 
 		// We want to remove images before moving on to anything else
 		if (steps.length === 0) {
-			const targetAndCurrent = _.intersection(currentAppIds, targetAppIds);
-			const onlyTarget = _.difference(targetAppIds, currentAppIds);
+			// We only want to modify existing apps for accepted targets
+			const acceptedTargetAppIds = targetAppIds.filter(
+				(id) => !targetApps[id].isRejected,
+			);
+
+			const targetAndCurrent = _.intersection(
+				currentAppIds,
+				acceptedTargetAppIds,
+			);
+			const onlyTarget = _.difference(acceptedTargetAppIds, currentAppIds);
+
+			// We do not want to remove rejected apps, so we compare with the
+			// original target id list
 			const onlyCurrent = _.difference(currentAppIds, targetAppIds);
 
 			// For apps that exist in both current and target state, calculate what we need to
@@ -502,34 +513,27 @@ export async function setTarget(
 	trx: Transaction,
 ) {
 	const setInTransaction = async (
-		$filteredApps: TargetApps,
+		$apps: TargetApps,
+		$rejectedApps: string[],
 		$trx: Transaction,
 	) => {
-		await dbFormat.setApps($filteredApps, source, $trx);
+		await dbFormat.setApps($apps, source, $rejectedApps, $trx);
 		await $trx('app')
 			.where({ source })
 			.whereNotIn(
 				'appId',
-				// Use apps here, rather than filteredApps, to
-				// avoid removing a release from the database
-				// without an application to replace it.
-				// Currently this will only happen if the release
-				// which would replace it fails a contract
-				// validation check
-				Object.values(apps).map(({ id: appId }) => appId),
+				// Delete every appId not in the target list
+				Object.values($apps).map(({ id: appId }) => appId),
 			)
 			.del();
 	};
 
-	// We look at the container contracts here, as if we
-	// cannot run the release, we don't want it to be added
-	// to the database, overwriting the current release. This
-	// is because if we just reject the release, but leave it
-	// in the db, if for any reason the current state stops
-	// running, we won't restart it, leaving the device
-	// useless - The exception to this rule is when the only
-	// failing services are marked as optional, then we
-	// filter those out and add the target state to the database
+	// We look at the container contracts here, apps with failing contract requirements
+	// are stored in the database with a `rejected: true property`, which tells
+	// the inferNextSteps function to ignore them when making changes.
+	//
+	// Apps with optional services with unmet requirements are stored as
+	// `rejected: false`, but services with unmet requirements are removed
 	const contractViolators: contracts.ContractViolators = {};
 	const fulfilledContracts = contracts.validateTargetContracts(apps);
 	const filteredApps = structuredClone(apps);
@@ -538,14 +542,13 @@ export async function setTarget(
 		{ valid, unmetServices, unmetAndOptional },
 	] of Object.entries(fulfilledContracts)) {
 		if (!valid) {
+			// Add the app to the list of contract violators to generate a system
+			// error
 			contractViolators[appUuid] = {
 				appId: apps[appUuid].id,
 				appName: apps[appUuid].name,
 				services: unmetServices.map(({ serviceName }) => serviceName),
 			};
-
-			// Remove the invalid app from the list
-			delete filteredApps[appUuid];
 		} else {
 			// App is valid, but we could still be missing
 			// some optional containers, and need to filter
@@ -563,15 +566,20 @@ export async function setTarget(
 		}
 	}
 
-	await setInTransaction(filteredApps, trx);
+	let rejectedApps: string[] = [];
 	if (!_.isEmpty(contractViolators)) {
-		// TODO: add rejected state for contract violator apps
-		throw new contracts.ContractViolationError(contractViolators);
+		rejectedApps = Object.keys(contractViolators);
+		reportRejectedReleases(contractViolators);
 	}
+	await setInTransaction(filteredApps, rejectedApps, trx);
 }
 
 export async function getTargetApps(): Promise<TargetApps> {
 	return await dbFormat.getTargetJson();
+}
+
+export async function getTargetAppsWithRejections() {
+	return await dbFormat.getTargetWithRejections();
 }
 
 /**
@@ -778,12 +786,19 @@ function reportOptionalContainers(serviceNames: string[]) {
 		'. ',
 	)}`;
 	log.info(message);
-	return logger.logSystemMessage(
-		message,
-		{},
-		'optionalContainerViolation',
-		true,
+	logger.logSystemMessage(message, {});
+}
+
+function reportRejectedReleases(violators: contracts.ContractViolators) {
+	const appStrings = Object.values(violators).map(
+		({ appName, services }) =>
+			`${appName}: Services with unmet requirements: ${services.join(', ')}`,
 	);
+	const message = `Some releases were rejected due to having unmet requirements:\n  ${appStrings.join(
+		'\n  ',
+	)}`;
+	log.error(message);
+	logger.logSystemMessage(message, { error: true });
 }
 
 /**
