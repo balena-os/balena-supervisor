@@ -368,6 +368,7 @@ describe('device-state', () => {
 		const app = targetState.local.apps[1234];
 		expect(app).to.have.property('appName').that.equals('superapp');
 		expect(app).to.have.property('commit').that.equals('one');
+		expect(app).to.have.property('isRejected').that.is.false;
 		// Only a single service should be on the target state
 		expect(app).to.have.property('services').that.is.an('array').with.length(1);
 		expect(app.services[0])
@@ -375,7 +376,7 @@ describe('device-state', () => {
 			.that.equals('valid');
 	});
 
-	it('rejects a target state with invalid contract and non optional service', async () => {
+	it('accepts target state with invalid contract and non optional service but marks the target as rejected on the database', async () => {
 		await expect(
 			deviceState.setTarget({
 				local: {
@@ -424,7 +425,12 @@ describe('device-state', () => {
 					},
 				},
 			} as TargetState),
-		).to.be.rejected;
+		).to.not.be.rejected;
+		const targetState = await deviceState.getTarget();
+		const app = targetState.local.apps[1234];
+		expect(app).to.have.property('appName').that.equals('superapp');
+		expect(app).to.have.property('commit').that.equals('one');
+		expect(app).to.have.property('isRejected').that.is.true;
 	});
 
 	// TODO: There is no easy way to test this behaviour with the current

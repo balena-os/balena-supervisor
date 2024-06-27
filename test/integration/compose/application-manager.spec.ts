@@ -2444,6 +2444,7 @@ describe('compose/application-manager', () => {
 									download_progress: 50,
 								},
 							},
+							update_status: 'downloading',
 						},
 					},
 				},
@@ -2456,6 +2457,7 @@ describe('compose/application-manager', () => {
 									status: 'Downloaded',
 								},
 							},
+							update_status: 'downloaded',
 						},
 						newrelease: {
 							services: {
@@ -2465,6 +2467,7 @@ describe('compose/application-manager', () => {
 									download_progress: 75,
 								},
 							},
+							update_status: 'downloading',
 						},
 					},
 				},
@@ -2548,6 +2551,7 @@ describe('compose/application-manager', () => {
 									download_progress: 0,
 								},
 							},
+							update_status: 'downloading',
 						},
 					},
 				},
@@ -2560,6 +2564,7 @@ describe('compose/application-manager', () => {
 									status: 'exited',
 								},
 							},
+							update_status: 'done',
 						},
 					},
 				},
@@ -2610,6 +2615,7 @@ describe('compose/application-manager', () => {
 									status: 'Awaiting handover',
 								},
 							},
+							update_status: 'applying',
 						},
 						oldrelease: {
 							services: {
@@ -2618,6 +2624,7 @@ describe('compose/application-manager', () => {
 									status: 'Handing over',
 								},
 							},
+							update_status: 'done',
 						},
 					},
 				},

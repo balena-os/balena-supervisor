@@ -127,10 +127,22 @@ const fromType = <T extends object>(name: string) =>
 
 // Alias short string to UUID so code reads more clearly
 export const UUID = ShortString;
+export type UUID = t.TypeOf<typeof UUID>;
 
 /** ***************
  * Current state *
  *****************/
+
+const UpdateStatus = t.union([
+	t.literal('rejected'),
+	t.literal('downloading'),
+	t.literal('downloaded'),
+	t.literal('applying'),
+	t.literal('aborted'),
+	t.literal('done'),
+]);
+export type UpdateStatus = t.TypeOf<typeof UpdateStatus>;
+
 const ServiceState = t.intersection([
 	t.type({
 		image: t.string,
@@ -142,9 +154,14 @@ const ServiceState = t.intersection([
 ]);
 export type ServiceState = t.TypeOf<typeof ServiceState>;
 
-const ReleaseState = t.type({
-	services: t.record(DockerName, ServiceState),
-});
+const ReleaseState = t.intersection([
+	t.type({
+		services: t.record(DockerName, ServiceState),
+	}),
+	t.partial({
+		update_status: UpdateStatus,
+	}),
+]);
 export type ReleaseState = t.TypeOf<typeof ReleaseState>;
 
 const ReleasesState = t.record(UUID, ReleaseState);
@@ -182,6 +199,8 @@ const DeviceReport = t.partial({
 	cpu_usage: t.number,
 	cpu_id: t.string,
 	is_undervolted: t.boolean,
+	// These are for internal reporting only, they are not sent
+	// to the API
 	update_failed: t.boolean,
 	update_pending: t.boolean,
 	update_downloaded: t.boolean,
