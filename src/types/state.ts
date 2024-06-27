@@ -127,6 +127,7 @@ const fromType = <T extends object>(name: string) =>
 
 // Alias short string to UUID so code reads more clearly
 export const UUID = ShortString;
+export type UUID = t.TypeOf<typeof UUID>;
 
 /** ***************
  * Current state *
