@@ -12,17 +12,14 @@ import { pathOnRoot } from '../lib/host-utils';
 import log from '../lib/supervisor-console';
 import * as updateLock from '../lib/update-lock';
 
-export * from './proxy';
-export * from './types';
-
 const hostnamePath = pathOnRoot('/etc/hostname');
 
-export async function readHostname() {
+async function readHostname() {
 	const hostnameData = await fs.readFile(hostnamePath, 'utf-8');
 	return hostnameData.trim();
 }
 
-export async function setHostname(val: string) {
+async function setHostname(val: string) {
 	let hostname = val;
 	// If hostname is an empty string, return first 7 digits of device uuid
 	if (!val) {
@@ -59,7 +56,7 @@ export function parse(
 	throw new Error('Could not parse host config input to a valid format');
 }
 
-export function patchProxy(
+function patchProxy(
 	currentConf: RedsocksConfig,
 	inputConf: Partial<{
 		redsocks: Partial<ProxyConfig>;
@@ -123,10 +120,12 @@ export async function patch(
 }
 
 export async function get(): Promise<HostConfiguration> {
+	const proxy = await readProxy();
 	return {
 		network: {
 			hostname: await readHostname(),
-			proxy: await readProxy(),
+			// Only return proxy if readProxy is not undefined
+			...(proxy && { proxy }),
 		},
 	};
 }

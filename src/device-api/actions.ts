@@ -10,7 +10,7 @@ import * as hostConfig from '../host-config';
 import type {
 	HostConfiguration,
 	LegacyHostConfiguration,
-} from '../host-config';
+} from '../host-config/types';
 import * as applicationManager from '../compose/application-manager';
 import type { CompositionStepAction } from '../compose/composition-steps';
 import { generateStep } from '../compose/composition-steps';

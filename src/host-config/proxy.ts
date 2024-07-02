@@ -219,7 +219,7 @@ async function restartProxyServices() {
 	}
 }
 
-export async function readNoProxy(): Promise<string[]> {
+async function readNoProxy(): Promise<string[]> {
 	try {
 		const noProxy = await readFromBoot(noProxyPath, 'utf-8')
 			// Prevent empty newline from being reported as a noProxy address
@@ -238,7 +238,7 @@ export async function readNoProxy(): Promise<string[]> {
 	}
 }
 
-export async function setNoProxy(list: Nullable<string[]>) {
+async function setNoProxy(list: Nullable<string[]>) {
 	const current = await readNoProxy();
 	if (!list || !Array.isArray(list) || !list.length) {
 		await unlinkAll(noProxyPath);

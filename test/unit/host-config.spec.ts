@@ -3,8 +3,8 @@ import { stripIndent } from 'common-tags';
 import type { SinonStub } from 'sinon';
 
 import * as hostConfig from '~/src/host-config';
-import { RedsocksConf } from '~/src/host-config';
-import type { RedsocksConfig, ProxyConfig } from '~/src/host-config';
+import { RedsocksConf } from '~/src/host-config/proxy';
+import type { RedsocksConfig, ProxyConfig } from '~/src/host-config/types';
 import log from '~/lib/supervisor-console';
 
 describe('RedsocksConf', () => {
@@ -379,57 +379,6 @@ describe('RedsocksConf', () => {
 });
 
 describe('src/host-config', () => {
-	describe('patchProxy', () => {
-		it('patches RedsocksConfig with new values', () => {
-			const current = {
-				redsocks: {
-					type: 'socks5',
-					ip: 'example.org',
-					port: 1080,
-					login: '"foo"',
-					password: '"bar"',
-				},
-			} as RedsocksConfig;
-			const input = {
-				redsocks: {
-					type: 'http-connect',
-					ip: 'test.balena.io',
-				},
-			} as any;
-			const patched = hostConfig.patchProxy(current, input);
-			expect(patched).to.deep.equal({
-				redsocks: {
-					// Patched fields are updated
-					type: 'http-connect',
-					ip: 'test.balena.io',
-					// Unpatched fields retain their original values
-					port: 1080,
-					login: '"foo"',
-					password: '"bar"',
-				},
-			});
-		});
-
-		it('returns empty RedsocksConfig if redsocks config block is empty or invalid', () => {
-			const current: RedsocksConfig = {
-				redsocks: {
-					type: 'socks5',
-					ip: 'example.org',
-					port: 1080,
-					login: '"foo"',
-					password: '"bar"',
-				},
-			};
-			expect(hostConfig.patchProxy(current, { redsocks: {} })).to.deep.equal(
-				{},
-			);
-			expect(
-				hostConfig.patchProxy(current, { redsocks: true } as any),
-			).to.deep.equal({});
-			expect(hostConfig.patchProxy(current, {})).to.deep.equal({});
-		});
-	});
-
 	describe('parse', () => {
 		it('parses valid HostConfiguration', () => {
 			const conf = {
