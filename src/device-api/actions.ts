@@ -7,6 +7,10 @@ import * as deviceState from '../device-state';
 import * as logger from '../logger';
 import * as config from '../config';
 import * as hostConfig from '../host-config';
+import type {
+	HostConfiguration,
+	LegacyHostConfiguration,
+} from '../host-config/types';
 import * as applicationManager from '../compose/application-manager';
 import type { CompositionStepAction } from '../compose/composition-steps';
 import { generateStep } from '../compose/composition-steps';
@@ -445,14 +449,12 @@ export const getHostConfig = async () => {
  * Used by:
  * 	- PATCH /v1/device/host-config
  */
-export const patchHostConfig = async (
-	conf: Parameters<typeof hostConfig.patch>[0],
-	force: boolean,
-) => {
-	// If hostname is an empty string, return first 7 digits of device uuid
-	if (conf.network?.hostname === '') {
-		const uuid = await config.get('uuid');
-		conf.network.hostname = uuid?.slice(0, 7);
+export const patchHostConfig = async (conf: unknown, force: boolean) => {
+	let parsedConf: HostConfiguration | LegacyHostConfiguration;
+	try {
+		parsedConf = hostConfig.parse(conf);
+	} catch (e: unknown) {
+		throw new BadRequestError((e as Error).message);
 	}
-	await hostConfig.patch(conf, force);
+	await hostConfig.patch(parsedConf, force);
 };

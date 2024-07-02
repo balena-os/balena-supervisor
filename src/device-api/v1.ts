@@ -6,7 +6,6 @@ import type { AuthorizedRequest } from '../lib/api-keys';
 import * as eventTracker from '../event-tracker';
 import type * as deviceState from '../device-state';
 
-import * as constants from '../lib/constants';
 import { checkInt, checkTruthy } from '../lib/validation';
 import log from '../lib/supervisor-console';
 import {
@@ -15,8 +14,6 @@ import {
 	UpdatesLockedError,
 } from '../lib/errors';
 import type { CompositionStepAction } from '../compose/composition-steps';
-
-const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];
 
 export const router = express.Router();
 
@@ -176,34 +173,6 @@ router.patch('/v1/device/host-config', async (req, res) => {
 			// If network does not exist, skip all field validation checks below
 			throw new Error();
 		}
-
-		const { proxy } = req.body.network;
-
-		// Validate proxy fields, if they exist
-		if (proxy && Object.keys(proxy).length) {
-			const blacklistedFields = Object.keys(proxy).filter((key) =>
-				disallowedHostConfigPatchFields.includes(key),
-			);
-
-			if (blacklistedFields.length > 0) {
-				log.warn(`Invalid proxy field(s): ${blacklistedFields.join(', ')}`);
-			}
-
-			if (
-				proxy.type &&
-				!constants.validRedsocksProxyTypes.includes(proxy.type)
-			) {
-				log.warn(
-					`Invalid redsocks proxy type, must be one of ${constants.validRedsocksProxyTypes.join(
-						', ',
-					)}`,
-				);
-			}
-
-			if (proxy.noProxy && !Array.isArray(proxy.noProxy)) {
-				log.warn('noProxy field must be an array of addresses');
-			}
-		}
 	} catch (e) {
 		/* noop */
 	}
@@ -218,6 +187,12 @@ router.patch('/v1/device/host-config', async (req, res) => {
 		if (e instanceof UpdatesLockedError) {
 			return res.status(423).send(e?.message ?? e);
 		}
+
+		// User input cannot be parsed to type HostConfiguration or LegacyHostConfiguration
+		if (isBadRequestError(e)) {
+			return res.status(e.statusCode).send(e.statusMessage);
+		}
+
 		return res.status(503).send((e as Error)?.message ?? e ?? 'Unknown error');
 	}
 });
