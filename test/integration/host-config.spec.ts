@@ -7,7 +7,6 @@ import { stub } from 'sinon';
 import * as fs from 'fs/promises';
 
 import { get, patch } from '~/src/host-config';
-import * as hostConfig from '~/src/host-config';
 import * as config from '~/src/config';
 import * as applicationManager from '~/src/compose/application-manager';
 import type { InstancedAppState } from '~/src/compose/types';
@@ -83,96 +82,6 @@ describe('host-config', () => {
 		(applicationManager.getCurrentApps as SinonStub).restore();
 	});
 
-	describe('hostname', () => {
-		it('reads hostname', async () => {
-			expect(await hostConfig.readHostname()).to.equal('deadbeef');
-		});
-
-		it('sets hostname', async () => {
-			await hostConfig.setHostname('test');
-			expect(await config.get('hostname')).to.equal('test');
-		});
-
-		it('sets hostname to first 7 characters of UUID if empty', async () => {
-			await config.set({ uuid: '1234567' });
-			await hostConfig.setHostname('');
-			expect(await config.get('hostname')).to.equal('1234567');
-		});
-	});
-
-	describe('noProxy', () => {
-		it('reads IPs to exclude from proxy', async () => {
-			expect(await hostConfig.readNoProxy()).to.deep.equal([
-				'152.10.30.4',
-				'253.1.1.0/16',
-			]);
-		});
-
-		it('sets IPs to exclude from proxy', async () => {
-			await hostConfig.setNoProxy(['balena.io', '1.1.1.1']);
-			expect(await fs.readFile(noProxy, 'utf-8')).to.equal(
-				'balena.io\n1.1.1.1',
-			);
-			await hostConfig.setNoProxy(['balena.io', '2.2.2.2']);
-			expect(await fs.readFile(noProxy, 'utf-8')).to.equal(
-				'balena.io\n2.2.2.2',
-			);
-		});
-
-		it('returns whether noProxy was changed', async () => {
-			// Set initial no_proxy as empty
-			await hostConfig.setNoProxy([]);
-
-			// Change no_proxy
-			expect(await hostConfig.setNoProxy(['balena.io', '1.1.1.1'])).to.be.true;
-			expect(await hostConfig.readNoProxy())
-				.to.deep.include.members(['balena.io', '1.1.1.1'])
-				.and.have.lengthOf(2);
-
-			// Change no_proxy to same value
-			expect(await hostConfig.setNoProxy(['1.1.1.1', 'balena.io'])).to.be.false;
-			expect(await hostConfig.readNoProxy())
-				.to.deep.include.members(['balena.io', '1.1.1.1'])
-				.and.have.lengthOf(2);
-
-			// Remove a value
-			expect(await hostConfig.setNoProxy(['1.1.1.1'])).to.be.true;
-			expect(await hostConfig.readNoProxy())
-				.to.deep.include.members(['1.1.1.1'])
-				.and.have.lengthOf(1);
-
-			// Add a value
-			expect(await hostConfig.setNoProxy(['2.2.2.2', '1.1.1.1'])).to.be.true;
-			expect(await hostConfig.readNoProxy())
-				.to.deep.include.members(['2.2.2.2', '1.1.1.1'])
-				.and.have.lengthOf(2);
-
-			// Remove no_proxy
-			expect(await hostConfig.setNoProxy([])).to.be.true;
-			expect(await hostConfig.readNoProxy()).to.deep.equal([]);
-		});
-
-		it('removes no_proxy file if empty or invalid', async () => {
-			// Set initial no_proxy
-			await hostConfig.setNoProxy(['2.2.2.2']);
-			expect(await hostConfig.readNoProxy()).to.deep.equal(['2.2.2.2']);
-
-			// Set to empty array
-			await hostConfig.setNoProxy([]);
-			expect(await hostConfig.readNoProxy()).to.deep.equal([]);
-			expect(await fs.readdir(proxyBase)).to.not.have.members(['no_proxy']);
-
-			// Reset initial no_proxy
-			await hostConfig.setNoProxy(['2.2.2.2']);
-			expect(await hostConfig.readNoProxy()).to.deep.equal(['2.2.2.2']);
-
-			// Set to invalid value
-			await hostConfig.setNoProxy(null as any);
-			expect(await hostConfig.readNoProxy()).to.deep.equal([]);
-			expect(await fs.readdir(proxyBase)).to.not.have.members(['no_proxy']);
-		});
-	});
-
 	it('reads proxy configs and hostname', async () => {
 		const { network } = await get();
 		expect(network).to.have.property('hostname', 'deadbeef');
@@ -204,10 +113,10 @@ describe('host-config', () => {
 
 		try {
 			await patch({ network: { proxy: {} } }, true);
-			expect(await hostConfig.readProxy()).to.be.undefined;
 		} catch (e: unknown) {
 			expect.fail(`Expected hostConfig.patch to not throw, but got ${e}`);
 		}
+		expect(await get()).to.deep.equal({ network: { hostname: 'deadbeef' } });
 	});
 
 	it('patches hostname regardless of update locks', async () => {
@@ -279,7 +188,7 @@ describe('host-config', () => {
 	it('patches proxy to empty if input is empty', async () => {
 		await patch({ network: { proxy: {} } });
 		const { network } = await get();
-		expect(network).to.have.property('proxy', undefined);
+		expect(network).to.not.have.property('proxy');
 	});
 
 	it('keeps current proxy if input is invalid', async () => {
@@ -341,7 +250,7 @@ describe('host-config', () => {
 	it('patches redsocks.conf to be empty if prompted', async () => {
 		await patch({ network: { proxy: {} } });
 		const { network } = await get();
-		expect(network).to.have.property('proxy', undefined);
+		expect(network).to.not.have.property('proxy');
 		expect(await fs.readdir(proxyBase)).to.not.have.members([
 			'redsocks.conf',
 			'no_proxy',
