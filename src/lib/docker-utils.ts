@@ -327,7 +327,7 @@ async function applyRsyncDelta(
 				} else if (parseInt(res.headers['content-length'] || '0', 10) === 0) {
 					reject(new Error('Invalid delta URL'));
 				} else {
-					const deltaStream = applyDelta(imgSrc, {
+					const deltaStream = applyDelta(docker, imgSrc, {
 						log: logFn,
 						timeout: applyTimeout,
 					});
