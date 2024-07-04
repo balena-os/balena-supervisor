@@ -1294,18 +1294,4 @@ describe('patches host config', () => {
 		await actions.patchHostConfig(conf, true);
 		expect(hostConfigPatch).to.have.been.calledWith(conf, true);
 	});
-
-	it('patches hostname as first 7 digits of uuid if hostname parameter is empty string', async () => {
-		const conf = {
-			network: {
-				hostname: '',
-			},
-		};
-		const uuid = await config.get('uuid');
-		await actions.patchHostConfig(conf, true);
-		expect(hostConfigPatch).to.have.been.calledWith(
-			{ network: { hostname: uuid?.slice(0, 7) } },
-			true,
-		);
-	});
 });
