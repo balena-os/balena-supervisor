@@ -1,4 +1,18 @@
 - commits:
+    - subject: Remove custom typings for docker-delta
+      hash: 28706510da4f3f09a12c4db6250dfe8f2a12eaa3
+      body: |
+        This are no longer needed since docker-delta migrated to typescript in
+        v4 and the custom typings were actually masking some bugs
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.4.1
+  title: ""
+  date: 2024-07-05T21:13:40.384Z
+- commits:
     - subject: Refactor host-config to be its own module
       hash: 53f5641ef1cd2e5374f55a50a601fb80d4872511
       body: >
