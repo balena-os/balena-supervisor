@@ -2,13 +2,11 @@ import Bluebird from 'bluebird';
 import _ from 'lodash';
 
 import * as config from './config';
-import * as db from './db';
 import * as eventTracker from './event-tracker';
 import type { LogType } from './lib/log-types';
 import { takeGlobalLockRW } from './lib/process-lock';
 import type { LogBackend, LogMessage } from './logging';
 import { BalenaLogBackend, LocalLogBackend } from './logging';
-import type { MonitorHook } from './logging/monitor';
 import logMonitor from './logging/monitor';
 
 import * as globalEventBus from './event-bus';
@@ -146,14 +144,9 @@ export function attach(
 	}
 
 	return Bluebird.using(lock(containerId), async () => {
-		await logMonitor.attach(
-			containerId,
-			(message: Parameters<MonitorHook>[0] & Partial<ServiceInfo>) => {
-				message.serviceId = serviceId;
-				message.imageId = imageId;
-				log(message);
-			},
-		);
+		await logMonitor.attach(containerId, (message) => {
+			log({ ...message, serviceId, imageId });
+		});
 	});
 }
 
@@ -199,16 +192,6 @@ export function logConfigChange(
 	}
 
 	logSystemMessage(message, obj, eventName);
-}
-
-export async function clearOutOfDateDBLogs(containerIds: string[]) {
-	superConsole.debug(
-		'Performing database cleanup for container log timestamps',
-	);
-	await db
-		.models('containerLogs')
-		.whereNotIn('containerId', containerIds)
-		.delete();
 }
 
 function objectNameForLogs(eventObj: LogEventObject): string | null {

@@ -14,7 +14,7 @@ import log from './supervisor-console';
 export const toJournalDate = (timestamp: number): string =>
 	new Date(timestamp).toISOString().replace(/T/, ' ').replace(/\..+$/, '');
 
-export function spawnJournalctl(opts: {
+export interface SpawnJournalctlOpts {
 	all: boolean;
 	follow: boolean;
 	count?: number | 'all';
@@ -24,7 +24,9 @@ export function spawnJournalctl(opts: {
 	filterString?: string;
 	since?: string;
 	until?: string;
-}): ChildProcess {
+}
+
+export function spawnJournalctl(opts: SpawnJournalctlOpts): ChildProcess {
 	const args: string[] = [];
 	if (opts.all) {
 		args.push('-a');
