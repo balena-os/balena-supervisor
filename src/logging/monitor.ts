@@ -1,6 +1,5 @@
-import JSONstream from 'JSONStream';
+import { pipeline } from 'stream/promises';
 
-import type { SpawnJournalctlOpts } from '../lib/journald';
 import { spawnJournalctl, toJournalDate } from '../lib/journald';
 import log from '../lib/supervisor-console';
 import { setTimeout } from 'timers/promises';
@@ -38,6 +37,20 @@ function messageFieldToString(entry: JournalRow['MESSAGE']): string | null {
 	}
 }
 
+async function* splitStream(chunkIterable: AsyncIterable<any>) {
+	let previous = '';
+	for await (const chunk of chunkIterable) {
+		previous += chunk;
+		const lines = previous.split(/\r?\n/);
+		previous = lines.pop() || '';
+		yield* lines;
+	}
+
+	if (previous.length > 0) {
+		yield previous;
+	}
+}
+
 /**
  * Streams logs from journalctl and calls container hooks when a record is received matching container id
  */
@@ -52,40 +65,60 @@ class LogMonitor {
 	// Only stream logs since the start of the supervisor
 	private lastSentTimestamp = Date.now() - performance.now();
 
-	public start() {
-		this.streamLogsFromJournal(
-			{
+	public async start(): Promise<void> {
+		try {
+			const journalctl = spawnJournalctl({
 				all: true,
 				follow: true,
 				format: 'json',
 				filterString: '_SYSTEMD_UNIT=balena.service',
 				since: toJournalDate(this.lastSentTimestamp),
-			},
-			(row) => {
-				if (row.CONTAINER_ID_FULL && this.containers[row.CONTAINER_ID_FULL]) {
-					this.setupAttempts = 0;
-					this.handleRow(row);
+			});
+			const { stdout, stderr } = journalctl;
+			if (!stdout) {
+				// this will be catched below
+				throw new Error('failed to open process stream');
+			}
+
+			stderr?.on('data', (data) =>
+				log.error('journalctl - balena.service stderr: ', data.toString()),
+			);
+
+			const self = this;
+
+			await pipeline(stdout, splitStream, async function (lines) {
+				for await (const line of lines) {
+					try {
+						const row = JSON.parse(line);
+						if (
+							row.CONTAINER_ID_FULL &&
+							self.containers[row.CONTAINER_ID_FULL]
+						) {
+							self.setupAttempts = 0;
+							self.handleRow(row);
+						}
+					} catch {
+						// ignore parsing errors
+					}
 				}
-			},
-			(data) => {
-				log.error('journalctl - balena.service stderr: ', data.toString());
-			},
-			async () => {
-				log.debug('balena.service journalctl process exit.');
-				// On exit of process try to create another
-				const wait = Math.min(
-					2 ** this.setupAttempts++ * JOURNALCTL_ERROR_RETRY_DELAY,
-					JOURNALCTL_ERROR_RETRY_DELAY_MAX,
-				);
-				log.debug(
-					`Spawning another process to watch balena.service logs in ${
-						wait / 1000
-					}s`,
-				);
-				await setTimeout(wait);
-				return this.start();
-			},
+			});
+			log.debug('balena.service journalctl process exit.');
+		} catch (e: any) {
+			log.error('journalctl - balena.service error: ', e.message ?? e);
+		}
+
+		// On exit of process try to create another
+		const wait = Math.min(
+			2 ** this.setupAttempts++ * JOURNALCTL_ERROR_RETRY_DELAY,
+			JOURNALCTL_ERROR_RETRY_DELAY_MAX,
 		);
+		log.debug(
+			`Spawning another process to watch balena.service logs in ${
+				wait / 1000
+			}s`,
+		);
+		await setTimeout(wait);
+		return this.start();
 	}
 
 	public isAttached(containerId: string): boolean {
@@ -102,19 +135,6 @@ class LogMonitor {
 
 	public async detach(containerId: string) {
 		delete this.containers[containerId];
-	}
-
-	private streamLogsFromJournal(
-		options: SpawnJournalctlOpts,
-		onRow: (row: JournalRow) => void,
-		onError: (data: Buffer) => void,
-		onExit: () => void,
-	): ReturnType<typeof spawnJournalctl> {
-		const journalctl = spawnJournalctl(options);
-		journalctl.stdout?.pipe(JSONstream.parse(true).on('data', onRow));
-		journalctl.stderr?.on('data', onError);
-		journalctl.on('exit', onExit);
-		return journalctl;
 	}
 
 	private handleRow(row: JournalRow) {
