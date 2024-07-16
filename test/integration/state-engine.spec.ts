@@ -85,6 +85,7 @@ describe('state engine', () => {
 			config: {},
 			apps: {},
 		});
+		await docker.pruneImages({ filters: { dangling: { false: true } } });
 	});
 
 	it('installs an app with two services', async () => {
