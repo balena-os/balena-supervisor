@@ -88,22 +88,17 @@ export class BalenaLogBackend extends LogBackend {
 			return;
 		}
 
-		message = Object.assign(
-			{
-				timestamp: Date.now(),
-				message: '',
-			},
-			message,
-		);
-
 		if (!message.isSystem && message.serviceId == null) {
 			return;
 		}
 
-		message.message = _.truncate(message.message, {
-			length: MAX_LOG_LENGTH,
-			omission: '[...]',
-		});
+		message.timestamp ??= Date.now();
+		message.message = message.message
+			? _.truncate(message.message, {
+					length: MAX_LOG_LENGTH,
+					omission: '[...]',
+				})
+			: '';
 
 		this.write(message);
 	}
