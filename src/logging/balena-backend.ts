@@ -61,12 +61,12 @@ export class BalenaLogBackend extends LogBackend {
 			this.writable = true;
 			this.flush();
 			if (this.dropCount > 0) {
-				this.write({
+				this.write(() => ({
 					message: `Warning: Suppressed ${this.dropCount} message(s) due to high load`,
 					timestamp: Date.now(),
 					isSystem: true,
 					isStdErr: true,
-				});
+				}));
 				this.dropCount = 0;
 			}
 		});
@@ -76,7 +76,7 @@ export class BalenaLogBackend extends LogBackend {
 		return this.initialised;
 	}
 
-	public log(message: LogMessage) {
+	public log(getMessage: () => LogMessage) {
 		// TODO: Perhaps don't just drop logs when we haven't
 		// yet initialised (this happens when a device has not yet
 		// been provisioned)
@@ -84,23 +84,19 @@ export class BalenaLogBackend extends LogBackend {
 			return;
 		}
 
-		if (!_.isObject(message)) {
-			return;
-		}
+		this.write(() => {
+			const message = getMessage();
 
-		if (!message.isSystem && message.serviceId == null) {
-			return;
-		}
+			message.timestamp ??= Date.now();
+			message.message = message.message
+				? _.truncate(message.message, {
+						length: MAX_LOG_LENGTH,
+						omission: '[...]',
+					})
+				: '';
 
-		message.timestamp ??= Date.now();
-		message.message = message.message
-			? _.truncate(message.message, {
-					length: MAX_LOG_LENGTH,
-					omission: '[...]',
-				})
-			: '';
-
-		this.write(message);
+			return message;
+		});
 	}
 
 	public assignFields(endpoint: string, uuid: string, deviceApiKey: string) {
@@ -221,13 +217,13 @@ export class BalenaLogBackend extends LogBackend {
 		}
 	}
 
-	private write(message: LogMessage) {
+	private write(getMessage: () => LogMessage) {
 		this.snooze();
 		this.setup();
 
 		if (this.writable) {
 			try {
-				this.writable = this.stream.write(JSON.stringify(message) + '\n');
+				this.writable = this.stream.write(JSON.stringify(getMessage()) + '\n');
 				this.flush();
 			} catch (e) {
 				log.error('Failed to write to logging stream, dropping message.', e);

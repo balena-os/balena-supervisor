@@ -12,9 +12,10 @@ export class LocalLogBackend extends LogBackend {
 
 	private serviceNameResolver: (serviceId: number) => Promise<string>;
 
-	public async log(message: LogMessage): Promise<void> {
+	public async log(getMessage: () => LogMessage): Promise<void> {
 		if (this.publishEnabled) {
 			try {
+				let message = getMessage();
 				if (!message.isSystem) {
 					if (this.serviceNameResolver == null) {
 						// This means there is no listener assigned, drop the logs

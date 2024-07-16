@@ -5,11 +5,15 @@ import { spawnJournalctl, toJournalDate } from '../lib/journald';
 import log from '../lib/supervisor-console';
 import { setTimeout } from 'timers/promises';
 
-export type MonitorHook = (message: {
-	message: string;
-	isStdErr: boolean;
-	timestamp: number;
-}) => Resolvable<void>;
+export type MonitorHook = (
+	getMessage: () =>
+		| {
+				message: string;
+				isStdErr: boolean;
+				timestamp: number;
+		  }
+		| undefined,
+) => Resolvable<void>;
 
 // This is nowhere near the amount of fields provided by journald, but simply the ones
 // that we are interested in
@@ -176,17 +180,19 @@ class LogMonitor {
 		if (this.containers[containerId] == null) {
 			return;
 		}
-		const message = messageFieldToString(row.MESSAGE);
-		if (message == null) {
-			return;
-		}
-		const isStdErr = row.PRIORITY === '3';
-		const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
-		this.updateContainerSentTimestamp(containerId, timestamp);
 
 		// WARNING: this could lead to a memory leak as the hook is not being awaited
 		// and the journal can be very verbose
-		void this.containers[containerId].hook({ message, isStdErr, timestamp });
+		void this.containers[containerId].hook(() => {
+			const message = messageFieldToString(row.MESSAGE);
+			if (message == null) {
+				return;
+			}
+			const isStdErr = row.PRIORITY === '3';
+			const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
+			this.updateContainerSentTimestamp(containerId, timestamp);
+			return { message, isStdErr, timestamp };
+		});
 	}
 
 	private updateContainerSentTimestamp(

@@ -20,7 +20,7 @@ export abstract class LogBackend {
 	public unmanaged: boolean;
 	public publishEnabled: boolean = true;
 
-	public abstract log(message: LogMessage): void;
+	public abstract log(getMessage: () => LogMessage | undefined): void;
 }
 
 export default LogBackend;

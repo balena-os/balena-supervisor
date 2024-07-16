@@ -106,7 +106,7 @@ export function enable(value: boolean = true) {
 }
 
 export function log(message: LogMessage) {
-	backend?.log(message);
+	backend?.log(() => message);
 }
 
 export function logSystemMessage(
@@ -148,10 +148,16 @@ export function attach(
 	return Bluebird.using(lock(containerId), async () => {
 		await logMonitor.attach(
 			containerId,
-			(message: Parameters<MonitorHook>[0] & Partial<ServiceInfo>) => {
-				message.serviceId = serviceId;
-				message.imageId = imageId;
-				log(message);
+			(getMessage: Parameters<MonitorHook>[0] & Partial<ServiceInfo>) => {
+				backend?.log(() => {
+					const message: LogMessage | undefined = getMessage();
+					if (message == null) {
+						return;
+					}
+					message.serviceId = serviceId;
+					message.imageId = imageId;
+					return message;
+				});
 			},
 		);
 	});
