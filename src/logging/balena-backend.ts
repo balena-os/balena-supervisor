@@ -93,12 +93,12 @@ export class BalenaLogBackend extends LogBackend {
 		}
 
 		message.timestamp ??= Date.now();
-		message.message ??= '';
-
-		message.message = _.truncate(message.message, {
-			length: MAX_LOG_LENGTH,
-			omission: '[...]',
-		});
+		message.message = message.message
+			? _.truncate(message.message, {
+					length: MAX_LOG_LENGTH,
+					omission: '[...]',
+				})
+			: '';
 
 		this.write(message);
 	}
