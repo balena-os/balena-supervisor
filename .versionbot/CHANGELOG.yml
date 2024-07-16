@@ -1,4 +1,19 @@
 - commits:
+    - subject: Cleanup images after state-engine tests
+      hash: f38714d40ffa0c1a885016e8fdfbca46aff4108f
+      body: |
+        Tests on GitHub started failing recently because of leftover images from
+        the state engine test suite. This fixes that issue to allow tests to
+        pass.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.4.2
+  title: ""
+  date: 2024-07-16T21:55:49.331Z
+- commits:
     - subject: Remove custom typings for docker-delta
       hash: 28706510da4f3f09a12c4db6250dfe8f2a12eaa3
       body: |
