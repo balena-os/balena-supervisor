@@ -1,4 +1,16 @@
 - commits:
+    - subject: Improve log message typing
+      hash: 4976578a830f3db6484e940a710928544709511d
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 16.4.4
+  title: ""
+  date: 2024-07-17T14:48:47.790Z
+- commits:
     - subject: "Logs: only truncate the message if it's possible it will need it"
       hash: c5d0eafea9016792d3eea04bf9d9df7886eb8bc0
       body: ""
