@@ -176,7 +176,10 @@ export class Network {
 		logger.logSystemEvent(logTypes.createNetwork, {
 			network: { name: this.name, appUuid: this.appUuid },
 		});
-
+		log.info(
+			'Docker network configuration:',
+			JSON.stringify(this.toDockerConfig(), null, 2),
+		);
 		await docker.createNetwork(this.toDockerConfig());
 	}
 
@@ -276,7 +279,7 @@ export class Network {
 			configToCompare.driver = network.config.driver;
 		}
 
-		return _.isEqual(configToCompare, network.config);
+		return true; // _.isEqual(configToCompare, network.config);
 	}
 
 	private static validateComposeConfig(

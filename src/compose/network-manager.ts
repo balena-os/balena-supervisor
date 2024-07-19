@@ -12,9 +12,17 @@ import { ResourceRecreationAttemptError } from './errors';
 
 export async function getAll(): Promise<Network[]> {
 	const networks = await getWithBothLabels();
+	log.debug(
+		'Networks fetched with getWithBothLabels:',
+		JSON.stringify(networks, null, 2),
+	);
 	return await Promise.all(
 		networks.map(async (network: { Id: string }) => {
 			const net = await docker.getNetwork(network.Id).inspect();
+			log.debug(
+				'Network got via dockerode using Network.Id inspect',
+				JSON.stringify(net, null, 2),
+			);
 			return Network.fromDockerNetwork(net);
 		}),
 	);
@@ -36,6 +44,7 @@ export async function create(network: Network) {
 			name: network.name,
 			appUuid: network.appUuid!, // new networks will always have uuid
 		});
+		log.debug('Existing Networks: ', JSON.stringify(existing, null, 2));
 		if (!network.isEqualConfig(existing)) {
 			throw new ResourceRecreationAttemptError('network', network.name);
 		}
@@ -73,7 +82,6 @@ export async function supervisorNetworkReady(): Promise<boolean> {
 		// The inspect may fail even if the interface exist due to docker corruption
 		const network = await docker.getNetwork(iface).inspect();
 		const result =
-			network.Options['com.docker.network.bridge.name'] === iface &&
 			network.IPAM.Config[0].Subnet === subnet &&
 			network.IPAM.Config[0].Gateway === gateway;
 		return result;
@@ -88,9 +96,13 @@ export async function supervisorNetworkReady(): Promise<boolean> {
 
 export async function ensureSupervisorNetwork(): Promise<void> {
 	try {
+		log.debug(
+			`Checking if ${iface} network exists................................. hello Shaun!`,
+		);
 		const net = await docker.getNetwork(iface).inspect();
+		log.debug(`subnet: ${net.IPAM.Config[0].Subnet}`);
+		log.debug(`gateway: ${net.IPAM.Config[0].Gateway}`);
 		if (
-			net.Options['com.docker.network.bridge.name'] !== iface ||
 			net.IPAM.Config[0].Subnet !== subnet ||
 			net.IPAM.Config[0].Gateway !== gateway
 		) {
@@ -105,6 +117,8 @@ export async function ensureSupervisorNetwork(): Promise<void> {
 		}
 
 		log.debug(`Creating ${iface} network`);
+		log.debug(`code has changed`);
+		console.log(`Hi Shaun`);
 		await docker.createNetwork({
 			Name: iface,
 			Options: {

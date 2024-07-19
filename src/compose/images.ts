@@ -226,9 +226,11 @@ export async function triggerFetch(
 	try {
 		const imageName = normalise(image.name);
 		image = { ...image, name: imageName };
+		console.log(`Inspecting image: ${image.name}`);
 
 		// Look for a matching image on the engine
 		const img = await inspectByName(image.name);
+		console.log(`Inspected image details:`, img);
 
 		// If we are at this point, the image may not have the proper tag so add it
 		await tagImage(img.Id, image.name);
@@ -320,7 +322,7 @@ async function withImagesFromDockerAndDB<T>(
 	cb: (dockerImages: Docker.ImageInfo[], composeImages: Image[]) => T,
 ) {
 	const [normalisedImages, dbImages] = await Promise.all([
-		docker.listImages({ digests: true }).then(async (images) => {
+		docker.listImages({}).then(async (images) => {
 			return await Promise.all(
 				images.map((image) => ({
 					...image,
@@ -506,7 +508,7 @@ async function getImagesForCleanup(): Promise<Array<Docker.ImageInfo['Id']>> {
 		.select('dockerImageId')
 		.then((vals) => vals.map(({ dockerImageId }: Image) => dockerImageId));
 
-	const dockerImages = await docker.listImages({ digests: true });
+	const dockerImages = await docker.listImages({});
 
 	const imagesToCleanup = new Set<Docker.ImageInfo['Id']>();
 	for (const image of dockerImages) {
@@ -712,7 +714,6 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 		// Check for any remaining digests.
 		const digests = (
 			await docker.listImages({
-				digests: true,
 				filters: { reference: [reference] },
 			})
 		).flatMap((imgInfo) => imgInfo.RepoDigests || []);

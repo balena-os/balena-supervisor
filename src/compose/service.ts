@@ -79,7 +79,7 @@ export class Service {
 	public createdAt: Date | null;
 
 	private static configArrayFields: ServiceConfigArrayField[] = [
-		'volumes',
+		// 'volumes',
 		'devices',
 		'capAdd',
 		'capDrop',
@@ -109,6 +109,7 @@ export class Service {
 		// These fields are special case, due to network_mode:service:<service>
 		'networkMode',
 		'hostname',
+		'volumes',
 	].concat(Service.allConfigArrayFields);
 
 	private constructor() {

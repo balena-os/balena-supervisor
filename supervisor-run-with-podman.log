@@ -1,0 +1,953 @@
+Jun 03 18:36:22 a58423f balena-supervisor[3596444]: INFO: Found device /dev/nvme0n1p1 on current boot device nvme0n1, using as mount for '(resin|balena)-boot'.
+Jun 03 18:36:22 a58423f balena-supervisor[3596444]: INFO: Found device /dev/nvme0n1p5 on current boot device nvme0n1, using as mount for '(resin|balena)-state'.
+Jun 03 18:36:22 a58423f balena-supervisor[3596444]: INFO: Found device /dev/nvme0n1p6 on current boot device nvme0n1, using as mount for '(resin|balena)-data'.
+Jun 03 18:36:22 a58423f balena-supervisor[3596444]: [nodemon] 3.1.0
+Jun 03 18:36:23 a58423f balena-supervisor[3596444]: [nodemon] to restart at any time, enter `rs`
+Jun 03 18:36:23 a58423f balena-supervisor[3596444]: [nodemon] watching path(s): src/**/* typings/**/*
+Jun 03 18:36:23 a58423f balena-supervisor[3596444]: [nodemon] watching extensions: js,ts,json
+Jun 03 18:36:23 a58423f balena-supervisor[3596444]: [nodemon] starting `node -r ts-node/register/transpile-only src/app.ts`
+Jun 03 18:36:29 a58423f balena-supervisor[3596444]: [info]    Supervisor v16.3.6 starting up...
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    Setting host to discoverable
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Starting systemd unit: avahi-daemon.service
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Starting systemd unit: avahi-daemon.socket
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Starting logging infrastructure
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    Starting firewall
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [warn]    Invalid firewall mode: . Reverting to state: off
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    Applying firewall mode: off
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.126Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.133Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.135Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.142Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.147Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.148Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.152Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.154Z modem Received: {"cause":"failed to find image registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: No such image","message":"failed to find image registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: No such image","response":404}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.158Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/json?digests=true&filters=%7B%22reference%22%3A%5B%22registry2.balena-cloud.com%2Fv2%2F5bfdf7d74378f89a191dc2c0d184e522%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.159Z modem Received:
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.163Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.165Z modem Received: {"cause":"failed to find image sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014: docker.io/library/sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014: No such image","message":"failed to find image sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014: docker.io/library/sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014: No such image","response":404}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [success] Firewall mode applied
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Starting api binder
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.213Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.216Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.223Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.225Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Performing database cleanup for container log timestamps
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.230Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/containers/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.232Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.232Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/volumes',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.233Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.236Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.237Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.238Z modem Received: {"Volumes":[{"CreatedAt":"2024-06-03T17:10:44Z","Driver":"local","Labels":{"io.balena.app-uuid":"ccd4ef5f9c524e7c958127467648abf9","io.balena.supervised":"true"},"Mountpoint":"/var/lib/containers/storage/volumes/2086169_resin-data/_data","Name":"2086169_resin-data","Options":{},"Scope":"local"}],"Warnings":[]}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.239Z modem Received: [{"Name":"bef074f908094f41950704767fceee54_default","Id":"716d91aa34f92bb214f48db803d3e0e19895fff4dee8806a91e43f4eb00fcee5","Created":"2024-06-03T18:35:43.613284049Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.1.0/24","Gateway":"10.89.1.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2115315","io.balena.supervised":"true"}},{"Name":"ccd4ef5f9c524e7c958127467648abf9_default","Id":"33d16edde97db1eeb78748835f421cd104f51a15250f4a1475def27202a018ce","Created":"2024-06-03T18:35:43.611605547Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.0.0/24","Gateway":"10.89.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2086169","io.balena.supervised":"true"}},{"Name":"bridge","Id":"2f259bab93aaaaa2542ba43ef33eb990d0999ee1b9924b557b7be53c0b7a1bb9","Created":"2024-06-03T16:15:13.723539088Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.88.0.0/16","Gateway":"10.88.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}},{"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}},{"Name":"900de4f3cbac4b9bbd232885a35e407b_default","Id":"2963184c15db6dc1af3434e942723f436b05685e70d0d36c225d61d62ae29597","Created":"2024-06-03T18:35:43.616009792Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.2.0/24","Gateway":"10.89.2.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"1667443","io.balena.supervised":"true"}}]
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    Previous engine snapshot was not stored. Skipping cleanup.
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Handling of local mode switch is completed
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.243Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.resin.supervised%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.244Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.balena.supervised%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.246Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.247Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: containers list with labels []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.250Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/events?filters=%7B%22type%22%3A%5B%22container%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    API Binder bound to: https://api.balena-cloud.com/v6/
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [event]   Event: Supervisor start {}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    Starting API server
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    Supervisor API successfully started on port 48484
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Ensuring device is provisioned
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Connectivity check enabled: true
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   VPN status path exists.
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Starting periodic check for IP addresses
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    Reporting initial state, supervisor version and API info
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    Waiting for connectivity...
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    VPN connection is active.
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Skipping preloading
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    Applying target state
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.461Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.resin.supervised%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.462Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.balena.supervised%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Starting current state report
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Starting target state poll
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Spawning journalctl -a --follow -o json _SYSTEMD_UNIT=balena.service
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.471Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.473Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: containers list with labels []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.476Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks?filters=%7B%22label%22%3A%5B%22io.resin.supervised%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.476Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks?filters=%7B%22label%22%3A%5B%22io.balena.supervised%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.481Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.483Z modem Received: [{"Name":"900de4f3cbac4b9bbd232885a35e407b_default","Id":"2963184c15db6dc1af3434e942723f436b05685e70d0d36c225d61d62ae29597","Created":"2024-06-03T18:35:43.616009792Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.2.0/24","Gateway":"10.89.2.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"1667443","io.balena.supervised":"true"}},{"Name":"bef074f908094f41950704767fceee54_default","Id":"716d91aa34f92bb214f48db803d3e0e19895fff4dee8806a91e43f4eb00fcee5","Created":"2024-06-03T18:35:43.613284049Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.1.0/24","Gateway":"10.89.1.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2115315","io.balena.supervised":"true"}},{"Name":"ccd4ef5f9c524e7c958127467648abf9_default","Id":"33d16edde97db1eeb78748835f421cd104f51a15250f4a1475def27202a018ce","Created":"2024-06-03T18:35:43.611605547Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.0.0/24","Gateway":"10.89.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2086169","io.balena.supervised":"true"}}]
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.485Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/2963184c15db6dc1af3434e942723f436b05685e70d0d36c225d61d62ae29597',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.487Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/716d91aa34f92bb214f48db803d3e0e19895fff4dee8806a91e43f4eb00fcee5',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.488Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/33d16edde97db1eeb78748835f421cd104f51a15250f4a1475def27202a018ce',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.490Z modem Received: {"Name":"900de4f3cbac4b9bbd232885a35e407b_default","Id":"2963184c15db6dc1af3434e942723f436b05685e70d0d36c225d61d62ae29597","Created":"2024-06-03T18:35:43.616009792Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.2.0/24","Gateway":"10.89.2.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"1667443","io.balena.supervised":"true"}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.505Z modem Received: {"Name":"bef074f908094f41950704767fceee54_default","Id":"716d91aa34f92bb214f48db803d3e0e19895fff4dee8806a91e43f4eb00fcee5","Created":"2024-06-03T18:35:43.613284049Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.1.0/24","Gateway":"10.89.1.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2115315","io.balena.supervised":"true"}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.506Z modem Received: {"Name":"ccd4ef5f9c524e7c958127467648abf9_default","Id":"33d16edde97db1eeb78748835f421cd104f51a15250f4a1475def27202a018ce","Created":"2024-06-03T18:35:43.611605547Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.0.0/24","Gateway":"10.89.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2086169","io.balena.supervised":"true"}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.508Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/volumes',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.511Z modem Received: {"Volumes":[{"CreatedAt":"2024-06-03T17:10:44Z","Driver":"local","Labels":{"io.balena.app-uuid":"ccd4ef5f9c524e7c958127467648abf9","io.balena.supervised":"true"},"Mountpoint":"/var/lib/containers/storage/volumes/2086169_resin-data/_data","Name":"2086169_resin-data","Options":{},"Scope":"local"}],"Warnings":[]}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.513Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.516Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [debug]   Retrieved last reported state from cache
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.521Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.resin.supervised%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.521Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.balena.supervised%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.522Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.523Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.524Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: containers list with labels []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.526Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.561Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.561Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.562Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.567Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.568Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.569Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.584Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.586Z modem Received: {"cause":"failed to find image registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: No such image","message":"failed to find image registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: No such image","response":404}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.587Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/json?digests=true&filters=%7B%22reference%22%3A%5B%22registry2.balena-cloud.com%2Fv2%2F5bfdf7d74378f89a191dc2c0d184e522%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.588Z modem Received:
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.661Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.665Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.690Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.692Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.694Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.695Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [event]   Event: Network removal {}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [event]   Event: Network removal {}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [event]   Event: Network removal {}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.708Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.709Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.710Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.711Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.713Z modem Received: [{"Name":"bridge","Id":"2f259bab93aaaaa2542ba43ef33eb990d0999ee1b9924b557b7be53c0b7a1bb9","Created":"2024-06-03T16:15:13.723539088Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.88.0.0/16","Gateway":"10.88.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}},{"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}},{"Name":"900de4f3cbac4b9bbd232885a35e407b_default","Id":"2963184c15db6dc1af3434e942723f436b05685e70d0d36c225d61d62ae29597","Created":"2024-06-03T18:35:43.616009792Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.2.0/24","Gateway":"10.89.2.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"1667443","io.balena.supervised":"true"}},{"Name":"bef074f908094f41950704767fceee54_default","Id":"716d91aa34f92bb214f48db803d3e0e19895fff4dee8806a91e43f4eb00fcee5","Created":"2024-06-03T18:35:43.613284049Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.1.0/24","Gateway":"10.89.1.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2115315","io.balena.supervised":"true"}},{"Name":"ccd4ef5f9c524e7c958127467648abf9_default","Id":"33d16edde97db1eeb78748835f421cd104f51a15250f4a1475def27202a018ce","Created":"2024-06-03T18:35:43.611605547Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.0.0/24","Gateway":"10.89.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2086169","io.balena.supervised":"true"}}]
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.715Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/2963184c15db6dc1af3434e942723f436b05685e70d0d36c225d61d62ae29597',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'DELETE',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.717Z modem Received: []
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.718Z modem Received: [{"Name":"bridge","Id":"2f259bab93aaaaa2542ba43ef33eb990d0999ee1b9924b557b7be53c0b7a1bb9","Created":"2024-06-03T16:15:13.723539088Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.88.0.0/16","Gateway":"10.88.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}},{"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}},{"Name":"900de4f3cbac4b9bbd232885a35e407b_default","Id":"2963184c15db6dc1af3434e942723f436b05685e70d0d36c225d61d62ae29597","Created":"2024-06-03T18:35:43.616009792Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.2.0/24","Gateway":"10.89.2.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"1667443","io.balena.supervised":"true"}},{"Name":"bef074f908094f41950704767fceee54_default","Id":"716d91aa34f92bb214f48db803d3e0e19895fff4dee8806a91e43f4eb00fcee5","Created":"2024-06-03T18:35:43.613284049Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.1.0/24","Gateway":"10.89.1.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2115315","io.balena.supervised":"true"}},{"Name":"ccd4ef5f9c524e7c958127467648abf9_default","Id":"33d16edde97db1eeb78748835f421cd104f51a15250f4a1475def27202a018ce","Created":"2024-06-03T18:35:43.611605547Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.0.0/24","Gateway":"10.89.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2086169","io.balena.supervised":"true"}}]
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.718Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/33d16edde97db1eeb78748835f421cd104f51a15250f4a1475def27202a018ce',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'DELETE',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.720Z modem Received:
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.721Z modem Received: [{"Name":"bef074f908094f41950704767fceee54_default","Id":"716d91aa34f92bb214f48db803d3e0e19895fff4dee8806a91e43f4eb00fcee5","Created":"2024-06-03T18:35:43.613284049Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.1.0/24","Gateway":"10.89.1.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2115315","io.balena.supervised":"true"}},{"Name":"ccd4ef5f9c524e7c958127467648abf9_default","Id":"33d16edde97db1eeb78748835f421cd104f51a15250f4a1475def27202a018ce","Created":"2024-06-03T18:35:43.611605547Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.0.0/24","Gateway":"10.89.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2086169","io.balena.supervised":"true"}},{"Name":"bridge","Id":"2f259bab93aaaaa2542ba43ef33eb990d0999ee1b9924b557b7be53c0b7a1bb9","Created":"2024-06-03T16:15:13.723539088Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.88.0.0/16","Gateway":"10.88.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}},{"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}]
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.722Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/networks/716d91aa34f92bb214f48db803d3e0e19895fff4dee8806a91e43f4eb00fcee5',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'DELETE',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.724Z modem Received:
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.725Z modem Received:
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: Inspecting image: registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.832Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.838Z modem Received: {"cause":"failed to find image registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: No such image","message":"failed to find image registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a: No such image","response":404}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.839Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/json?digests=true&filters=%7B%22reference%22%3A%5B%22registry2.balena-cloud.com%2Fv2%2F5bfdf7d74378f89a191dc2c0d184e522%22%5D%7D',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.840Z modem Received:
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [event]   Event: Docker image download {"image":{"name":"registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","appId":2115315,"appUuid":"bef074f908094f41950704767fceee54","serviceId":2649864,"serviceName":"balena-hello-world","imageId":8894940,"releaseId":3032009,"commit":"ab9edc8af04e837378d3e2f2df118703"}}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.844Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/version',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.879Z modem Received: {"Platform":{"Name":"linux/arm64/balena-os-5.1.37+rev5"},"Components":[{"Name":"Podman Engine","Version":"5.0.3","Details":{"APIVersion":"5.0.3","Arch":"arm64","BuildTime":"1970-01-01T00:00:00Z","Experimental":"false","GitCommit":"","GoVersion":"go1.21.10","KernelVersion":"6.1.54-v8","MinAPIVersion":"4.0.0","Os":"linux"}},{"Name":"Conmon","Version":"conmon version 2.1.10, commit: e21e7c85b7637e622f21c57675bf1154fc8b1866","Details":{"Package":"Unknown"}},{"Name":"OCI Runtime (runc)","Version":"runc version 1.1.12\ncommit: v1.1.12-0-g51d5e946\nspec: 1.0.2-dev\ngo: go1.20.13\nlibseccomp: 2.5.4","Details":{"Package":"Unknown"}}],"Version":"5.0.3","ApiVersion":"1.41","MinAPIVersion":"1.24","GitCommit":"","GoVersion":"go1.21.10","Os":"linux","Arch":"arm64","KernelVersion":"6.1.54-v8","BuildTime":"1970-01-01T00:00:00Z"}
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:30.881Z modem Sending: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   path: '/images/create?fromImage=registry2.balena-cloud.com%2Fv2%2F5bfdf7d74378f89a191dc2c0d184e522&tag=sha256%3A968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   method: 'POST',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   headers: {
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:     'X-Registry-Auth': 'eyJ1c2VybmFtZSI6ImRfYTU4NDIzZmNhOTIzMTg4MzI4MGNiOThiN2ZlNzI3OTMiLCJwYXNzd29yZCI6IjEyMjA0YjJlMDJkZTE5N2I5MWY4MjRiNjBhYTMyMWUyIiwic2VydmVyQWRkcmVzcyI6InJlZ2lzdHJ5Mi5iYWxlbmEtY2xvdWQuY29tIn0=',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:     'Content-Type': 'application/json',
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:     'Content-Length': 158
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   },
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:30 a58423f balena-supervisor[3596444]: [info]    Reported current state to the cloud
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: [info]    Internet Connectivity: OK
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:40.984Z modem Sending: {
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.resin.supervised%22%5D%7D',
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:40.986Z modem Sending: {
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.balena.supervised%22%5D%7D',
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:40.987Z modem Sending: {
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:40.990Z modem Received: []
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:40.991Z modem Received: []
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:40.992Z modem Received: []
+Jun 03 18:36:40 a58423f balena-supervisor[3596444]: containers list with labels []
+Jun 03 18:36:41 a58423f balena-supervisor[3596444]: [info]    Reported current state to the cloud
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:50.929Z modem Sending: {
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   path: '/images/registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a/json',
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:50.944Z modem Received: {"Id":"sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014","RepoTags":[],"RepoDigests":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Parent":"","Comment":"","Created":"2024-06-03T14:25:09.337473469Z","Container":"","ContainerConfig":{"Hostname":"c26f567ffd8","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":null,"Cmd":null,"Image":"","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":null},"DockerVersion":"dev","Author":"","Config":{"Hostname":"","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","LC_ALL=C.UTF-8","DEBIAN_FRONTEND=noninteractive","UDEV=off","LANG=C.UTF-8","PYTHON_VERSION=3.11.2","PYTHON_PIP_VERSION=23.0","SETUPTOOLS_VERSION=67.2.0","PYTHONPATH=/usr/lib/python3/dist-packages:"],"Cmd":["python","-u","src/app.py"],"Image":"","Volumes":null,"WorkingDir":"/usr/src/app","Entrypoint":["/usr/bin/entry.sh"],"OnBuild":null,"Labels":{"io.balena.architecture":"aarch64","io.balena.qemu.version":"7.0.0+balena1-aarch64"}},"Architecture":"arm64","Os":"linux","OsVersion":"dev","Size":311874995,"VirtualSize":311874995,"GraphDriver":{"Data":{"LowerDir":"/var/lib/containers/storage/overlay/f01733185f2d2f2fac22b1ad50de5eb2c46a44fa2bec031e6666a129f5a88d72/diff:/var/lib/containers/storage/overlay/b93934af54d040bab2b40a25a440178cf7040f3abfb11e45ed85cabaa50cc2fd/diff:/var/lib/containers/storage/overlay/21df299fef8708e9e68795ecb9a2ab0caabe653309a77559909da7a6fffd9956/diff:/var/lib/containers/storage/overlay/e59406c76c97548d789ec9e2abe833776b8fbfe07fd1e399d99b9cfb5417d00d/diff:/var/lib/containers/storage/overlay/a43d848d7416f6b1a76dfd31e77b9fa6555e5f3e970f211edb3efadf4372c500/diff:/var/lib/containers/storage/overlay/4bd85fbd48d102545a4e92d9bce68bb3800ebe4984c0d121f33cddbb1cf6f850/diff:/var/lib/containers/storage/overlay/a0f222c872f1b0317fb1244c6a17b5ddbb9b9101e46a4db1dfa126972532f925/diff:/var/lib/containers/storage/overlay/69bdb16f5ecd64715eae6402b59750f7a6c1cb10d662b152ce73f960b3d527ea/diff:/var/lib/containers/storage/overlay/89975c90e2de7767b343c711c8969e3de5d9b0f5441637590a466f5c735b3e46/diff:/var/lib/containers/storage/overlay/362fcb1cd12b3629a2cdc7ca83bc41c6b6b5e6bf8e8c9da356a944b4d5a15847/diff:/var/lib/containers/storage/overlay/1c2427d95e025de647914c9e35f46084b2028184b42207ed3aa12ee4889afe2e/diff:/var/lib/containers/storage/overlay/62a2bf513d908300ae37336e205d7d1fc660adced94ddd86a304d27df363ba0c/diff:/var/lib/containers/storage/overlay/1df8118b8d895131338e92f72557fa662af1eb0e7e1ea1cceb6911813863e00a/diff:/var/lib/containers/storage/overlay/a895daf207bc9b7b96d5b405820e3255b4ac6315ba4e25626a0b647522e6a064/diff:/var/lib/containers/storage/overlay/3a38f975b2de0e88181c6d38d1eedf7eeaa4b8fa65698050ee8c5fc3ecc92dac/diff:/var/lib/containers/storage/overlay/7888a6d5f22acd7060dc6b521f5ae865b23d1b650c0c9d046cea9da8f09fa516/diff:/var/lib/containers/storage/overlay/5a606bf1c3a9797c3c5cd86cb626a3ca5265effcd667461c8ef44e085e166baf/diff:/var/lib/containers/storage/overlay/39c4708e4afe7bff29843823fc20ce154486b904797c54e28a8018f1a90e290a/diff:/var/lib/containers/storage/overlay/cc1afb890b877d39c8f226b71c22a9292b643722d0e4894c6ade6c530ed64bee/diff:/var/lib/containers/storage/overlay/4253ca6054f398ebf37b7fdd562bfc0aca17bbadbbfcaf38fd793279fb10b3a7/diff:/var/lib/containers/storage/overlay/8a8b3de58ca2b4f757e7959f71a2d2b1e8c2e63ec6f825f91e900c6127e01fa0/diff:/var/lib/containers/storage/overlay/1a35117cf67cafb896c700e58a93667566889f849f46e270d2ee8bdb51d620ca/diff","UpperDir":"/var/lib/containers/storage/overlay/2eaf8bf2fa9ca2269899f2a724980b8bbb060296d8879a50971b390d1ea4db80/diff","WorkDir":"/var/lib/containers/storage/overlay/2eaf8bf2fa9ca2269899f2a724980b8bbb060296d8879a50971b390d1ea4db80/work"},"Name":"overlay"},"RootFS":{"Type":"layers","Layers":["sha256:1a35117cf67cafb896c700e58a93667566889f849f46e270d2ee8bdb51d620ca","sha256:373d572f09b390776126ce4391bdeadd2fbdb98116dee4029cfb56e038c02147","sha256:8f572cf56b3ccaef652a23f7cf1ab05469ea6d7c828dbb5a85076442d84399bc","sha256:cd545ef6070fac4fd57dd0786ae2dde9b46f65c347591e719fded034ae0158a5","sha256:3aac6cfacc56dfc39f47318851871084e9ae931f1929aeebb25ecf04f1e1173f","sha256:96c3956791cb57a7f05babb28780010ed852d6b44ad117b9ca2a9f2e3de93ca7","sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef","sha256:9f7a60107ac21cf440a4460a817eb6b29dc94d60591c0b7fcf66e23020a15690","sha256:cc445d6f289849d2d65700cc120111df0df0a7f66f3392773110b03fc88e8dcc","sha256:8c43a36723f5192fbbffd343fb3eea80764ffd0b37e314278241ea484bf6e564","sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef","sha256:76a98fcb9275499fc9f2312a3725f6cccc0df0952a7d7b0e20562180d3a2ad6a","sha256:1b08b68886d4a2274d400413b5da0a9536e4e4d85c185f93251880ec61402163","sha256:2846f5509dae799f0ed5a6786ee5d037db7c43d2a5b20c60cec065b7e7ce3a70","sha256:380cd27abda7a7ce6d5a60f7848cb05757acc424eef61739ed37b3d2454c7d93","sha256:c904adfa573858d1ab0e2c352c36a3edb1a9d014633c9a66d11887ab5760fd84","sha256:b21548edb1ced92b983677dfe6ac9f1bb538fc055a5117594bee29a62b8d5e0d","sha256:206064ce49a744dcf6cb2ef66962fd0f4876a1669ea1ffdde0d355ba6a2961ed","sha256:61522844d0eda5e16e2a7ef94ffac80992b20b1f62c380a63fdeba7430162f62","sha256:0a5472f8b4c953871a52cdf0d73946ef36873ec262ffa0c40400782e57283cfd","sha256:87b98292eaadec151f547d83eee1c40af2284f30318b5c0433a85158244615a5","sha256:d1abd28c66a3b23d70322cffd4ed3bdcc103817fd0022f2ccd0c1c5ea55a3d33","sha256:f8d1da652f9737a2159ddf07adbd3e1f527db32b2d39806d8755342414c0e1e3"]},"Metadata":{"LastTagTime":"0001-01-01T00:00:00Z"}}
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:50.946Z modem Sending: {
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   path: '/images/sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014/tag?repo=registry2.balena-cloud.com%2Fv2%2F5bfdf7d74378f89a191dc2c0d184e522&tag=',
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   method: 'POST',
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   headers: { 'Content-Type': 'application/json', 'Content-Length': 73 },
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:50.949Z modem Received:
+Jun 03 18:36:50 a58423f balena-supervisor[3596444]: [event]   Event: Image downloaded {"image":{"name":"registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","appId":2115315,"appUuid":"bef074f908094f41950704767fceee54","serviceId":2649864,"serviceName":"balena-hello-world","imageId":8894940,"releaseId":3032009,"commit":"ab9edc8af04e837378d3e2f2df118703"}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.160Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.resin.supervised%22%5D%7D',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.162Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.balena.supervised%22%5D%7D',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.172Z modem Received: []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.174Z modem Received: []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: containers list with labels []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.176Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks?filters=%7B%22label%22%3A%5B%22io.resin.supervised%22%5D%7D',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.176Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks?filters=%7B%22label%22%3A%5B%22io.balena.supervised%22%5D%7D',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.178Z modem Received: []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.179Z modem Received: []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.180Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/volumes',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.182Z modem Received: {"Volumes":[{"CreatedAt":"2024-06-03T17:10:44Z","Driver":"local","Labels":{"io.balena.app-uuid":"ccd4ef5f9c524e7c958127467648abf9","io.balena.supervised":"true"},"Mountpoint":"/var/lib/containers/storage/volumes/2086169_resin-data/_data","Name":"2086169_resin-data","Options":{},"Scope":"local"}],"Warnings":[]}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.183Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.194Z modem Received: [{"Id":"sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014","ParentId":"","RepoTags":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"RepoDigests":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Created":1717424709,"Size":311874995,"SharedSize":0,"VirtualSize":311874995,"Labels":{"io.balena.architecture":"aarch64","io.balena.qemu.version":"7.0.0+balena1-aarch64"},"Containers":0,"Names":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Digest":"sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","History":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest"]}]
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.199Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.199Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.200Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.203Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.203Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.211Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.217Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/images/registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a/json',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.234Z modem Received: {"Id":"sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014","RepoTags":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest"],"RepoDigests":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Parent":"","Comment":"","Created":"2024-06-03T14:25:09.337473469Z","Container":"","ContainerConfig":{"Hostname":"c26f567ffd8","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":null,"Cmd":null,"Image":"","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":null},"DockerVersion":"dev","Author":"","Config":{"Hostname":"","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","LC_ALL=C.UTF-8","DEBIAN_FRONTEND=noninteractive","UDEV=off","LANG=C.UTF-8","PYTHON_VERSION=3.11.2","PYTHON_PIP_VERSION=23.0","SETUPTOOLS_VERSION=67.2.0","PYTHONPATH=/usr/lib/python3/dist-packages:"],"Cmd":["python","-u","src/app.py"],"Image":"","Volumes":null,"WorkingDir":"/usr/src/app","Entrypoint":["/usr/bin/entry.sh"],"OnBuild":null,"Labels":{"io.balena.architecture":"aarch64","io.balena.qemu.version":"7.0.0+balena1-aarch64"}},"Architecture":"arm64","Os":"linux","OsVersion":"dev","Size":311874995,"VirtualSize":311874995,"GraphDriver":{"Data":{"LowerDir":"/var/lib/containers/storage/overlay/f01733185f2d2f2fac22b1ad50de5eb2c46a44fa2bec031e6666a129f5a88d72/diff:/var/lib/containers/storage/overlay/b93934af54d040bab2b40a25a440178cf7040f3abfb11e45ed85cabaa50cc2fd/diff:/var/lib/containers/storage/overlay/21df299fef8708e9e68795ecb9a2ab0caabe653309a77559909da7a6fffd9956/diff:/var/lib/containers/storage/overlay/e59406c76c97548d789ec9e2abe833776b8fbfe07fd1e399d99b9cfb5417d00d/diff:/var/lib/containers/storage/overlay/a43d848d7416f6b1a76dfd31e77b9fa6555e5f3e970f211edb3efadf4372c500/diff:/var/lib/containers/storage/overlay/4bd85fbd48d102545a4e92d9bce68bb3800ebe4984c0d121f33cddbb1cf6f850/diff:/var/lib/containers/storage/overlay/a0f222c872f1b0317fb1244c6a17b5ddbb9b9101e46a4db1dfa126972532f925/diff:/var/lib/containers/storage/overlay/69bdb16f5ecd64715eae6402b59750f7a6c1cb10d662b152ce73f960b3d527ea/diff:/var/lib/containers/storage/overlay/89975c90e2de7767b343c711c8969e3de5d9b0f5441637590a466f5c735b3e46/diff:/var/lib/containers/storage/overlay/362fcb1cd12b3629a2cdc7ca83bc41c6b6b5e6bf8e8c9da356a944b4d5a15847/diff:/var/lib/containers/storage/overlay/1c2427d95e025de647914c9e35f46084b2028184b42207ed3aa12ee4889afe2e/diff:/var/lib/containers/storage/overlay/62a2bf513d908300ae37336e205d7d1fc660adced94ddd86a304d27df363ba0c/diff:/var/lib/containers/storage/overlay/1df8118b8d895131338e92f72557fa662af1eb0e7e1ea1cceb6911813863e00a/diff:/var/lib/containers/storage/overlay/a895daf207bc9b7b96d5b405820e3255b4ac6315ba4e25626a0b647522e6a064/diff:/var/lib/containers/storage/overlay/3a38f975b2de0e88181c6d38d1eedf7eeaa4b8fa65698050ee8c5fc3ecc92dac/diff:/var/lib/containers/storage/overlay/7888a6d5f22acd7060dc6b521f5ae865b23d1b650c0c9d046cea9da8f09fa516/diff:/var/lib/containers/storage/overlay/5a606bf1c3a9797c3c5cd86cb626a3ca5265effcd667461c8ef44e085e166baf/diff:/var/lib/containers/storage/overlay/39c4708e4afe7bff29843823fc20ce154486b904797c54e28a8018f1a90e290a/diff:/var/lib/containers/storage/overlay/cc1afb890b877d39c8f226b71c22a9292b643722d0e4894c6ade6c530ed64bee/diff:/var/lib/containers/storage/overlay/4253ca6054f398ebf37b7fdd562bfc0aca17bbadbbfcaf38fd793279fb10b3a7/diff:/var/lib/containers/storage/overlay/8a8b3de58ca2b4f757e7959f71a2d2b1e8c2e63ec6f825f91e900c6127e01fa0/diff:/var/lib/containers/storage/overlay/1a35117cf67cafb896c700e58a93667566889f849f46e270d2ee8bdb51d620ca/diff","UpperDir":"/var/lib/containers/storage/overlay/2eaf8bf2fa9ca2269899f2a724980b8bbb060296d8879a50971b390d1ea4db80/diff","WorkDir":"/var/lib/containers/storage/overlay/2eaf8bf2fa9ca2269899f2a724980b8bbb060296d8879a50971b390d1ea4db80/work"},"Name":"overlay"},"RootFS":{"Type":"layers","Layers":["sha256:1a35117cf67cafb896c700e58a93667566889f849f46e270d2ee8bdb51d620ca","sha256:373d572f09b390776126ce4391bdeadd2fbdb98116dee4029cfb56e038c02147","sha256:8f572cf56b3ccaef652a23f7cf1ab05469ea6d7c828dbb5a85076442d84399bc","sha256:cd545ef6070fac4fd57dd0786ae2dde9b46f65c347591e719fded034ae0158a5","sha256:3aac6cfacc56dfc39f47318851871084e9ae931f1929aeebb25ecf04f1e1173f","sha256:96c3956791cb57a7f05babb28780010ed852d6b44ad117b9ca2a9f2e3de93ca7","sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef","sha256:9f7a60107ac21cf440a4460a817eb6b29dc94d60591c0b7fcf66e23020a15690","sha256:cc445d6f289849d2d65700cc120111df0df0a7f66f3392773110b03fc88e8dcc","sha256:8c43a36723f5192fbbffd343fb3eea80764ffd0b37e314278241ea484bf6e564","sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef","sha256:76a98fcb9275499fc9f2312a3725f6cccc0df0952a7d7b0e20562180d3a2ad6a","sha256:1b08b68886d4a2274d400413b5da0a9536e4e4d85c185f93251880ec61402163","sha256:2846f5509dae799f0ed5a6786ee5d037db7c43d2a5b20c60cec065b7e7ce3a70","sha256:380cd27abda7a7ce6d5a60f7848cb05757acc424eef61739ed37b3d2454c7d93","sha256:c904adfa573858d1ab0e2c352c36a3edb1a9d014633c9a66d11887ab5760fd84","sha256:b21548edb1ced92b983677dfe6ac9f1bb538fc055a5117594bee29a62b8d5e0d","sha256:206064ce49a744dcf6cb2ef66962fd0f4876a1669ea1ffdde0d355ba6a2961ed","sha256:61522844d0eda5e16e2a7ef94ffac80992b20b1f62c380a63fdeba7430162f62","sha256:0a5472f8b4c953871a52cdf0d73946ef36873ec262ffa0c40400782e57283cfd","sha256:87b98292eaadec151f547d83eee1c40af2284f30318b5c0433a85158244615a5","sha256:d1abd28c66a3b23d70322cffd4ed3bdcc103817fd0022f2ccd0c1c5ea55a3d33","sha256:f8d1da652f9737a2159ddf07adbd3e1f527db32b2d39806d8755342414c0e1e3"]},"Metadata":{"LastTagTime":"0001-01-01T00:00:00Z"}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.239Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.246Z modem Received: [{"Id":"sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014","ParentId":"","RepoTags":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"RepoDigests":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Created":1717424709,"Size":311874995,"SharedSize":0,"VirtualSize":311874995,"Labels":{"io.balena.architecture":"aarch64","io.balena.qemu.version":"7.0.0+balena1-aarch64"},"Containers":0,"Names":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Digest":"sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","History":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest"]}]
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.248Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.249Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.250Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.257Z modem Received: [{"Id":"sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014","ParentId":"","RepoTags":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"RepoDigests":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Created":1717424709,"Size":311874995,"SharedSize":0,"VirtualSize":311874995,"Labels":{"io.balena.architecture":"aarch64","io.balena.qemu.version":"7.0.0+balena1-aarch64"},"Containers":0,"Names":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Digest":"sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","History":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest"]}]
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.262Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/ccd4ef5f9c524e7c958127467648abf9_default',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.262Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/900de4f3cbac4b9bbd232885a35e407b_default',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.263Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/bef074f908094f41950704767fceee54_default',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.265Z modem Received: {"cause":"network not found","message":"unable to find network with name or ID ccd4ef5f9c524e7c958127467648abf9_default: network not found","response":404}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: [event]   Event: Network creation {}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.267Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/create?Name=ccd4ef5f9c524e7c958127467648abf9_default&Driver=bridge&CheckDuplicate=true&Options=%7B%7D&IPAM=%7B%22Driver%22%3A%22default%22%2C%22Config%22%3A%5B%5D%2C%22Options%22%3A%7B%7D%7D&EnableIPv6=false&Internal=false&Labels=%7B%22io.balena.supervised%22%3A%22true%22%2C%22io.balena.app-id%22%3A%222086169%22%7D&ConfigOnly=true',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'POST',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: { 'Content-Type': 'application/json', 'Content-Length': 281 },
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.269Z modem Received: {"cause":"network not found","message":"unable to find network with name or ID 900de4f3cbac4b9bbd232885a35e407b_default: network not found","response":404}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: [event]   Event: Network creation {}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.271Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/create?Name=900de4f3cbac4b9bbd232885a35e407b_default&Driver=bridge&CheckDuplicate=true&Options=%7B%7D&IPAM=%7B%22Driver%22%3A%22default%22%2C%22Config%22%3A%5B%5D%2C%22Options%22%3A%7B%7D%7D&EnableIPv6=false&Internal=false&Labels=%7B%22io.balena.supervised%22%3A%22true%22%2C%22io.balena.app-id%22%3A%221667443%22%7D&ConfigOnly=true',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'POST',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: { 'Content-Type': 'application/json', 'Content-Length': 281 },
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.272Z modem Received: {"Id":"c24b61e85989006a1727c55cb495e7aec0798ed5575e90227a0d74ced7719c33","Warning":""}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.273Z modem Received: {"cause":"network not found","message":"unable to find network with name or ID bef074f908094f41950704767fceee54_default: network not found","response":404}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: [event]   Event: Network creation {}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.275Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/create?Name=bef074f908094f41950704767fceee54_default&Driver=bridge&CheckDuplicate=true&Options=%7B%7D&IPAM=%7B%22Driver%22%3A%22default%22%2C%22Config%22%3A%5B%5D%2C%22Options%22%3A%7B%7D%7D&EnableIPv6=false&Internal=false&Labels=%7B%22io.balena.supervised%22%3A%22true%22%2C%22io.balena.app-id%22%3A%222115315%22%7D&ConfigOnly=false',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'POST',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: { 'Content-Type': 'application/json', 'Content-Length': 282 },
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.276Z modem Received: {"Id":"7df12d25ad7001528effc9595de4d37a3020db87b848a5b90ab5b9ff73de178f","Warning":""}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.280Z modem Received: {"Id":"85cc85c54d7b186827f57eb0684facac96678c6933c56fa01662bfc31221898e","Warning":""}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.322Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.resin.supervised%22%5D%7D',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.323Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.balena.supervised%22%5D%7D',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.323Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.326Z modem Received: []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.326Z modem Received: []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: containers list with labels []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.335Z modem Received: [{"Id":"sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014","ParentId":"","RepoTags":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"RepoDigests":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Created":1717424709,"Size":311874995,"SharedSize":0,"VirtualSize":311874995,"Labels":{"io.balena.architecture":"aarch64","io.balena.qemu.version":"7.0.0+balena1-aarch64"},"Containers":0,"Names":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Digest":"sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","History":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest"]}]
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.481Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.resin.supervised%22%5D%7D',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.482Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/containers/json?all=true&filters=%7B%22label%22%3A%5B%22io.balena.supervised%22%5D%7D',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.492Z modem Received: []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.493Z modem Received: []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: containers list with labels []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.495Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks?filters=%7B%22label%22%3A%5B%22io.resin.supervised%22%5D%7D',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.495Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks?filters=%7B%22label%22%3A%5B%22io.balena.supervised%22%5D%7D',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.523Z modem Received: []
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.524Z modem Received: [{"Name":"ccd4ef5f9c524e7c958127467648abf9_default","Id":"c24b61e85989006a1727c55cb495e7aec0798ed5575e90227a0d74ced7719c33","Created":"2024-06-03T18:36:51.269565355Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.0.0/24","Gateway":"10.89.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2086169","io.balena.supervised":"true"}},{"Name":"900de4f3cbac4b9bbd232885a35e407b_default","Id":"7df12d25ad7001528effc9595de4d37a3020db87b848a5b90ab5b9ff73de178f","Created":"2024-06-03T18:36:51.2736991Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.1.0/24","Gateway":"10.89.1.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"1667443","io.balena.supervised":"true"}},{"Name":"bef074f908094f41950704767fceee54_default","Id":"85cc85c54d7b186827f57eb0684facac96678c6933c56fa01662bfc31221898e","Created":"2024-06-03T18:36:51.277941235Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.2.0/24","Gateway":"10.89.2.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2115315","io.balena.supervised":"true"}}]
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.525Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/c24b61e85989006a1727c55cb495e7aec0798ed5575e90227a0d74ced7719c33',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.525Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/7df12d25ad7001528effc9595de4d37a3020db87b848a5b90ab5b9ff73de178f',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.526Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/85cc85c54d7b186827f57eb0684facac96678c6933c56fa01662bfc31221898e',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.528Z modem Received: {"Name":"900de4f3cbac4b9bbd232885a35e407b_default","Id":"7df12d25ad7001528effc9595de4d37a3020db87b848a5b90ab5b9ff73de178f","Created":"2024-06-03T18:36:51.2736991Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.1.0/24","Gateway":"10.89.1.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"1667443","io.balena.supervised":"true"}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.529Z modem Received: {"Name":"ccd4ef5f9c524e7c958127467648abf9_default","Id":"c24b61e85989006a1727c55cb495e7aec0798ed5575e90227a0d74ced7719c33","Created":"2024-06-03T18:36:51.269565355Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.0.0/24","Gateway":"10.89.0.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2086169","io.balena.supervised":"true"}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.530Z modem Received: {"Name":"bef074f908094f41950704767fceee54_default","Id":"85cc85c54d7b186827f57eb0684facac96678c6933c56fa01662bfc31221898e","Created":"2024-06-03T18:36:51.277941235Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.89.2.0/24","Gateway":"10.89.2.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{"io.balena.app-id":"2115315","io.balena.supervised":"true"}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.531Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/volumes',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.532Z modem Received: {"Volumes":[{"CreatedAt":"2024-06-03T17:10:44Z","Driver":"local","Labels":{"io.balena.app-uuid":"ccd4ef5f9c524e7c958127467648abf9","io.balena.supervised":"true"},"Mountpoint":"/var/lib/containers/storage/volumes/2086169_resin-data/_data","Name":"2086169_resin-data","Options":{},"Scope":"local"}],"Warnings":[]}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.533Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.541Z modem Received: [{"Id":"sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014","ParentId":"","RepoTags":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"RepoDigests":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Created":1717424709,"Size":311874995,"SharedSize":0,"VirtualSize":311874995,"Labels":{"io.balena.architecture":"aarch64","io.balena.qemu.version":"7.0.0+balena1-aarch64"},"Containers":0,"Names":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Digest":"sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","History":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest"]}]
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.546Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.547Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.548Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.557Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.558Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.559Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.568Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/images/registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a/json',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: [info]    Reported current state to the cloud
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.585Z modem Received: {"Id":"sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014","RepoTags":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest"],"RepoDigests":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Parent":"","Comment":"","Created":"2024-06-03T14:25:09.337473469Z","Container":"","ContainerConfig":{"Hostname":"c26f567ffd8","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":null,"Cmd":null,"Image":"","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":null},"DockerVersion":"dev","Author":"","Config":{"Hostname":"","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","LC_ALL=C.UTF-8","DEBIAN_FRONTEND=noninteractive","UDEV=off","LANG=C.UTF-8","PYTHON_VERSION=3.11.2","PYTHON_PIP_VERSION=23.0","SETUPTOOLS_VERSION=67.2.0","PYTHONPATH=/usr/lib/python3/dist-packages:"],"Cmd":["python","-u","src/app.py"],"Image":"","Volumes":null,"WorkingDir":"/usr/src/app","Entrypoint":["/usr/bin/entry.sh"],"OnBuild":null,"Labels":{"io.balena.architecture":"aarch64","io.balena.qemu.version":"7.0.0+balena1-aarch64"}},"Architecture":"arm64","Os":"linux","OsVersion":"dev","Size":311874995,"VirtualSize":311874995,"GraphDriver":{"Data":{"LowerDir":"/var/lib/containers/storage/overlay/f01733185f2d2f2fac22b1ad50de5eb2c46a44fa2bec031e6666a129f5a88d72/diff:/var/lib/containers/storage/overlay/b93934af54d040bab2b40a25a440178cf7040f3abfb11e45ed85cabaa50cc2fd/diff:/var/lib/containers/storage/overlay/21df299fef8708e9e68795ecb9a2ab0caabe653309a77559909da7a6fffd9956/diff:/var/lib/containers/storage/overlay/e59406c76c97548d789ec9e2abe833776b8fbfe07fd1e399d99b9cfb5417d00d/diff:/var/lib/containers/storage/overlay/a43d848d7416f6b1a76dfd31e77b9fa6555e5f3e970f211edb3efadf4372c500/diff:/var/lib/containers/storage/overlay/4bd85fbd48d102545a4e92d9bce68bb3800ebe4984c0d121f33cddbb1cf6f850/diff:/var/lib/containers/storage/overlay/a0f222c872f1b0317fb1244c6a17b5ddbb9b9101e46a4db1dfa126972532f925/diff:/var/lib/containers/storage/overlay/69bdb16f5ecd64715eae6402b59750f7a6c1cb10d662b152ce73f960b3d527ea/diff:/var/lib/containers/storage/overlay/89975c90e2de7767b343c711c8969e3de5d9b0f5441637590a466f5c735b3e46/diff:/var/lib/containers/storage/overlay/362fcb1cd12b3629a2cdc7ca83bc41c6b6b5e6bf8e8c9da356a944b4d5a15847/diff:/var/lib/containers/storage/overlay/1c2427d95e025de647914c9e35f46084b2028184b42207ed3aa12ee4889afe2e/diff:/var/lib/containers/storage/overlay/62a2bf513d908300ae37336e205d7d1fc660adced94ddd86a304d27df363ba0c/diff:/var/lib/containers/storage/overlay/1df8118b8d895131338e92f72557fa662af1eb0e7e1ea1cceb6911813863e00a/diff:/var/lib/containers/storage/overlay/a895daf207bc9b7b96d5b405820e3255b4ac6315ba4e25626a0b647522e6a064/diff:/var/lib/containers/storage/overlay/3a38f975b2de0e88181c6d38d1eedf7eeaa4b8fa65698050ee8c5fc3ecc92dac/diff:/var/lib/containers/storage/overlay/7888a6d5f22acd7060dc6b521f5ae865b23d1b650c0c9d046cea9da8f09fa516/diff:/var/lib/containers/storage/overlay/5a606bf1c3a9797c3c5cd86cb626a3ca5265effcd667461c8ef44e085e166baf/diff:/var/lib/containers/storage/overlay/39c4708e4afe7bff29843823fc20ce154486b904797c54e28a8018f1a90e290a/diff:/var/lib/containers/storage/overlay/cc1afb890b877d39c8f226b71c22a9292b643722d0e4894c6ade6c530ed64bee/diff:/var/lib/containers/storage/overlay/4253ca6054f398ebf37b7fdd562bfc0aca17bbadbbfcaf38fd793279fb10b3a7/diff:/var/lib/containers/storage/overlay/8a8b3de58ca2b4f757e7959f71a2d2b1e8c2e63ec6f825f91e900c6127e01fa0/diff:/var/lib/containers/storage/overlay/1a35117cf67cafb896c700e58a93667566889f849f46e270d2ee8bdb51d620ca/diff","UpperDir":"/var/lib/containers/storage/overlay/2eaf8bf2fa9ca2269899f2a724980b8bbb060296d8879a50971b390d1ea4db80/diff","WorkDir":"/var/lib/containers/storage/overlay/2eaf8bf2fa9ca2269899f2a724980b8bbb060296d8879a50971b390d1ea4db80/work"},"Name":"overlay"},"RootFS":{"Type":"layers","Layers":["sha256:1a35117cf67cafb896c700e58a93667566889f849f46e270d2ee8bdb51d620ca","sha256:373d572f09b390776126ce4391bdeadd2fbdb98116dee4029cfb56e038c02147","sha256:8f572cf56b3ccaef652a23f7cf1ab05469ea6d7c828dbb5a85076442d84399bc","sha256:cd545ef6070fac4fd57dd0786ae2dde9b46f65c347591e719fded034ae0158a5","sha256:3aac6cfacc56dfc39f47318851871084e9ae931f1929aeebb25ecf04f1e1173f","sha256:96c3956791cb57a7f05babb28780010ed852d6b44ad117b9ca2a9f2e3de93ca7","sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef","sha256:9f7a60107ac21cf440a4460a817eb6b29dc94d60591c0b7fcf66e23020a15690","sha256:cc445d6f289849d2d65700cc120111df0df0a7f66f3392773110b03fc88e8dcc","sha256:8c43a36723f5192fbbffd343fb3eea80764ffd0b37e314278241ea484bf6e564","sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef","sha256:76a98fcb9275499fc9f2312a3725f6cccc0df0952a7d7b0e20562180d3a2ad6a","sha256:1b08b68886d4a2274d400413b5da0a9536e4e4d85c185f93251880ec61402163","sha256:2846f5509dae799f0ed5a6786ee5d037db7c43d2a5b20c60cec065b7e7ce3a70","sha256:380cd27abda7a7ce6d5a60f7848cb05757acc424eef61739ed37b3d2454c7d93","sha256:c904adfa573858d1ab0e2c352c36a3edb1a9d014633c9a66d11887ab5760fd84","sha256:b21548edb1ced92b983677dfe6ac9f1bb538fc055a5117594bee29a62b8d5e0d","sha256:206064ce49a744dcf6cb2ef66962fd0f4876a1669ea1ffdde0d355ba6a2961ed","sha256:61522844d0eda5e16e2a7ef94ffac80992b20b1f62c380a63fdeba7430162f62","sha256:0a5472f8b4c953871a52cdf0d73946ef36873ec262ffa0c40400782e57283cfd","sha256:87b98292eaadec151f547d83eee1c40af2284f30318b5c0433a85158244615a5","sha256:d1abd28c66a3b23d70322cffd4ed3bdcc103817fd0022f2ccd0c1c5ea55a3d33","sha256:f8d1da652f9737a2159ddf07adbd3e1f527db32b2d39806d8755342414c0e1e3"]},"Metadata":{"LastTagTime":"0001-01-01T00:00:00Z"}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.590Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.596Z modem Received: [{"Id":"sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014","ParentId":"","RepoTags":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"RepoDigests":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Created":1717424709,"Size":311874995,"SharedSize":0,"VirtualSize":311874995,"Labels":{"io.balena.architecture":"aarch64","io.balena.qemu.version":"7.0.0+balena1-aarch64"},"Containers":0,"Names":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Digest":"sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","History":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest"]}]
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.598Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/networks/supervisor0',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.599Z modem Received: {"Name":"supervisor0","Id":"475f3e328c69d5d801226f28ab17113b80c77fcf36685a99a6d8b4158dbb6abc","Created":"2024-06-03T17:10:43.968951383Z","Scope":"local","Driver":"bridge","EnableIPv6":false,"IPAM":{"Driver":"default","Options":{"driver":"host-local"},"Config":[{"Subnet":"10.114.204.0/25","Gateway":"10.114.204.1"}]},"Internal":false,"Attachable":false,"Ingress":false,"ConfigFrom":{"Network":""},"ConfigOnly":false,"Containers":{},"Options":{},"Labels":{}}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.601Z modem Sending: {
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   path: '/images/json',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   method: 'GET',
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   headers: {},
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   key: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   cert: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   ca: undefined,
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]:   socketPath: '/var/run/balena-engine.sock'
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: }
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: 2024-06-03T18:36:51.614Z modem Received: [{"Id":"sha256:c26f567ffd81dc2cd705f6fdcfc789a56fac9acb9307e1c04bcf60de0b5d7014","ParentId":"","RepoTags":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"RepoDigests":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Created":1717424709,"Size":311874995,"SharedSize":0,"VirtualSize":311874995,"Labels":{"io.balena.architecture":"aarch64","io.balena.qemu.version":"7.0.0+balena1-aarch64"},"Containers":0,"Names":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a"],"Digest":"sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","History":["registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522@sha256:968170e5e1d381acb7c8cecd83e7e61b9927e9a214ab47698770b8ba99a4782a","registry2.balena-cloud.com/v2/5bfdf7d74378f89a191dc2c0d184e522:latest"]}]
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: [event]   Event: Network removal {}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: [event]   Event: Network removal {}
+Jun 03 18:36:51 a58423f balena-supervisor[3596444]: [event]   Event: Network removal {}

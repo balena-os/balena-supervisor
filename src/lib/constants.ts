@@ -69,8 +69,8 @@ const constants = {
 	// Use this failure multiplied by 2**Number of failures to increase
 	// the backoff on subsequent failures
 	backoffIncrement: 500,
-	supervisorNetworkSubnet: '10.114.104.0/25',
-	supervisorNetworkGateway: '10.114.104.1',
+	supervisorNetworkSubnet: '10.114.204.0/25',
+	supervisorNetworkGateway: '10.114.204.1',
 	// How much of a jitter we can add to our api polling
 	// (this number is used as an upper bound when generating
 	// a random jitter)

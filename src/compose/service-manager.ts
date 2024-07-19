@@ -61,13 +61,14 @@ export const getAll = async (
 ): Promise<Service[]> => {
 	const filterLabels = ['supervised'].concat(extraLabelFilters);
 	const containers = await listWithBothLabels(filterLabels);
-
+	console.log('containers list with labels', containers);
 	const services = await Promise.all(
 		containers.map(async (container) => {
 			try {
 				const serviceInspect = await docker
 					.getContainer(container.Id)
 					.inspect();
+				console.log('service inpsect: ', serviceInspect);
 				const service = Service.fromDockerContainer(serviceInspect);
 				// We know that the containerId is set below, because `fromDockerContainer`
 				// always sets it
@@ -308,7 +309,9 @@ async function create(service: Service) {
 export async function start(service: Service) {
 	let alreadyStarted = false;
 	let containerId: string | null = null;
-
+	console.log(
+		'.................... TRYING TO START SERVICE ............................',
+	);
 	try {
 		const container = await create(service);
 
@@ -620,7 +623,10 @@ async function listWithBothLabels(
 		listWithPrefix('io.resin.'),
 		listWithPrefix('io.balena.'),
 	]);
-
+	log.debug(
+		'Current io.balena labelled containers.... ',
+		JSON.stringify(current, null, 2),
+	);
 	return _.unionBy(legacy, current, 'Id');
 }
 
