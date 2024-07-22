@@ -42,7 +42,7 @@ async function* splitStream(chunkIterable: AsyncIterable<any>) {
 	for await (const chunk of chunkIterable) {
 		previous += chunk;
 		const lines = previous.split(/\r?\n/);
-		previous = lines.pop() || '';
+		previous = lines.pop() ?? '';
 		yield* lines;
 	}
 
@@ -68,14 +68,13 @@ class LogMonitor {
 	public async start(): Promise<void> {
 		try {
 			// TODO: do not spawn journalctl if logging is not enabled
-			const journalctl = spawnJournalctl({
+			const { stdout, stderr } = spawnJournalctl({
 				all: true,
 				follow: true,
 				format: 'json',
 				filterString: '_SYSTEMD_UNIT=balena.service',
 				since: toJournalDate(this.lastSentTimestamp),
 			});
-			const { stdout, stderr } = journalctl;
 			if (!stdout) {
 				// this will be catched below
 				throw new Error('failed to open process stream');
@@ -88,6 +87,7 @@ class LogMonitor {
 			const self = this;
 
 			await pipeline(stdout, splitStream, async function (lines) {
+				self.setupAttempts = 0;
 				for await (const line of lines) {
 					try {
 						const row = JSON.parse(line);
@@ -95,7 +95,6 @@ class LogMonitor {
 							row.CONTAINER_ID_FULL &&
 							self.containers[row.CONTAINER_ID_FULL]
 						) {
-							self.setupAttempts = 0;
 							await self.handleRow(row);
 						}
 					} catch {
