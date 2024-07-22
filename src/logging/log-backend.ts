@@ -1,17 +1,15 @@
 type BaseLogMessage = {
 	message: string;
 	isStdErr?: boolean;
-	timestamp?: number;
+	timestamp: number;
 };
 export type LogMessage = BaseLogMessage &
 	(
 		| {
-				serviceId?: number;
-				imageId?: number;
+				serviceId: number;
 				isSystem?: false;
 		  }
 		| {
-				message: string;
 				isSystem: true;
 		  }
 	);
@@ -20,7 +18,7 @@ export abstract class LogBackend {
 	public unmanaged: boolean;
 	public publishEnabled: boolean = true;
 
-	public abstract log(message: LogMessage): void;
+	public abstract log(message: LogMessage): Promise<void>;
 }
 
 export default LogBackend;

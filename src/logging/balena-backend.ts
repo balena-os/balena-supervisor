@@ -76,10 +76,11 @@ export class BalenaLogBackend extends LogBackend {
 		return this.initialised;
 	}
 
-	public log(message: LogMessage) {
+	public async log(message: LogMessage) {
 		// TODO: Perhaps don't just drop logs when we haven't
 		// yet initialised (this happens when a device has not yet
 		// been provisioned)
+		// TODO: the backend should not be aware of unmanaged or publish state
 		if (this.unmanaged || !this.publishEnabled || !this.initialised) {
 			return;
 		}
@@ -92,13 +93,10 @@ export class BalenaLogBackend extends LogBackend {
 			return;
 		}
 
-		message.timestamp ??= Date.now();
-		message.message = message.message
-			? _.truncate(message.message, {
-					length: MAX_LOG_LENGTH,
-					omission: '[...]',
-				})
-			: '';
+		message.message = _.truncate(message.message, {
+			length: MAX_LOG_LENGTH,
+			omission: '[...]',
+		});
 
 		this.write(message);
 	}

@@ -8,7 +8,7 @@ export type MonitorHook = (message: {
 	message: string;
 	isStdErr: boolean;
 	timestamp: number;
-}) => void;
+}) => Resolvable<void>;
 
 // This is nowhere near the amount of fields provided by journald, but simply the ones
 // that we are interested in
@@ -67,6 +67,7 @@ class LogMonitor {
 
 	public async start(): Promise<void> {
 		try {
+			// TODO: do not spawn journalctl if logging is not enabled
 			const journalctl = spawnJournalctl({
 				all: true,
 				follow: true,
@@ -95,7 +96,7 @@ class LogMonitor {
 							self.containers[row.CONTAINER_ID_FULL]
 						) {
 							self.setupAttempts = 0;
-							self.handleRow(row);
+							await self.handleRow(row);
 						}
 					} catch {
 						// ignore parsing errors
@@ -137,7 +138,7 @@ class LogMonitor {
 		delete this.containers[containerId];
 	}
 
-	private handleRow(row: JournalRow) {
+	private async handleRow(row: JournalRow) {
 		if (
 			row.CONTAINER_ID_FULL == null ||
 			row.CONTAINER_NAME === 'balena_supervisor' ||
@@ -156,7 +157,7 @@ class LogMonitor {
 		const isStdErr = row.PRIORITY === '3';
 		const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
 
-		this.containers[containerId].hook({ message, isStdErr, timestamp });
+		await this.containers[containerId].hook({ message, isStdErr, timestamp });
 		this.lastSentTimestamp = timestamp;
 	}
 }

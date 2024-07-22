@@ -52,8 +52,12 @@ describe('Logger', function () {
 
 	it('waits the grace period before sending any logs', async function () {
 		const clock = sinon.useFakeTimers();
-		logger.log({ message: 'foobar', serviceId: 15 });
-		clock.tick(4999);
+		await logger.log({
+			message: 'foobar',
+			serviceId: 15,
+			timestamp: Date.now(),
+		});
+		await clock.tickAsync(4999);
 		clock.restore();
 
 		await setTimeout(100);
@@ -62,8 +66,12 @@ describe('Logger', function () {
 
 	it('tears down the connection after inactivity', async function () {
 		const clock = sinon.useFakeTimers();
-		logger.log({ message: 'foobar', serviceId: 15 });
-		clock.tick(61000);
+		await logger.log({
+			message: 'foobar',
+			serviceId: 15,
+			timestamp: Date.now(),
+		});
+		await clock.tickAsync(61000);
 		clock.restore();
 
 		await setTimeout(100);
@@ -72,9 +80,9 @@ describe('Logger', function () {
 
 	it('sends logs as gzipped ndjson', async function () {
 		const timestamp = Date.now();
-		logger.log({ message: 'foobar', serviceId: 15 });
-		logger.log({ timestamp: 1337, message: 'foobar', serviceId: 15 });
-		logger.log({ message: 'foobar' }); // shold be ignored
+		await logger.log({ message: 'foobar', serviceId: 15, timestamp: 1000 });
+		await logger.log({ timestamp: 1337, message: 'foobar', serviceId: 15 });
+		await logger.log({ message: 'foobar', isSystem: true, timestamp: 1500 }); // shold be ignored
 
 		await setTimeout(5500);
 		expect(this.requestStub.calledOnce).to.be.true;

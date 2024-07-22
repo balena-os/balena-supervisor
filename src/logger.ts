@@ -103,8 +103,8 @@ export function enable(value: boolean = true) {
 	}
 }
 
-export function log(message: LogMessage) {
-	backend?.log(message);
+export async function log(message: LogMessage) {
+	await backend?.log(message);
 }
 
 export function logSystemMessage(
@@ -113,11 +113,13 @@ export function logSystemMessage(
 	eventName?: string,
 	track: boolean = true,
 ) {
-	const msgObj: LogMessage = { message, isSystem: true };
+	const msgObj: LogMessage = { message, isSystem: true, timestamp: Date.now() };
 	if (eventObj != null && eventObj.error != null) {
 		msgObj.isStdErr = true;
 	}
-	log(msgObj);
+	// IMPORTANT: this could potentially create a memory leak if logSystemMessage
+	// is used too quickly but we don't want supervisor logging to hold up other tasks
+	void log(msgObj);
 	if (track) {
 		eventTracker.track(
 			eventName != null ? eventName : message,
@@ -132,20 +134,20 @@ export function lock(containerId: string): Bluebird.Disposer<() => void> {
 	});
 }
 
-type ServiceInfo = { serviceId: number; imageId: number };
-export function attach(
+type ServiceInfo = { serviceId: number };
+export async function attach(
 	containerId: string,
-	{ serviceId, imageId }: ServiceInfo,
-): Bluebird<void> {
+	{ serviceId }: ServiceInfo,
+): Promise<void> {
 	// First detect if we already have an attached log stream
 	// for this container
 	if (logMonitor.isAttached(containerId)) {
-		return Bluebird.resolve();
+		return;
 	}
 
 	return Bluebird.using(lock(containerId), async () => {
-		await logMonitor.attach(containerId, (message) => {
-			log({ ...message, serviceId, imageId });
+		await logMonitor.attach(containerId, async (message) => {
+			await log({ ...message, serviceId });
 		});
 	});
 }
