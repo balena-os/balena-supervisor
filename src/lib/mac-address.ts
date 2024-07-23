@@ -17,12 +17,24 @@ export async function getAll(sysClassNet: string): Promise<string | undefined> {
 		return _(
 			await Promise.all(
 				interfaces.map(async (intf) => {
+					const ifacePath = path.join(sysClassNet, intf);
+					try {
+						// Exclude non-directories
+						const entryStat = await fs.stat(ifacePath);
+						if (!entryStat.isDirectory()) {
+							return '';
+						}
+					} catch {
+						// If stat fails ignore the interface
+						return '';
+					}
+
 					try {
 						const [addressFile, typeFile, masterFile] = [
 							'address',
 							'type',
 							'master',
-						].map((f) => path.join(sysClassNet, intf, f));
+						].map((f) => path.join(ifacePath, f));
 
 						const [intfType, intfHasMaster] = await Promise.all([
 							fs.readFile(typeFile, 'utf8'),
