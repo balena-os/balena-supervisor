@@ -2,6 +2,6 @@ name: balena-supervisor
 description: 'Balena Supervisor: balena''s agent on devices.'
 joinable: false
 type: sw.application
-version: 16.4.4
+version: 16.4.5
 provides:
   - slug: sw.compose.long-volume-syntax
