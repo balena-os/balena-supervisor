@@ -1,4 +1,62 @@
 - commits:
+    - subject: Use promises for setup/writing for logging backend
+      hash: 8bc08750e946a3eea5c7eba14182a9506823b559
+      body: |
+        The balena logging backend now uses async functions to setup the
+        connection and write messages to the request stream. This adds some
+        backpressure on `log` calls by by the log monitor module, to prevent a
+        very agressive container causing the supervisor to waste CPU cycles just
+        dropping messages.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Improve the LogBackend interface
+      hash: f3fcb0db7a8478dfe9ffde342b683510ba49502f
+      body: |
+        This make the LogBackend `log` method into an async method in
+        preparation for upcoming changes that will use backpressure from the
+        connection to delay logging coming from containers.
+
+        This also removes unnecessary imageId from the LogMessage type
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Use stream pipeline instead of pipe
+      hash: 5af948483a69701ebe7db9933a695f85f29b62f3
+      body: |
+        This also removes the use of JSONStream from the monitor module
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Do not use DB to store container logs info
+      hash: dbacca977a1f42ad4e3381112d3523cf7624d283
+      body: |
+        This removes the dependence of the supervisor on the containerLogs
+        database for remembering the last sent timestamp. This commit instead
+        uses the supervisor startup time as the initial time for log retrieval.
+        This might result in some logs missing for services that may start
+        before the supervisor after a boot, or if the supervisor restarts.
+        However this seems like an acceptable trade-off as the current
+        implementation seems to make things worst in resource contrained
+        environments.
+
+        We'll move storing the last sent timestamp to a better storage medium in
+        a future commit.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 16.5.0
+  title: ""
+  date: 2024-07-30T18:48:22.422Z
+- commits:
     - subject: Update semver to v7.6.3
       hash: 340e69d0c22e12281ac8608eda2b5a871e645e19
       body: |
