@@ -2,13 +2,11 @@ import Bluebird from 'bluebird';
 import _ from 'lodash';
 
 import * as config from './config';
-import * as db from './db';
 import * as eventTracker from './event-tracker';
 import type { LogType } from './lib/log-types';
 import { takeGlobalLockRW } from './lib/process-lock';
 import type { LogBackend, LogMessage } from './logging';
 import { BalenaLogBackend, LocalLogBackend } from './logging';
-import type { MonitorHook } from './logging/monitor';
 import logMonitor from './logging/monitor';
 
 import * as globalEventBus from './event-bus';
@@ -105,8 +103,8 @@ export function enable(value: boolean = true) {
 	}
 }
 
-export function log(message: LogMessage) {
-	backend?.log(message);
+export async function log(message: LogMessage) {
+	await backend?.log(message);
 }
 
 export function logSystemMessage(
@@ -115,11 +113,13 @@ export function logSystemMessage(
 	eventName?: string,
 	track: boolean = true,
 ) {
-	const msgObj: LogMessage = { message, isSystem: true };
+	const msgObj: LogMessage = { message, isSystem: true, timestamp: Date.now() };
 	if (eventObj != null && eventObj.error != null) {
 		msgObj.isStdErr = true;
 	}
-	log(msgObj);
+	// IMPORTANT: this could potentially create a memory leak if logSystemMessage
+	// is used too quickly but we don't want supervisor logging to hold up other tasks
+	void log(msgObj);
 	if (track) {
 		eventTracker.track(
 			eventName != null ? eventName : message,
@@ -134,26 +134,21 @@ export function lock(containerId: string): Bluebird.Disposer<() => void> {
 	});
 }
 
-type ServiceInfo = { serviceId: number; imageId: number };
-export function attach(
+type ServiceInfo = { serviceId: number };
+export async function attach(
 	containerId: string,
-	{ serviceId, imageId }: ServiceInfo,
-): Bluebird<void> {
+	{ serviceId }: ServiceInfo,
+): Promise<void> {
 	// First detect if we already have an attached log stream
 	// for this container
 	if (logMonitor.isAttached(containerId)) {
-		return Bluebird.resolve();
+		return;
 	}
 
 	return Bluebird.using(lock(containerId), async () => {
-		await logMonitor.attach(
-			containerId,
-			(message: Parameters<MonitorHook>[0] & Partial<ServiceInfo>) => {
-				message.serviceId = serviceId;
-				message.imageId = imageId;
-				log(message);
-			},
-		);
+		await logMonitor.attach(containerId, async (message) => {
+			await log({ ...message, serviceId });
+		});
 	});
 }
 
@@ -199,16 +194,6 @@ export function logConfigChange(
 	}
 
 	logSystemMessage(message, obj, eventName);
-}
-
-export async function clearOutOfDateDBLogs(containerIds: string[]) {
-	superConsole.debug(
-		'Performing database cleanup for container log timestamps',
-	);
-	await db
-		.models('containerLogs')
-		.whereNotIn('containerId', containerIds)
-		.delete();
 }
 
 function objectNameForLogs(eventObj: LogEventObject): string | null {

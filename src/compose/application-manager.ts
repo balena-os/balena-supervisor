@@ -11,7 +11,6 @@ import LocalModeManager from '../local-mode';
 import * as dbFormat from '../device-state/db-format';
 import { validateTargetContracts } from '../lib/contracts';
 import * as constants from '../lib/constants';
-import { docker } from '../lib/docker-utils';
 import log from '../lib/supervisor-console';
 import {
 	ContractViolationError,
@@ -90,20 +89,6 @@ export const initialized = _.once(async () => {
 	await config.initialized();
 
 	await imageManager.cleanImageData();
-	const cleanup = async () => {
-		const containers = await docker.listContainers({ all: true });
-		await logger.clearOutOfDateDBLogs(_.map(containers, 'Id'));
-	};
-
-	// Rather than relying on removing out of date database entries when we're no
-	// longer using them, set a task that runs periodically to clear out the database
-	// This has the advantage that if for some reason a container is removed while the
-	// supervisor is down, we won't have zombie entries in the db
-
-	// Once a day
-	setInterval(cleanup, 1000 * 60 * 60 * 24);
-	// But also run it in on startup
-	await cleanup();
 
 	await localModeManager.init();
 	await serviceManager.attachToRunning();

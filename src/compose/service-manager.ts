@@ -353,14 +353,13 @@ export async function start(service: Service) {
 		}
 
 		const serviceId = service.serviceId;
-		const imageId = service.imageId;
-		if (serviceId == null || imageId == null) {
+		if (serviceId == null) {
 			throw new InternalInconsistencyError(
-				`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.start`,
+				`serviceId not defined for service: ${service.serviceName} in ServiceManager.start`,
 			);
 		}
 
-		void logger.attach(container.id, { serviceId, imageId });
+		void logger.attach(container.id, { serviceId });
 
 		if (!alreadyStarted) {
 			logger.logSystemEvent(LogTypes.startServiceSuccess, { service });
@@ -416,15 +415,13 @@ export function listenToEvents() {
 								});
 
 								const serviceId = service.serviceId;
-								const imageId = service.imageId;
-								if (serviceId == null || imageId == null) {
+								if (serviceId == null) {
 									throw new InternalInconsistencyError(
-										`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.listenToEvents`,
+										`serviceId not defined for service: ${service.serviceName} in ServiceManager.listenToEvents`,
 									);
 								}
 								void logger.attach(data.id, {
 									serviceId,
-									imageId,
 								});
 							} else if (status === 'destroy') {
 								await logMonitor.detach(data.id);
@@ -468,10 +465,9 @@ export async function attachToRunning() {
 	for (const service of services) {
 		if (service.status === 'Running') {
 			const serviceId = service.serviceId;
-			const imageId = service.imageId;
-			if (serviceId == null || imageId == null) {
+			if (serviceId == null) {
 				throw new InternalInconsistencyError(
-					`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.start`,
+					`serviceId not defined for service: ${service.serviceName} in ServiceManager.start`,
 				);
 			}
 
@@ -482,7 +478,6 @@ export async function attachToRunning() {
 			}
 			void logger.attach(service.containerId, {
 				serviceId,
-				imageId,
 			});
 		}
 	}
