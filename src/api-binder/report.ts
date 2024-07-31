@@ -267,7 +267,8 @@ export async function startReporting() {
 			// Wait until we want to report again
 			await setTimeout(delayBy);
 			// Try to report again
-			await recursivelyReport(delayBy);
+			// the void is necessary to break the recursion and avoid leaks
+			void recursivelyReport(delayBy);
 		}
 	}
 

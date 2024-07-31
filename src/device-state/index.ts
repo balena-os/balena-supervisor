@@ -759,7 +759,6 @@ export function triggerApplyTarget({
 				scheduledApply = null;
 			}
 		});
-	return null;
 }
 
 export async function applyIntermediateTarget(

@@ -174,8 +174,8 @@ const poll = async (
 	const delayedLoop = async (delayBy: number) => {
 		// Wait until we want to poll again
 		await setTimeout(delayBy);
-		// Poll again
-		await poll(false, fetchErrors);
+		// Poll again (use void to break recursion)
+		void poll(false, fetchErrors);
 	};
 
 	// Check if we want to skip first request and just loop again
