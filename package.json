@@ -72,7 +72,7 @@
     "balena-auth": "^6.0.1",
     "balena-register-device": "^9.0.2",
     "balena-request": "^13.3.1",
-    "blinking": "^0.0.8",
+    "blinking": "^1.0.1",
     "bluebird": "^3.7.2",
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
