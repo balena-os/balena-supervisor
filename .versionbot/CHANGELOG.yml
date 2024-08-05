@@ -1,4 +1,42 @@
 - commits:
+    - subject: Avoid leaking memory on deep promise recursions
+      hash: d789e5bb77e0337773c69ed9d4e24696c019c6ac
+      body: >
+        The following pattern
+
+        ```ts
+
+        async function longRunning() {
+           // do something
+           await setTimeout(delay);
+           await longRunning();
+        }
+
+        ```
+
+
+        Is regularly used for long running operations on the supervisor (e.g.
+
+        polling target state). We have
+
+        recently discovered that this pattern can slowly leak memory as it
+
+        essentially creates an infinite promise chain. Using `void
+        longRunning()` breaks
+
+        the chain and avoids the issue.
+
+
+        This commit fixes all those instances where the pattern was used.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.5.1
+  title: ""
+  date: 2024-08-05T19:17:30.564Z
+- commits:
     - subject: Use promises for setup/writing for logging backend
       hash: 8bc08750e946a3eea5c7eba14182a9506823b559
       body: |
