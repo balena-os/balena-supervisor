@@ -118,7 +118,7 @@ class LogMonitor {
 			}s`,
 		);
 		await setTimeout(wait);
-		return this.start();
+		void this.start();
 	}
 
 	public isAttached(containerId: string): boolean {

@@ -454,7 +454,7 @@ async function provisionOrRetry(retryDelay: number): Promise<void> {
 			delay: retryDelay,
 		});
 		await setTimeout(retryDelay);
-		return provisionOrRetry(retryDelay);
+		void provisionOrRetry(retryDelay);
 	}
 }
 

@@ -88,6 +88,6 @@ export async function loadBackupFromMigration(
 		log.error(`Error restoring migration backup, retrying: ${err}`);
 
 		await setTimeout(retryDelay);
-		return loadBackupFromMigration(targetState, retryDelay);
+		void loadBackupFromMigration(targetState, retryDelay);
 	}
 }
