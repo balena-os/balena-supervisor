@@ -43,8 +43,8 @@ export class SupervisorAPI {
 
 		this.api.use(middleware.auth);
 
-		this.api.post('/v1/blink', (_req, res) => {
-			actions.identify();
+		this.api.post('/v1/blink', async (_req, res) => {
+			await actions.identify();
 			return res.sendStatus(200);
 		});
 

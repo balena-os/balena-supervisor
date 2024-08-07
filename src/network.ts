@@ -8,7 +8,7 @@ import * as constants from './lib/constants';
 import { isEEXIST } from './lib/errors';
 import { checkFalsey } from './lib/validation';
 
-import blink = require('./lib/blink');
+import { getBlink } from './lib/blink';
 
 import log from './lib/supervisor-console';
 
@@ -85,6 +85,7 @@ export const startConnectivityCheck = _.once(
 
 		const parsedUrl = url.parse(apiEndpoint);
 		const port = parseInt(parsedUrl.port!, 10);
+		const blink = await getBlink();
 
 		customMonitor(
 			{
