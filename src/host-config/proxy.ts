@@ -4,7 +4,7 @@ import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
 
 import type { RedsocksConfig, HostProxyConfig } from './types';
-import { ProxyConfig } from './types';
+import { ProxyConfig, DnsConfig } from './types';
 import { pathOnBoot, readFromBoot, writeToBoot } from '../lib/host-utils';
 import { unlinkAll, mkdirp } from '../lib/fs-utils';
 import { isENOENT } from '../lib/errors';
@@ -14,6 +14,9 @@ import * as dbus from '../lib/dbus';
 const proxyBasePath = pathOnBoot('system-proxy');
 const noProxyPath = path.join(proxyBasePath, 'no_proxy');
 const redsocksConfPath = path.join(proxyBasePath, 'redsocks.conf');
+
+export const DEFAULT_REMOTE_IP = '8.8.8.8';
+export const DEFAULT_REMOTE_PORT = 53;
 
 const disallowedProxyFields = ['local_ip', 'local_port'];
 
@@ -38,15 +41,30 @@ export class RedsocksConf {
 	public static stringify(config: RedsocksConfig): string {
 		const blocks: string[] = [];
 
-		if (config.redsocks && Object.keys(config.redsocks).length > 0) {
-			blocks.push(RedsocksConf.stringifyBlock('base', baseBlock));
+		if (!!config.redsocks && Object.keys(config.redsocks).length > 0) {
 			blocks.push(
 				RedsocksConf.stringifyBlock('redsocks', {
 					...config.redsocks,
+					// Add read-only fields
 					local_ip: '127.0.0.1',
 					local_port: 12345,
 				}),
 			);
+		}
+
+		if (!!config.dns && Object.keys(config.dns).length > 0) {
+			blocks.push(
+				RedsocksConf.stringifyBlock('dnsu2t', {
+					...config.dns!,
+					// Add read-only fields
+					local_ip: '127.0.0.1',
+					local_port: 53,
+				}),
+			);
+		}
+
+		if (blocks.length > 0) {
+			blocks.unshift(RedsocksConf.stringifyBlock('base', baseBlock));
 		}
 
 		return blocks.length ? blocks.join('\n') : '';
@@ -61,29 +79,61 @@ export class RedsocksConf {
 
 		// Extract contents of `redsocks {...}` using regex
 		const rawRedsocksBlockMatch = rawConf.match(blockRegexFor('redsocks'));
-		// No group was captured, indicating malformed config
+
+		// No group was captured for redsocks, indicating malformed config
 		if (!rawRedsocksBlockMatch) {
 			log.warn('Invalid redsocks block in redsocks.conf');
 			return conf;
 		}
+
+		// Parse `redsocks` block into object
 		const rawRedsocksBlock = RedsocksConf.parseBlock(
 			rawRedsocksBlockMatch[1],
 			disallowedProxyFields,
 		);
+
+		// Decode object into ProxyConfig
 		const maybeProxyConfig = ProxyConfig.decode(rawRedsocksBlock);
 		if (isRight(maybeProxyConfig)) {
 			conf.redsocks = {
 				...maybeProxyConfig.right,
 			};
-			return conf;
-		} else {
+		}
+		// If invalid redsocks block, return empty config even if dnsu2t is valid,
+		// as dnsu2t config depends on working redsocks proxy
+		else {
 			log.warn(
 				['Invalid redsocks block in redsocks.conf:']
 					.concat(Reporter.report(maybeProxyConfig))
 					.join('\n'),
 			);
-			return {};
+			return conf;
 		}
+
+		// Extract contents of `dnsu2t {...}` using regex
+		const rawDnsBlockMatch = rawConf.match(blockRegexFor('dnsu2t'));
+		if (rawDnsBlockMatch) {
+			// Parse `dnsu2t` block into object
+			const rawDnsBlock = RedsocksConf.parseBlock(
+				rawDnsBlockMatch[1],
+				disallowedProxyFields,
+			);
+			// Decode object into DnsConfig
+			const maybeDnsConfig = DnsConfig.decode(rawDnsBlock);
+			if (isRight(maybeDnsConfig)) {
+				conf.dns = {
+					...maybeDnsConfig.right,
+				};
+			} else {
+				log.warn(
+					['Invalid dnsu2t block in redsocks.conf:']
+						.concat(Reporter.report(maybeDnsConfig))
+						.join('\n'),
+				);
+			}
+		}
+
+		return conf;
 	}
 
 	private static stringifyBlock(
@@ -155,15 +205,24 @@ export async function readProxy(): Promise<HostProxyConfig | undefined> {
 	const noProxy = await readNoProxy();
 
 	// Build proxy object
-	const proxy = {
-		...redsocksConf.redsocks,
-		...(noProxy.length && { noProxy }),
+	const config: HostProxyConfig = {
+		...(redsocksConf.redsocks && {
+			proxy: {
+				...redsocksConf.redsocks,
+				...(noProxy.length && { noProxy }),
+			},
+		}),
 	};
+
+	// Add dns config
+	if (redsocksConf.dns) {
+		config.dns = redsocksConf.dns;
+	}
 
 	// Assumes mandatory proxy config fields (type, ip, port) are present,
 	// even if they very well may not be. It is up to the user to ensure
 	// that all the necessary fields are present in the redsocks.conf file.
-	return proxy as HostProxyConfig;
+	return config;
 }
 
 export async function setProxy(

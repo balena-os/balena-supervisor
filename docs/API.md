@@ -555,7 +555,7 @@ For proxy configuration, balenaOS 2.0.7 and higher provides a transparent proxy 
 
 #### Request body
 
-A JSON object with several optional fields. Proxy and hostname configuration go under a `network` key. If `proxy` or `hostname` are not present (undefined), those values will not be modified, so that a request can modify hostname without changing proxy settings and vice versa.
+A JSON object with several optional fields. Proxy, dns, and hostname configuration go under a `network` key. If `proxy`, `dns`, or `hostname` are not present (undefined), those values will not be modified, so that a request can modify hostname without changing proxy settings and vice versa.
 
 By default, with [balenaOS 2.82.6](https://github.com/balena-os/meta-balena/blob/master/CHANGELOG.md#v2826) or newer, host config PATCH requests will cause a balenaEngine restart. Therefore, with Supervisor v12.11.34 and newer, the PATCH request will respect the presence of update locks. Specify the `force` boolean (`false` by default) property in the request body to ignore this.
 
@@ -570,6 +570,7 @@ By default, with [balenaOS 2.82.6](https://github.com/balena-os/meta-balena/blob
 			"password": "password",
 			"noProxy": [ "152.10.30.4", "253.1.1.0/16" ]
 		},
+		"dns": "1.1.1.1:53",
 		"hostname": "mynewhostname",
 		"force": true
 	}
@@ -585,7 +586,9 @@ Keep in mind that, even if transparent proxy redirection will take effect immedi
 The `noProxy` setting for the proxy is an optional array of IP addresses/subnets that should not be routed through the
 proxy. Keep in mind that local/reserved subnets are already [excluded by balenaOS automatically](https://github.com/balena-os/meta-balena/blob/master/meta-balena-common/recipes-connectivity/balena-proxy-config/balena-proxy-config/balena-proxy-config).
 
-If either `proxy` or `hostname` are null or empty values (i.e. `{}` for proxy or an empty string for hostname), they will be cleared to their default values (i.e. not using a proxy, and a hostname equal to the first 7 characters of the device's uuid, respectively).
+As of v16.5.0, the Supervisor supports configuring the `dnsu2t` plugin for redsocks via the `dns` field. Only the `remote_ip` and `remote_port` fields are allowed to be modified. The input must be of type `boolean` or `string`. If boolean and `true`, the remote values will be the default, `8.8.8.8:53`. If boolean and false, the configuration will be removed. If string, it should be in the format `[IP][:PORT]`, defaulting to 8.8.8.8 and port 53 where not specified.
+
+If any of `proxy`, `dns`, or `hostname` are null or empty values (i.e. `{}` for proxy, `false` for `dns`, and empty string for hostname), they will be cleared to their default settings (i.e. not using a proxy, not using dns, and a hostname equal to the first 7 characters of the device's uuid, respectively).
 
 #### Examples:
 From an app container:
@@ -636,7 +639,8 @@ Response:
 			"port":"8123",
 			"type":"socks5"
 		},
-		"hostname":"27b0fdc"
+		"hostname":"27b0fdc",
+		"dns": "1.1.1.1:53"
 	}
 }
 ```

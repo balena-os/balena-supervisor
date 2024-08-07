@@ -20,25 +20,39 @@ export const ProxyConfig = t.intersection([
 ]);
 export type ProxyConfig = t.TypeOf<typeof ProxyConfig>;
 
+export const DnsConfig = t.type({
+	remote_ip: t.string,
+	remote_port: NumericIdentifier,
+});
+export type DnsConfig = t.TypeOf<typeof DnsConfig>;
+
 /**
  * The internal object representation of redsocks.conf, obtained
  * from RedsocksConf.parse
  */
 export const RedsocksConfig = t.partial({
 	redsocks: ProxyConfig,
+	dns: DnsConfig,
 });
 export type RedsocksConfig = t.TypeOf<typeof RedsocksConfig>;
 
-/**
- * An intersection of writeable redsocks.conf configurations, and
- * additional noProxy field (which is a config relating to proxy configuration)
- */
-export const HostProxyConfig = t.intersection([
+const HostProxyConfigWithoutDns = t.intersection([
 	ProxyConfig,
 	t.partial({
 		noProxy: t.array(t.string),
 	}),
 ]);
+type HostProxyConfigWithoutDns = t.TypeOf<typeof HostProxyConfigWithoutDns>;
+
+/**
+ * An intersection of writeable redsocks.conf configurations for the
+ * redsocks {...} and dns {...} blocks, and additional noProxy field
+ * (which is a config relating to proxy configuration)
+ */
+export const HostProxyConfig = t.partial({
+	proxy: HostProxyConfigWithoutDns,
+	dns: DnsConfig,
+});
 export type HostProxyConfig = t.TypeOf<typeof HostProxyConfig>;
 
 /**
@@ -47,10 +61,13 @@ export type HostProxyConfig = t.TypeOf<typeof HostProxyConfig>;
  * with host-config PATCH and provided to the user with host-config GET.
  */
 export const HostConfiguration = t.type({
-	network: t.partial({
-		proxy: HostProxyConfig,
-		hostname: t.string,
-	}),
+	network: t.exact(
+		t.partial({
+			proxy: t.exact(HostProxyConfigWithoutDns),
+			hostname: t.string,
+			dns: t.union([t.string, t.boolean]),
+		}),
+	),
 });
 export type HostConfiguration = t.TypeOf<typeof HostConfiguration>;
 
@@ -64,6 +81,9 @@ export const LegacyHostConfiguration = t.type({
 	network: t.partial({
 		proxy: t.record(t.string, t.any),
 		hostname: t.string,
+		// dns was added after the initial implementation, so its type is more
+		// strictly enforced than the other older fields.
+		dns: t.union([t.string, t.boolean]),
 	}),
 });
 export type LegacyHostConfiguration = t.TypeOf<typeof LegacyHostConfiguration>;
