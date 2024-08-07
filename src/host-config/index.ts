@@ -94,7 +94,7 @@ export async function patch(
 	}
 
 	if (conf.network.proxy != null) {
-		const targetConf = conf.network.proxy;
+		const { noProxy, ...targetConf } = conf.network.proxy;
 		// It's possible for appIds to be an empty array, but patch shouldn't fail
 		// as it's not dependent on there being any running user applications.
 		return updateLock.lock(appIds, { force }, async () => {
@@ -114,7 +114,7 @@ export async function patch(
 					redsocks: targetConf,
 				},
 			);
-			await setProxy(patchedConf, targetConf.noProxy);
+			await setProxy(patchedConf, noProxy);
 		});
 	}
 }

@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { stripIndent } from 'common-tags';
 import type { TestFs } from 'mocha-pod';
 import { testfs } from 'mocha-pod';
 import * as path from 'path';
@@ -138,7 +139,7 @@ describe('host-config', () => {
 	});
 
 	it('patches proxy', async () => {
-		await patch({
+		const newConf = {
 			network: {
 				proxy: {
 					ip: 'example2.org',
@@ -149,7 +150,8 @@ describe('host-config', () => {
 					noProxy: ['balena.io', '222.22.2.2'],
 				},
 			},
-		});
+		};
+		await patch(newConf);
 		const { network } = await get();
 		expect(network).to.have.property('proxy');
 		expect(network.proxy).to.have.property('ip', 'example2.org');
@@ -161,6 +163,32 @@ describe('host-config', () => {
 			'balena.io',
 			'222.22.2.2',
 		]);
+
+		await expect(fs.readFile(redsocksConf, 'utf-8')).to.eventually.equal(
+			stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					ip = example2.org;
+					port = 1090;
+					type = http-relay;
+					login = "bar";
+					password = "foo";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}` + '\n',
+		);
+
+		expect(await fs.readFile(noProxy, 'utf-8')).to.equal(stripIndent`
+			balena.io
+			222.22.2.2
+		`);
 	});
 
 	it('patches proxy fields specified while leaving unspecified fields unchanged', async () => {
@@ -183,6 +211,34 @@ describe('host-config', () => {
 			'152.10.30.4',
 			'253.1.1.0/16',
 		]);
+
+		await expect(fs.readFile(redsocksConf, 'utf-8')).to.eventually.equal(
+			stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					ip = example2.org;
+					port = 1090;
+					type = socks5;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}` + '\n',
+		);
+
+		expect(await fs.readFile(noProxy, 'utf-8')).to.equal(
+			stripIndent`
+			152.10.30.4
+			253.1.1.0/16
+		` + '\n',
+		);
 	});
 
 	it('patches proxy to empty if input is empty', async () => {
@@ -217,6 +273,81 @@ describe('host-config', () => {
 			},
 		});
 		expect(await fs.readFile(redsocksConf, 'utf-8')).to.equal(rawConf);
+	});
+
+	// Check that a bad configuration is fixed by a new patch
+	it('ignores unsupported fields when reading proxy', async () => {
+		const badConf =
+			stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					ip = example2.org;
+					port = 1090;
+					type = socks5;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.2;
+					local_port = 12345;
+					noProxy = bad.server.com
+				}` + '\n';
+
+		await fs.writeFile(redsocksConf, badConf);
+		await fs.writeFile(noProxy, 'bad.server.com');
+		await expect(get()).to.eventually.deep.equal({
+			network: {
+				hostname: 'deadbeef',
+				proxy: {
+					ip: 'example2.org',
+					port: 1090,
+					type: 'socks5',
+					login: 'foo',
+					password: 'bar',
+					noProxy: ['bad.server.com'],
+				},
+			},
+		});
+
+		await patch({
+			network: {
+				proxy: {
+					ip: 'example2.org',
+					noProxy: ['bad.server.com'],
+				} as any,
+			},
+		});
+
+		await expect(fs.readFile(redsocksConf, 'utf-8')).to.eventually.equal(
+			stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					ip = example2.org;
+					port = 1090;
+					type = socks5;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}` + '\n',
+		);
+		expect(await fs.readFile(noProxy, 'utf-8')).to.equal(
+			stripIndent`
+				bad.server.com
+			`,
+		);
 	});
 
 	it('skips restarting proxy services when part of redsocks-conf.target', async () => {
