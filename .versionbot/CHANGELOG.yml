@@ -1,4 +1,19 @@
 - commits:
+    - subject: Verify that LED_FILE exists on blinking setup
+      hash: a255001c2e71942dd57806688dd1fb90a59ba22a
+      body: |
+        Before v1, the blinking module would not throw when the passed led file
+        does not exist. This change checks for file existence and defaults to
+        `/dev/null` otherwise
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.5.2
+  title: ""
+  date: 2024-08-07T21:59:11.050Z
+- commits:
     - subject: Avoid leaking memory on deep promise recursions
       hash: d789e5bb77e0337773c69ed9d4e24696c019c6ac
       body: >
