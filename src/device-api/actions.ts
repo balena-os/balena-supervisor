@@ -19,7 +19,7 @@ import type { Service } from '../compose/service';
 import { getApp } from '../device-state/db-format';
 import * as TargetState from '../api-binder/poll';
 import log from '../lib/supervisor-console';
-import blink = require('../lib/blink');
+import { getBlink } from '../lib/blink';
 import * as constants from '../lib/constants';
 import {
 	InternalInconsistencyError,
@@ -56,7 +56,8 @@ export const runHealthchecks = async (
  * - POST /v1/blink
  */
 const DEFAULT_IDENTIFY_DURATION = 15000;
-export const identify = (ms: number = DEFAULT_IDENTIFY_DURATION) => {
+export const identify = async (ms: number = DEFAULT_IDENTIFY_DURATION) => {
+	const blink = await getBlink();
 	eventTracker.track('Device blink');
 	blink.pattern.start();
 	setTimeout(blink.pattern.stop, ms);

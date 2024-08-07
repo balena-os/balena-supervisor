@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import type { SinonStub } from 'sinon';
-import { stub } from 'sinon';
+import { stub, spy, useFakeTimers } from 'sinon';
 import Docker from 'dockerode';
 import request from 'supertest';
 import { setTimeout } from 'timers/promises';
@@ -17,6 +17,8 @@ import { pathOnRoot } from '~/lib/host-utils';
 import { exec } from '~/lib/fs-utils';
 import * as lockfile from '~/lib/lockfile';
 import { cleanupDocker } from '~/test-lib/docker-helper';
+import { getBlink } from '~/lib/blink';
+import type { Blink } from '~/lib/blink';
 
 export async function dbusSend(
 	dest: string,
@@ -1265,6 +1267,30 @@ describe('updates target state cache', () => {
 		await config.set({ instantUpdates: false });
 		await actions.updateTarget(false);
 		expect(updateStub).to.not.have.been.called;
+	});
+});
+
+describe('identifies device', () => {
+	let blink: Blink;
+	before(async () => {
+		blink = await getBlink();
+	});
+
+	// This suite doesn't test that the blink submodule writes to the correct
+	// led file location on host. That test should be part of the blink module.
+	it('directs device to blink for set duration', async () => {
+		const blinkStartSpy = spy(blink.pattern, 'start');
+		const blinkStopSpy = spy(blink.pattern, 'stop');
+		const clock = useFakeTimers();
+
+		await actions.identify();
+		expect(blinkStartSpy.callCount).to.equal(1);
+		clock.tick(15000);
+		expect(blinkStopSpy.callCount).to.equal(1);
+
+		blinkStartSpy.restore();
+		blinkStopSpy.restore();
+		clock.restore();
 	});
 });
 
