@@ -1,4 +1,18 @@
 - commits:
+    - subject: Do not write `noProxy` to redsocks.conf
+      hash: b088b78a3e9ca135a9624a2d5be54a7c205fb03f
+      body: |
+        This fixes a regression introduced by the refactor in #2329 where
+        `noProxy` was being included in the data added to redsocks.conf.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.5.3
+  title: ""
+  date: 2024-08-08T16:40:40.421Z
+- commits:
     - subject: Verify that LED_FILE exists on blinking setup
       hash: a255001c2e71942dd57806688dd1fb90a59ba22a
       body: |
