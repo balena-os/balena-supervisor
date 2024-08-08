@@ -157,7 +157,7 @@ export async function readProxy(): Promise<HostProxyConfig | undefined> {
 	// Build proxy object
 	const proxy = {
 		...redsocksConf.redsocks,
-		...(noProxy.length && { noProxy }),
+		...(noProxy.length > 0 && { noProxy }),
 	};
 
 	// Assumes mandatory proxy config fields (type, ip, port) are present,
