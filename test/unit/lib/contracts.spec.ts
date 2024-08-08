@@ -101,35 +101,41 @@ describe('lib/contracts', () => {
 
 		it('Should correctly run containers with no requirements', async () => {
 			expect(
-				contracts.containerContractsFulfilled({
-					service: {
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
 						contract: {
 							type: 'sw.container',
 							slug: 'user-container',
 						},
 						optional: false,
 					},
-				}),
+				]),
 			)
 				.to.have.property('valid')
 				.that.equals(true);
 			expect(
-				contracts.containerContractsFulfilled({
-					service: {
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
 						contract: {
 							type: 'sw.container',
 							slug: 'user-container1',
 						},
 						optional: false,
 					},
-					service2: {
+					{
+						commit: 'd0',
+						serviceName: 'service2',
 						contract: {
 							type: 'sw.container',
 							slug: 'user-container2',
 						},
 						optional: false,
 					},
-				}),
+				]),
 			)
 				.to.have.property('valid')
 				.that.equals(true);
@@ -137,8 +143,10 @@ describe('lib/contracts', () => {
 
 		it('should correctly run containers whose requirements are satisfied', async () => {
 			expect(
-				contracts.containerContractsFulfilled({
-					service: {
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
 						contract: {
 							type: 'sw.container',
 							name: 'user-container',
@@ -153,14 +161,16 @@ describe('lib/contracts', () => {
 						},
 						optional: false,
 					},
-				}),
+				]),
 			)
 				.to.have.property('valid')
 				.that.equals(true);
 
 			expect(
-				contracts.containerContractsFulfilled({
-					service: {
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
 						contract: {
 							type: 'sw.container',
 							name: 'user-container',
@@ -176,14 +186,16 @@ describe('lib/contracts', () => {
 						},
 						optional: false,
 					},
-				}),
+				]),
 			)
 				.to.have.property('valid')
 				.that.equals(true);
 
 			expect(
-				contracts.containerContractsFulfilled({
-					service: {
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
 						contract: {
 							type: 'sw.container',
 							name: 'user-container',
@@ -198,14 +210,16 @@ describe('lib/contracts', () => {
 						},
 						optional: false,
 					},
-				}),
+				]),
 			)
 				.to.have.property('valid')
 				.that.equals(true);
 
 			expect(
-				contracts.containerContractsFulfilled({
-					service: {
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
 						contract: {
 							type: 'sw.container',
 							name: 'user-container',
@@ -224,14 +238,16 @@ describe('lib/contracts', () => {
 						},
 						optional: false,
 					},
-				}),
+				]),
 			)
 				.to.have.property('valid')
 				.that.equals(true);
 
 			expect(
-				contracts.containerContractsFulfilled({
-					service: {
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
 						contract: {
 							type: 'sw.container',
 							name: 'user-container1',
@@ -245,7 +261,9 @@ describe('lib/contracts', () => {
 						},
 						optional: false,
 					},
-					service2: {
+					{
+						commit: 'd0',
+						serviceName: 'service2',
 						contract: {
 							type: 'sw.container',
 							name: 'user-container1',
@@ -261,15 +279,17 @@ describe('lib/contracts', () => {
 						},
 						optional: false,
 					},
-				}),
+				]),
 			)
 				.to.have.property('valid')
 				.that.equals(true);
 		});
 
-		it('Should refuse to run containers whose requirements are not satisfied', async () => {
-			let fulfilled = contracts.containerContractsFulfilled({
-				service: {
+		it('should refuse to run containers whose requirements are not satisfied', async () => {
+			let fulfilled = contracts.containerContractsFulfilled([
+				{
+					commit: 'd0',
+					serviceName: 'service',
 					contract: {
 						type: 'sw.container',
 						name: 'user-container',
@@ -283,14 +303,18 @@ describe('lib/contracts', () => {
 					},
 					optional: false,
 				},
-			});
+			]);
 			expect(fulfilled).to.have.property('valid').that.equals(false);
-			expect(fulfilled)
-				.to.have.property('unmetServices')
-				.that.deep.equals(['service']);
+			expect(fulfilled).to.have.property('unmetServices').with.lengthOf(1);
+			expect(fulfilled.unmetServices[0]).to.deep.include({
+				serviceName: 'service',
+				commit: 'd0',
+			});
 
-			fulfilled = contracts.containerContractsFulfilled({
-				service: {
+			fulfilled = contracts.containerContractsFulfilled([
+				{
+					commit: 'd0',
+					serviceName: 'service',
 					contract: {
 						type: 'sw.container',
 						name: 'user-container',
@@ -304,14 +328,18 @@ describe('lib/contracts', () => {
 					},
 					optional: false,
 				},
-			});
+			]);
 			expect(fulfilled).to.have.property('valid').that.equals(false);
-			expect(fulfilled)
-				.to.have.property('unmetServices')
-				.that.deep.equals(['service']);
+			expect(fulfilled).to.have.property('unmetServices').with.lengthOf(1);
+			expect(fulfilled.unmetServices[0]).to.deep.include({
+				serviceName: 'service',
+				commit: 'd0',
+			});
 
-			fulfilled = contracts.containerContractsFulfilled({
-				service: {
+			fulfilled = contracts.containerContractsFulfilled([
+				{
+					commit: 'd0',
+					serviceName: 'service',
 					contract: {
 						type: 'sw.container',
 						name: 'user-container',
@@ -325,14 +353,18 @@ describe('lib/contracts', () => {
 					},
 					optional: false,
 				},
-			});
+			]);
 			expect(fulfilled).to.have.property('valid').that.equals(false);
-			expect(fulfilled)
-				.to.have.property('unmetServices')
-				.that.deep.equals(['service']);
+			expect(fulfilled).to.have.property('unmetServices').with.lengthOf(1);
+			expect(fulfilled.unmetServices[0]).to.deep.include({
+				serviceName: 'service',
+				commit: 'd0',
+			});
 
-			fulfilled = contracts.containerContractsFulfilled({
-				service: {
+			fulfilled = contracts.containerContractsFulfilled([
+				{
+					commit: 'd0',
+					serviceName: 'service',
 					contract: {
 						type: 'sw.container',
 						name: 'user-container',
@@ -346,14 +378,18 @@ describe('lib/contracts', () => {
 					},
 					optional: false,
 				},
-			});
+			]);
 			expect(fulfilled).to.have.property('valid').that.equals(false);
-			expect(fulfilled)
-				.to.have.property('unmetServices')
-				.that.deep.equals(['service']);
+			expect(fulfilled).to.have.property('unmetServices').with.lengthOf(1);
+			expect(fulfilled.unmetServices[0]).to.deep.include({
+				serviceName: 'service',
+				commit: 'd0',
+			});
 
-			fulfilled = contracts.containerContractsFulfilled({
-				service2: {
+			fulfilled = contracts.containerContractsFulfilled([
+				{
+					commit: 'd0',
+					serviceName: 'service2',
 					contract: {
 						type: 'sw.container',
 						name: 'user-container2',
@@ -367,14 +403,18 @@ describe('lib/contracts', () => {
 					},
 					optional: false,
 				},
-			});
+			]);
 			expect(fulfilled).to.have.property('valid').that.equals(false);
-			expect(fulfilled)
-				.to.have.property('unmetServices')
-				.that.deep.equals(['service2']);
+			expect(fulfilled).to.have.property('unmetServices').with.lengthOf(1);
+			expect(fulfilled.unmetServices[0]).to.deep.include({
+				serviceName: 'service2',
+				commit: 'd0',
+			});
 
-			fulfilled = contracts.containerContractsFulfilled({
-				service: {
+			fulfilled = contracts.containerContractsFulfilled([
+				{
+					commit: 'd0',
+					serviceName: 'service',
 					contract: {
 						type: 'sw.container',
 						name: 'user-container1',
@@ -388,7 +428,9 @@ describe('lib/contracts', () => {
 					},
 					optional: false,
 				},
-				service2: {
+				{
+					commit: 'd0',
+					serviceName: 'service2',
 					contract: {
 						type: 'sw.container',
 						name: 'user-container2',
@@ -402,18 +444,22 @@ describe('lib/contracts', () => {
 					},
 					optional: false,
 				},
-			});
+			]);
 			expect(fulfilled).to.have.property('valid').that.equals(false);
-			expect(fulfilled)
-				.to.have.property('unmetServices')
-				.that.deep.equals(['service2']);
+			expect(fulfilled).to.have.property('unmetServices').with.lengthOf(1);
+			expect(fulfilled.unmetServices[0]).to.deep.include({
+				serviceName: 'service2',
+				commit: 'd0',
+			});
 		});
 
 		describe('Optional containers', () => {
 			it('should correctly run passing optional containers', async () => {
 				const { valid, unmetServices, fulfilledServices } =
-					contracts.containerContractsFulfilled({
-						service1: {
+					contracts.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service1',
 							contract: {
 								type: 'sw.container',
 								slug: 'service1',
@@ -426,16 +472,22 @@ describe('lib/contracts', () => {
 							},
 							optional: true,
 						},
-					});
+					]);
+
 				expect(valid).to.equal(true);
 				expect(unmetServices).to.deep.equal([]);
-				expect(fulfilledServices).to.deep.equal(['service1']);
+				expect(fulfilledServices[0]).to.deep.include({
+					serviceName: 'service1',
+					commit: 'd0',
+				});
 			});
 
 			it('should corrrectly omit failing optional containers', async () => {
 				const { valid, unmetServices, fulfilledServices } =
-					contracts.containerContractsFulfilled({
-						service1: {
+					contracts.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service1',
 							contract: {
 								type: 'sw.container',
 								slug: 'service1',
@@ -448,14 +500,18 @@ describe('lib/contracts', () => {
 							},
 							optional: true,
 						},
-						service2: {
+						{
+							commit: 'd0',
+							serviceName: 'service2',
 							contract: {
 								type: 'sw.container',
 								slug: 'service2',
 							},
 							optional: false,
 						},
-						service3: {
+						{
+							commit: 'd0',
+							serviceName: 'service3',
 							contract: {
 								type: 'sw.container',
 								slug: 'service3',
@@ -468,10 +524,12 @@ describe('lib/contracts', () => {
 							},
 							optional: true,
 						},
-						service4: {
+						{
+							commit: 'd0',
+							serviceName: 'service4',
 							contract: {
 								type: 'sw.container',
-								slug: 'service3',
+								slug: 'service4',
 								requires: [
 									{
 										type: 'arch.sw',
@@ -481,14 +539,18 @@ describe('lib/contracts', () => {
 							},
 							optional: true,
 						},
-					});
+					]);
 				expect(valid).to.equal(true);
-				expect(unmetServices).to.deep.equal([
+				expect(unmetServices.map((s) => s.serviceName)).to.deep.equal([
 					'service1',
 					'service3',
 					'service4',
 				]);
-				expect(fulfilledServices).to.deep.equal(['service2']);
+				expect(fulfilledServices).to.have.lengthOf(1);
+				expect(fulfilledServices[0]).to.deep.include({
+					serviceName: 'service2',
+					commit: 'd0',
+				});
 			});
 		});
 	});
@@ -548,8 +610,10 @@ describe('lib/contracts', () => {
 				const engine = await seedEngine('4.4.38-l4t-r31.0');
 
 				expect(
-					engine.containerContractsFulfilled({
-						service: {
+					engine.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service',
 							contract: {
 								type: 'sw.container',
 								slug: 'user-container',
@@ -562,14 +626,16 @@ describe('lib/contracts', () => {
 							},
 							optional: false,
 						},
-					}),
+					]),
 				)
 					.to.have.property('valid')
 					.that.equals(true);
 
 				expect(
-					engine.containerContractsFulfilled({
-						service: {
+					engine.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service',
 							contract: {
 								type: 'sw.container',
 								slug: 'user-container',
@@ -582,7 +648,7 @@ describe('lib/contracts', () => {
 							},
 							optional: false,
 						},
-					}),
+					]),
 				)
 					.to.have.property('valid')
 					.that.equals(false);
@@ -592,8 +658,10 @@ describe('lib/contracts', () => {
 				const engine = await seedEngine('4.4.38-l4t-r31.0.1');
 
 				expect(
-					engine.containerContractsFulfilled({
-						service: {
+					engine.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service',
 							contract: {
 								type: 'sw.container',
 								slug: 'user-container',
@@ -606,14 +674,16 @@ describe('lib/contracts', () => {
 							},
 							optional: false,
 						},
-					}),
+					]),
 				)
 					.to.have.property('valid')
 					.that.equals(true);
 
 				expect(
-					engine.containerContractsFulfilled({
-						service: {
+					engine.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service',
 							contract: {
 								type: 'sw.container',
 								slug: 'user-container',
@@ -626,7 +696,7 @@ describe('lib/contracts', () => {
 							},
 							optional: false,
 						},
-					}),
+					]),
 				)
 					.to.have.property('valid')
 					.that.equals(false);

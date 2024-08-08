@@ -21,6 +21,7 @@ export interface App {
 	commit?: string;
 	source?: string;
 	isHost?: boolean;
+	isRejected?: boolean;
 	// Services are stored as an array, as at any one time we could have more than one
 	// service for a single service ID running (for example handover)
 	services: Service[];

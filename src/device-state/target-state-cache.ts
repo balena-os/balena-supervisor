@@ -24,6 +24,7 @@ export interface DatabaseApp {
 	source: string;
 	class: TargetAppClass;
 	isHost: boolean;
+	rejected: boolean;
 }
 
 export type DatabaseService = {
