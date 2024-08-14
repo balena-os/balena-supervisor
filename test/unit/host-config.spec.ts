@@ -4,8 +4,12 @@ import type { SinonStub } from 'sinon';
 
 import * as hostConfig from '~/src/host-config';
 import { RedsocksConf } from '~/src/host-config/proxy';
-import { DnsInput } from '~/src/host-config/types';
-import type { RedsocksConfig, ProxyConfig } from '~/src/host-config/types';
+import {
+	type RedsocksConfig,
+	type ProxyConfig,
+	LegacyHostConfiguration,
+	DnsInput,
+} from '~/src/host-config/types';
 import log from '~/lib/supervisor-console';
 
 describe('RedsocksConf', () => {
@@ -838,7 +842,11 @@ describe('src/host-config', () => {
 
 		it('throws error for HostConfiguration without network key', () => {
 			expect(() => hostConfig.parse({})).to.throw(
-				'Could not parse host config input to a valid format',
+				'Could not parse host config input to a valid format:\n' +
+					'Expecting Partial<{| ' +
+					'proxy: ({ [K in string]: any } & Partial<{ dns: (AddressString | boolean) }>), ' +
+					'hostname: string ' +
+					'|}> at network but instead got: undefined',
 			);
 		});
 
@@ -847,7 +855,11 @@ describe('src/host-config', () => {
 				network: 123,
 			};
 			expect(() => hostConfig.parse(conf)).to.throw(
-				'Could not parse host config input to a valid format',
+				'Could not parse host config input to a valid format:\n' +
+					'Expecting Partial<{| ' +
+					'proxy: ({ [K in string]: any } & Partial<{ dns: (AddressString | boolean) }>), ' +
+					'hostname: string ' +
+					'|}> at network but instead got: 123',
 			);
 		});
 
@@ -858,8 +870,61 @@ describe('src/host-config', () => {
 				},
 			};
 			expect(() => hostConfig.parse(conf)).to.throw(
-				'Could not parse host config input to a valid format',
+				'Could not parse host config input to a valid format:\n' +
+					'Expecting string at network.hostname but instead got: 123',
 			);
+		});
+
+		it('throws error for HostConfiguration with invalid dns', () => {
+			const invalids = [
+				123, // wrong type
+				'invalid-because-no-colon',
+				':', // only colon
+				':53', // missing address
+				'1.1.1.1', // missing port
+				'example.com:not-a-port', // wrong port type
+			];
+			for (const dns of invalids) {
+				const conf = {
+					network: {
+						proxy: {
+							type: 'http-connect',
+							ip: 'test.balena.io',
+							port: 1081,
+							login: '"foo"',
+							password: '"bar"',
+							dns,
+						},
+					},
+				};
+				const formattedDns = typeof dns === 'string' ? `"${dns}"` : dns;
+				expect(() => hostConfig.parse(conf)).to.throw(
+					'Could not parse host config input to a valid format:\n' +
+						'Expecting one of:\n' +
+						'    AddressString\n' +
+						'    boolean\n' +
+						`at network.proxy.1.dns but instead got: ${formattedDns}`,
+				);
+			}
+		});
+
+		it('parses valid dns input', () => {
+			const valids = ['balena.io:53', '1.1.1.1:5', 'balena.io:65535'];
+			for (const dns of valids) {
+				const conf = {
+					network: {
+						proxy: {
+							type: 'http-connect',
+							ip: 'test.balena.io',
+							port: 1081,
+							login: '"foo"',
+							password: '"bar"',
+							dns,
+						},
+					},
+				};
+				expect(hostConfig.parse(conf)).to.deep.equal(conf);
+			}
 		});
 
 		it("strips additional inputs from HostConfiguration while not erroring if some optional inputs aren't present", () => {
@@ -917,6 +982,87 @@ describe('src/host-config', () => {
 				expect(DnsInput.is('example.com:')).to.be.false;
 				expect(DnsInput.is('1.2.3.4')).to.be.false;
 				expect(DnsInput.is('example.com')).to.be.false;
+			});
+		});
+
+		describe('LegacyHostConfiguration', () => {
+			it('maintains strict dns typing for LegacyHostConfiguration', () => {
+				expect(
+					LegacyHostConfiguration.is({
+						network: {
+							proxy: {
+								legacy: 'field',
+								dns: 123,
+							},
+						},
+					}),
+				).to.be.false;
+
+				expect(
+					LegacyHostConfiguration.is({
+						network: {
+							proxy: {
+								legacy: 'field',
+								dns: '1.1.1.1:53',
+							},
+						},
+					}),
+				).to.be.true;
+
+				expect(
+					LegacyHostConfiguration.is({
+						network: {
+							proxy: {
+								legacy: 'field',
+								dns: true,
+							},
+						},
+					}),
+				).to.be.true;
+
+				expect(
+					LegacyHostConfiguration.is({
+						network: {
+							proxy: {
+								legacy: 'field',
+								dns: false,
+							},
+						},
+					}),
+				).to.be.true;
+
+				expect(
+					LegacyHostConfiguration.is({
+						network: {
+							proxy: {
+								legacy: 'field',
+								dns: '',
+							},
+						},
+					}),
+				).to.be.false;
+
+				expect(
+					LegacyHostConfiguration.is({
+						network: {
+							proxy: {
+								legacy: 'field',
+								dns: ':53',
+							},
+						},
+					}),
+				).to.be.false;
+
+				expect(
+					LegacyHostConfiguration.is({
+						network: {
+							proxy: {
+								legacy: 'field',
+								dns: '1.1.1.1',
+							},
+						},
+					}),
+				).to.be.false;
 			});
 		});
 	});

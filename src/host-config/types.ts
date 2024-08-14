@@ -82,7 +82,14 @@ export type HostConfiguration = t.TypeOf<typeof HostConfiguration>;
 export const LegacyHostConfiguration = t.type({
 	network: t.exact(
 		t.partial({
-			proxy: t.record(t.string, t.any),
+			proxy: t.intersection([
+				t.record(t.string, t.any),
+				// Dns was added after the initial API endpoint was introduced,
+				// so we can be more strict with its type.
+				t.partial({
+					dns: DnsInput,
+				}),
+			]),
 			hostname: t.string,
 		}),
 	),

@@ -31,6 +31,18 @@ describe('host-config', () => {
 	const noProxy = path.join(proxyBase, 'no_proxy');
 	const hostname = pathOnRoot('/etc/hostname');
 	const appLockDir = pathOnRoot(updateLock.lockPath(APP_ID));
+	const defaultConf = {
+		proxy: {
+			ip: 'example.org',
+			port: 1080,
+			type: 'socks5',
+			login: 'foo',
+			password: 'bar',
+			dns: '1.2.3.4:54',
+			noProxy: ['152.10.30.4', '253.1.1.0/16'],
+		},
+		hostname: 'deadbeef',
+	};
 
 	before(async () => {
 		await config.initialized();
@@ -56,7 +68,7 @@ describe('host-config', () => {
 				'test/data/mnt/boot/system-proxy/redsocks.conf',
 			),
 			[noProxy]: testfs.from('test/data/mnt/boot/system-proxy/no_proxy'),
-			[hostname]: 'deadbeef',
+			[hostname]: defaultConf.hostname,
 			// Create a lock. This won't prevent host config patch unless
 			// there are current apps present, in which case an updates locked
 			// error will be thrown.
@@ -70,6 +82,7 @@ describe('host-config', () => {
 
 	beforeEach(async () => {
 		await tFs.enable();
+		await config.set({ hostname: defaultConf.hostname });
 		// Stub external dependencies
 		stub(dbus, 'servicePartOf').resolves([]);
 		stub(dbus, 'restartService').resolves();
@@ -85,17 +98,7 @@ describe('host-config', () => {
 
 	it('reads proxy configs and hostname', async () => {
 		const { network } = await get();
-		expect(network).to.have.property('hostname', 'deadbeef');
-		expect(network).to.have.property('proxy');
-		expect(network.proxy).to.have.property('ip', 'example.org');
-		expect(network.proxy).to.have.property('port', 1080);
-		expect(network.proxy).to.have.property('type', 'socks5');
-		expect(network.proxy).to.have.property('login', 'foo');
-		expect(network.proxy).to.have.property('password', 'bar');
-		expect(network.proxy).to.have.deep.property('noProxy', [
-			'152.10.30.4',
-			'253.1.1.0/16',
-		]);
+		expect(network).to.deep.equal(defaultConf);
 	});
 
 	it('prevents patch if update locks are present', async () => {
@@ -117,7 +120,13 @@ describe('host-config', () => {
 		} catch (e: unknown) {
 			expect.fail(`Expected hostConfig.patch to not throw, but got ${e}`);
 		}
-		expect(await get()).to.deep.equal({ network: { hostname: 'deadbeef' } });
+		// Proxy should have been deleted as proxy was patched to empty,
+		// hostname should remain unchanged
+		const { network } = await get();
+		expect(network).to.deep.equal({
+			hostname: defaultConf.hostname,
+		});
+		expect(await config.get('hostname')).to.equal(defaultConf.hostname);
 	});
 
 	it('patches hostname regardless of update locks', async () => {
@@ -125,44 +134,43 @@ describe('host-config', () => {
 
 		try {
 			await patch({ network: { hostname: 'test' } });
+			// /etc/hostname isn't changed until the balena-hostname service
+			// is restarted by the OS.
 			expect(await config.get('hostname')).to.equal('test');
 		} catch (e: unknown) {
 			expect.fail(`Expected hostConfig.patch to not throw, but got ${e}`);
 		}
 	});
 
-	it('patches hostname', async () => {
+	it('patches hostname without modifying other fields', async () => {
 		await patch({ network: { hostname: 'test' } });
 		// /etc/hostname isn't changed until the balena-hostname service
 		// is restarted by the OS.
 		expect(await config.get('hostname')).to.equal('test');
+		// Proxy should remain unchanged as patch didn't include it
+		const { network } = await get();
+		expect(network.proxy).to.deep.equal(defaultConf.proxy);
 	});
 
-	it('patches proxy', async () => {
-		const newConf = {
-			network: {
-				proxy: {
-					ip: 'example2.org',
-					port: 1090,
-					type: 'http-relay',
-					login: 'bar',
-					password: 'foo',
-					noProxy: ['balena.io', '222.22.2.2'],
-				},
-			},
+	it('patches proxy without modifying other fields', async () => {
+		const newProxy = {
+			ip: 'example2.org',
+			port: 1090,
+			type: 'http-relay',
+			login: 'bar',
+			password: 'foo',
+			dns: '2.2.2.2:52',
+			noProxy: ['balena.io', '222.22.2.2'],
 		};
-		await patch(newConf);
+		await patch({ network: { proxy: newProxy } });
 		const { network } = await get();
-		expect(network).to.have.property('proxy');
-		expect(network.proxy).to.have.property('ip', 'example2.org');
-		expect(network.proxy).to.have.property('port', 1090);
-		expect(network.proxy).to.have.property('type', 'http-relay');
-		expect(network.proxy).to.have.property('login', 'bar');
-		expect(network.proxy).to.have.property('password', 'foo');
-		expect(network.proxy).to.have.deep.property('noProxy', [
-			'balena.io',
-			'222.22.2.2',
-		]);
+		expect(network).to.deep.equal({
+			proxy: {
+				...defaultConf.proxy,
+				...newProxy,
+			},
+			hostname: defaultConf.hostname,
+		});
 
 		await expect(fs.readFile(redsocksConf, 'utf-8')).to.eventually.equal(
 			stripIndent`
@@ -182,6 +190,13 @@ describe('host-config', () => {
 					password = "foo";
 					local_ip = 127.0.0.1;
 					local_port = 12345;
+				}
+
+				dnsu2t {
+					remote_ip = 2.2.2.2;
+					remote_port = 52;
+					local_ip = 127.0.0.1;
+					local_port = 53;
 				}` + '\n',
 		);
 
@@ -192,25 +207,23 @@ describe('host-config', () => {
 	});
 
 	it('patches proxy fields specified while leaving unspecified fields unchanged', async () => {
+		const newProxyFields = {
+			ip: 'example2.org',
+			port: 1090,
+		};
 		await patch({
 			network: {
-				proxy: {
-					ip: 'example2.org',
-					port: 1090,
-				},
+				proxy: newProxyFields,
 			},
 		});
 		const { network } = await get();
-		expect(network).to.have.property('proxy');
-		expect(network.proxy).to.have.property('ip', 'example2.org');
-		expect(network.proxy).to.have.property('port', 1090);
-		expect(network.proxy).to.have.property('type', 'socks5');
-		expect(network.proxy).to.have.property('login', 'foo');
-		expect(network.proxy).to.have.property('password', 'bar');
-		expect(network.proxy).to.have.deep.property('noProxy', [
-			'152.10.30.4',
-			'253.1.1.0/16',
-		]);
+		expect(network).to.deep.equal({
+			proxy: {
+				...defaultConf.proxy,
+				...newProxyFields,
+			},
+			hostname: defaultConf.hostname,
+		});
 
 		await expect(fs.readFile(redsocksConf, 'utf-8')).to.eventually.equal(
 			stripIndent`
@@ -230,6 +243,13 @@ describe('host-config', () => {
 					password = "bar";
 					local_ip = 127.0.0.1;
 					local_port = 12345;
+				}
+
+				dnsu2t {
+					remote_ip = 1.2.3.4;
+					remote_port = 54;
+					local_ip = 127.0.0.1;
+					local_port = 53;
 				}` + '\n',
 		);
 
@@ -244,22 +264,15 @@ describe('host-config', () => {
 	it('patches proxy to empty if input is empty', async () => {
 		await patch({ network: { proxy: {} } });
 		const { network } = await get();
-		expect(network).to.not.have.property('proxy');
+		expect(network).to.deep.equal({
+			hostname: defaultConf.hostname,
+		});
 	});
 
 	it('keeps current proxy if input is invalid', async () => {
 		await patch({ network: { proxy: null as any } });
 		const { network } = await get();
-		expect(network).to.have.property('proxy');
-		expect(network.proxy).to.have.property('ip', 'example.org');
-		expect(network.proxy).to.have.property('port', 1080);
-		expect(network.proxy).to.have.property('type', 'socks5');
-		expect(network.proxy).to.have.property('login', 'foo');
-		expect(network.proxy).to.have.property('password', 'bar');
-		expect(network.proxy).to.have.deep.property('noProxy', [
-			'152.10.30.4',
-			'253.1.1.0/16',
-		]);
+		expect(network).to.deep.equal(defaultConf);
 	});
 
 	it('ignores unsupported fields when patching proxy', async () => {
@@ -352,43 +365,41 @@ describe('host-config', () => {
 
 	it('skips restarting proxy services when part of redsocks-conf.target', async () => {
 		(dbus.servicePartOf as SinonStub).resolves(['redsocks-conf.target']);
+		const newProxy = {
+			ip: 'example2.org',
+			port: 1090,
+			type: 'http-relay',
+			login: 'bar',
+			password: 'foo',
+			dns: '4.3.2.1:52',
+			noProxy: ['balena.io', '222.22.2.2'],
+		};
 		await patch({
 			network: {
-				proxy: {
-					ip: 'example2.org',
-					port: 1090,
-					type: 'http-relay',
-					login: 'bar',
-					password: 'foo',
-					noProxy: ['balena.io', '222.22.2.2'],
-				},
+				proxy: newProxy,
 			},
 		});
 		expect(dbus.restartService as SinonStub).to.not.have.been.called;
 		const { network } = await get();
-		expect(network).to.have.property('proxy');
-		expect(network.proxy).to.have.property('ip', 'example2.org');
-		expect(network.proxy).to.have.property('port', 1090);
-		expect(network.proxy).to.have.property('type', 'http-relay');
-		expect(network.proxy).to.have.property('login', 'bar');
-		expect(network.proxy).to.have.property('password', 'foo');
-		expect(network.proxy).to.have.deep.property('noProxy', [
-			'balena.io',
-			'222.22.2.2',
-		]);
+		expect(network.proxy).to.deep.equal({
+			...defaultConf.proxy,
+			...newProxy,
+		});
 	});
 
-	it('patches redsocks.conf to be empty if prompted', async () => {
+	it('patches redsocks.conf to be empty', async () => {
 		await patch({ network: { proxy: {} } });
 		const { network } = await get();
-		expect(network).to.not.have.property('proxy');
+		expect(network).to.deep.equal({
+			hostname: defaultConf.hostname,
+		});
 		expect(await fs.readdir(proxyBase)).to.not.have.members([
 			'redsocks.conf',
 			'no_proxy',
 		]);
 	});
 
-	it('patches no_proxy to be empty if prompted', async () => {
+	it('patches no_proxy to be empty', async () => {
 		await patch({
 			network: {
 				proxy: {
@@ -398,13 +409,41 @@ describe('host-config', () => {
 		});
 		const { network } = await get();
 		// If only noProxy is patched, redsocks.conf should remain unchanged
-		expect(network).to.have.property('proxy').that.deep.includes({
+		expect(network).to.have.property('proxy').that.deep.equals({
 			ip: 'example.org',
 			port: 1080,
 			type: 'socks5',
 			login: 'foo',
 			password: 'bar',
+			dns: '1.2.3.4:54',
 		});
+		await expect(fs.readFile(redsocksConf, 'utf-8')).to.eventually.equal(
+			stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					ip = example.org;
+					port = 1080;
+					type = socks5;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+
+				dnsu2t {
+					remote_ip = 1.2.3.4;
+					remote_port = 54;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}` + '\n',
+		);
 		expect(network.proxy).to.not.have.property('noProxy');
 		expect(await fs.readdir(proxyBase)).to.not.have.members(['no_proxy']);
 	});
@@ -415,5 +454,217 @@ describe('host-config', () => {
 		const { network: newNetwork } = await get();
 		expect(network.hostname).to.equal(newNetwork.hostname);
 		expect(network.proxy).to.deep.equal(newNetwork.proxy);
+		await expect(fs.readFile(redsocksConf, 'utf-8')).to.eventually.equal(
+			stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					ip = example.org;
+					port = 1080;
+					type = socks5;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+
+				dnsu2t {
+					remote_ip = 1.2.3.4;
+					remote_port = 54;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}` + '\n',
+		);
+	});
+
+	it('patches dnsu2t config to default without modifying other fields', async () => {
+		await patch({
+			network: {
+				proxy: {
+					dns: true,
+				},
+			},
+		});
+		const { network } = await get();
+		expect(network.proxy).to.deep.equal({
+			...defaultConf.proxy,
+			dns: '8.8.8.8:53',
+		});
+		expect(await config.get('hostname')).to.equal(defaultConf.hostname);
+		await expect(fs.readFile(redsocksConf, 'utf-8')).to.eventually.equal(
+			stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					ip = example.org;
+					port = 1080;
+					type = socks5;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+
+				dnsu2t {
+					remote_ip = 8.8.8.8;
+					remote_port = 53;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}` + '\n',
+		);
+	});
+
+	it('patches dnsu2t config to string value', async () => {
+		await patch({
+			network: {
+				proxy: {
+					dns: '4.3.2.1:51',
+				},
+			},
+		});
+		const { network } = await get();
+		expect(network.proxy).to.deep.equal({
+			...defaultConf.proxy,
+			dns: '4.3.2.1:51',
+		});
+		await expect(fs.readFile(redsocksConf, 'utf-8')).to.eventually.equal(
+			stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					ip = example.org;
+					port = 1080;
+					type = socks5;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+
+				dnsu2t {
+					remote_ip = 4.3.2.1;
+					remote_port = 51;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}` + '\n',
+		);
+	});
+
+	it('patches dnsu2t config to empty', async () => {
+		await patch({
+			network: {
+				proxy: {
+					dns: false,
+				},
+			},
+		});
+		const { network } = await get();
+		const { dns, ...proxyWithoutDns } = defaultConf.proxy;
+		expect(network.proxy).to.deep.equal(proxyWithoutDns);
+	});
+
+	it('adds dnsu2t config to config without dnsu2t when provided valid input', async () => {
+		// Delete dns config to set up test
+		await patch({
+			network: {
+				proxy: {
+					dns: false,
+				},
+			},
+		});
+		const { network } = await get();
+		expect(network.proxy).to.not.have.property('dns');
+		expect(await fs.readFile(redsocksConf, 'utf-8')).to.not.contain('dnsu2t');
+
+		// Add valid dns config
+		await patch({
+			network: {
+				proxy: {
+					dns: '5.5.5.5:55',
+				},
+			},
+		});
+		const { network: n2 } = await get();
+		expect(n2.proxy).to.deep.equal({
+			...defaultConf.proxy,
+			dns: '5.5.5.5:55',
+		});
+		await expect(fs.readFile(redsocksConf, 'utf-8')).to.eventually.equal(
+			stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					ip = example.org;
+					port = 1080;
+					type = socks5;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+
+				dnsu2t {
+					remote_ip = 5.5.5.5;
+					remote_port = 55;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}` + '\n',
+		);
+	});
+
+	it("does not add dnsu2t config when redsocks proxy isn't configured", async () => {
+		// Delete redsocks config to set up test
+		await patch({
+			network: {
+				proxy: {},
+			},
+		});
+		const { network } = await get();
+		expect(network).to.not.have.property('proxy');
+		expect(await fs.readdir(proxyBase)).to.not.have.members([
+			'redsocks.conf',
+			'no_proxy',
+		]);
+
+		// Add valid dns config
+		await patch({
+			network: {
+				proxy: {
+					dns: '1.2.3.4:54',
+				},
+			},
+		});
+		const { network: n2 } = await get();
+		expect(n2).to.deep.equal({
+			hostname: defaultConf.hostname,
+		});
+		expect(await fs.readdir(proxyBase)).to.not.have.members([
+			'redsocks.conf',
+			'no_proxy',
+		]);
 	});
 });

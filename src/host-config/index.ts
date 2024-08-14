@@ -51,9 +51,15 @@ export function parse(
 		const legacyDecoded = LegacyHostConfiguration.decode(conf);
 		if (isRight(legacyDecoded)) {
 			return legacyDecoded.right;
+		} else {
+			const formattedErrorMessage = [
+				'Could not parse host config input to a valid format:',
+			]
+				.concat(Reporter.report(legacyDecoded))
+				.join('\n');
+			throw new Error(formattedErrorMessage);
 		}
 	}
-	throw new Error('Could not parse host config input to a valid format');
 }
 
 function patchProxy(
