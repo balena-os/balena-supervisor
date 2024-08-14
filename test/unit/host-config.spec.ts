@@ -259,29 +259,29 @@ describe('RedsocksConf', () => {
 	describe('parse', () => {
 		it('parses config string into RedsocksConfig', () => {
 			const redsocksConfStr = stripIndent`
-                base {
-                    log_debug = off;
-                    log_info = on;
-                    log = stderr;
-                    daemon = off;
-                    redirector = iptables;
-                }
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
 
-                redsocks {
-                    local_ip = 127.0.0.1;
-                    local_port = 12345;
-                    type = socks5;
-                    ip = example.org;
-                    port = 1080;
-                    login = "foo";
-                    password = "bar";
-                }
+				redsocks {
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+				}
 
 				dnstc {
 					test = test;
 				}
 
-            `;
+			`;
 			const conf = RedsocksConf.parse(redsocksConfStr);
 			expect(conf).to.deep.equal({
 				redsocks: {
@@ -296,26 +296,26 @@ describe('RedsocksConf', () => {
 
 		it("parses `redsocks {...}` config block no matter what position it's in or how many newlines surround it", () => {
 			const redsocksConfStr = stripIndent`
-				dnsu2t {
+				dnstc {
 					test = test;
 				}
-                redsocks {
-                    local_ip = 127.0.0.1;
-                    local_port = 12345;
-                    type = http-connect;
-                    ip = {test2}.balenadev.io;
-                    port = 1082;
-                    login = "us}{er";
-                    password = "p{}a}}s{{s";
-                }
+				redsocks {
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+					type = http-connect;
+					ip = {test2}.balenadev.io;
+					port = 1082;
+					login = "us}{er";
+					password = "p{}a}}s{{s";
+				}
 				base {
 					log_debug = off;
-                    log_info = on;
-                    log = stderr;
-                    daemon = off;
-                    redirector = iptables;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
 				}
-            `;
+			`;
 			const conf = RedsocksConf.parse(redsocksConfStr);
 			expect(conf).to.deep.equal({
 				redsocks: {
@@ -406,17 +406,17 @@ describe('RedsocksConf', () => {
 
 		it('parses to empty redsocks config with warnings while any values are invalid', () => {
 			const redsocksConfStr = stripIndent`
-                redsocks {
-                    local_ip = 123;
-                    local_port = foo;
-                    type = socks6;
-                    ip = 456;
-                    port = bar;
-                    login = user;
-                    password = pass;
+				redsocks {
+					local_ip = 123;
+					local_port = foo;
+					type = socks6;
+					ip = 456;
+					port = bar;
+					login = user;
+					password = pass;
 					invalid_field = invalid_value;
-                }
-            `;
+				}
+			`;
 			(log.warn as SinonStub).resetHistory();
 			const conf = RedsocksConf.parse(redsocksConfStr);
 			expect((log.warn as SinonStub).lastCall.args[0]).to.equal(
@@ -436,24 +436,24 @@ describe('RedsocksConf', () => {
 		it('parses to empty config with warnings while some key-value pairs are malformed', () => {
 			// Malformed key-value pairs are pairs that are missing a key, value, or "="
 			const redsocksConfStr = stripIndent`
-                base {
-                    log_debug off;
-                    log_info = on
-                    = stderr;
-                    daemon = ;
-                    redirector = iptables;
-                }
+				base {
+					log_debug off;
+					log_info = on
+					= stderr;
+					daemon = ;
+					redirector = iptables;
+				}
 
-                redsocks {
-                    local_ip 127.0.0.1;
-                    local_port = 12345
-                    = socks5;
-                    ip = ;
-                    = 1080;
-                    login =;
-                    password = "bar";
-                }
-            `;
+				redsocks {
+					local_ip 127.0.0.1;
+					local_port = 12345
+					= socks5;
+					ip = ;
+					= 1080;
+					login =;
+					password = "bar";
+				}
+			`;
 			(log.warn as SinonStub).resetHistory();
 			const conf = RedsocksConf.parse(redsocksConfStr);
 			expect(
@@ -480,12 +480,12 @@ describe('RedsocksConf', () => {
 
 		it('parses to empty config with warnings when a block is empty', () => {
 			const redsocksConfStr = stripIndent`
-                base {
-                }
+				base {
+				}
 
-                redsocks {
-                }
-            `;
+				redsocks {
+				}
+			`;
 			(log.warn as SinonStub).resetHistory();
 			const conf = RedsocksConf.parse(redsocksConfStr);
 			expect(
@@ -504,6 +504,199 @@ describe('RedsocksConf', () => {
 			]);
 			(log.warn as SinonStub).resetHistory();
 			expect(conf).to.deep.equal({});
+		});
+
+		it('parses dnsu2t to dns field in redsocks config', () => {
+			const redsocksConfStr = stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+				}
+
+				dnsu2t {
+					remote_ip = 1.1.1.1;
+					remote_port = 54;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}
+			`;
+			const conf = RedsocksConf.parse(redsocksConfStr);
+			expect(conf).to.deep.equal({
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: 'foo',
+					password: 'bar',
+					dns: '1.1.1.1:54',
+				},
+			});
+		});
+
+		it('parses dnsu2t no matter its position', () => {
+			const redsocksConfStr = stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				dnsu2t {
+					remote_ip = 1.1.1.1;
+					remote_port = 54;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}
+				redsocks {
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+				}
+			`;
+			const conf = RedsocksConf.parse(redsocksConfStr);
+			expect(conf).to.deep.equal({
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: 'foo',
+					password: 'bar',
+					dns: '1.1.1.1:54',
+				},
+			});
+		});
+
+		it('does not parse dnsu2t to dns field if dnsu2t is partial or invalid', () => {
+			const redsocksConfStr = stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+				}
+
+				dnsu2t {
+					test = true;
+				}
+			`;
+			const conf = RedsocksConf.parse(redsocksConfStr);
+			expect(conf).to.deep.equal({
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: 'foo',
+					password: 'bar',
+				},
+			});
+
+			const redsocksConfStr2 = stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+				}
+
+				dnsu2t {
+					remote_port = 53;
+				}
+			`;
+			const conf2 = RedsocksConf.parse(redsocksConfStr2);
+			expect(conf2).to.deep.equal({
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: 'foo',
+					password: 'bar',
+				},
+			});
+		});
+
+		it('does not parse dnsu2t to dns field if missing or invalid redsocks config', () => {
+			const redsocksConfStr = stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				dnsu2t {
+					remote_ip = 1.1.1.1;
+					remote_port = 54;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}
+			`;
+			const conf = RedsocksConf.parse(redsocksConfStr);
+			expect(conf).to.deep.equal({});
+
+			const redsocksConfStr2 = stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					type = socks5;
+				}
+
+				dnsu2t {
+					remote_ip = 1.1.1.1;
+					remote_port = 54;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}
+			`;
+			const conf2 = RedsocksConf.parse(redsocksConfStr2);
+			expect(conf2).to.deep.equal({});
 		});
 	});
 });

@@ -4,7 +4,7 @@ import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
 
 import type { RedsocksConfig, HostProxyConfig, DnsInput } from './types';
-import { ProxyConfig } from './types';
+import { ProxyConfig, DnsConfig } from './types';
 import { pathOnBoot, readFromBoot, writeToBoot } from '../lib/host-utils';
 import { unlinkAll, mkdirp } from '../lib/fs-utils';
 import { isENOENT } from '../lib/errors';
@@ -89,6 +89,20 @@ export class RedsocksConf {
 			return conf;
 		}
 
+		// Extract contents of `dnsu2t {...}` using regex if exists
+		let dns: DnsConfig | null = null;
+		const rawDnsu2tBlockMatch = rawConf.match(blockRegexFor('dnsu2t'));
+		if (rawDnsu2tBlockMatch) {
+			const rawDnsu2tBlock = RedsocksConf.parseBlock(
+				rawDnsu2tBlockMatch[1],
+				disallowedProxyFields,
+			);
+			const maybeDnsConfig = DnsConfig.decode(rawDnsu2tBlock);
+			if (isRight(maybeDnsConfig)) {
+				dns = maybeDnsConfig.right;
+			}
+		}
+
 		// Extract contents of `redsocks {...}` using regex
 		const rawRedsocksBlockMatch = rawConf.match(blockRegexFor('redsocks'));
 		// No group was captured, indicating malformed config
@@ -104,6 +118,8 @@ export class RedsocksConf {
 		if (isRight(maybeProxyConfig)) {
 			conf.redsocks = {
 				...maybeProxyConfig.right,
+				// Only add dns subfield if redsocks config is valid
+				...(dns && { dns: `${dns.remote_ip}:${dns.remote_port}` }),
 			};
 			return conf;
 		} else {
