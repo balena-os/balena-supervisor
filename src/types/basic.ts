@@ -93,7 +93,11 @@ const VAR_NAME_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
  */
 const CONFIG_VAR_NAME_REGEX = /^[a-zA-Z_][a-zA-Z0-9_:]*$/;
 
-const shortStringWithRegex = (name: string, regex: RegExp, message: string) =>
+export const shortStringWithRegex = (
+	name: string,
+	regex: RegExp,
+	message: string,
+) =>
 	new t.Type<string, string>(
 		name,
 		(s: unknown): s is string => ShortString.is(s) && regex.test(s),

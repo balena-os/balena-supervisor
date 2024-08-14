@@ -4,6 +4,7 @@ import type { SinonStub } from 'sinon';
 
 import * as hostConfig from '~/src/host-config';
 import { RedsocksConf } from '~/src/host-config/proxy';
+import { DnsInput } from '~/src/host-config/types';
 import type { RedsocksConfig, ProxyConfig } from '~/src/host-config/types';
 import log from '~/lib/supervisor-console';
 
@@ -121,6 +122,135 @@ describe('RedsocksConf', () => {
 			const conf: RedsocksConfig = {
 				redsocks: {} as ProxyConfig,
 			};
+			const confStr = RedsocksConf.stringify(conf);
+			expect(confStr).to.equal('');
+		});
+
+		it('stringifies dns to separate dnsu2t block', () => {
+			const conf: RedsocksConfig = {
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: '"foo"',
+					password: '"bar"',
+					dns: '1.1.1.1:54',
+				},
+			};
+			const confStr = RedsocksConf.stringify(conf);
+			expect(confStr).to.equal(
+				stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+
+				dnsu2t {
+					remote_ip = 1.1.1.1;
+					remote_port = 54;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}
+			` + '\n',
+			);
+		});
+
+		it('stringifies dns: true to default dnsu2t config', () => {
+			const conf: RedsocksConfig = {
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: '"foo"',
+					password: '"bar"',
+					dns: true,
+				},
+			};
+			const confStr = RedsocksConf.stringify(conf);
+			expect(confStr).to.equal(
+				stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+
+				dnsu2t {
+					remote_ip = 8.8.8.8;
+					remote_port = 53;
+					local_ip = 127.0.0.1;
+					local_port = 53;
+				}
+			` + '\n',
+			);
+		});
+
+		it('does not include dnsu2t config if dns: false', () => {
+			const conf: RedsocksConfig = {
+				redsocks: {
+					type: 'socks5',
+					ip: 'example.org',
+					port: 1080,
+					login: '"foo"',
+					password: '"bar"',
+					dns: false,
+				},
+			};
+			const confStr = RedsocksConf.stringify(conf);
+			expect(confStr).to.equal(
+				stripIndent`
+				base {
+					log_debug = off;
+					log_info = on;
+					log = stderr;
+					daemon = off;
+					redirector = iptables;
+				}
+
+				redsocks {
+					type = socks5;
+					ip = example.org;
+					port = 1080;
+					login = "foo";
+					password = "bar";
+					local_ip = 127.0.0.1;
+					local_port = 12345;
+				}
+			` + '\n',
+			);
+		});
+
+		it('does not stringify dnsu2t if no other fields in redsocks config', () => {
+			const conf = {
+				redsocks: {
+					dns: '3.3.3.3:52',
+				},
+			} as RedsocksConfig;
 			const confStr = RedsocksConf.stringify(conf);
 			expect(confStr).to.equal('');
 		});
@@ -570,6 +700,30 @@ describe('src/host-config', () => {
 						noProxy: ['2.2.2.2'],
 					},
 				},
+			});
+		});
+	});
+
+	describe('types', () => {
+		describe('DnsInput', () => {
+			it('decodes to DnsInput boolean', () => {
+				expect(DnsInput.is(true)).to.be.true;
+				expect(DnsInput.is(false)).to.be.true;
+			});
+
+			it('decodes to DnsInput from string in the format "ADDRESS:PORT"', () => {
+				expect(DnsInput.is('1.2.3.4:53')).to.be.true;
+				expect(DnsInput.is('example.com:53')).to.be.true;
+			});
+
+			it('does not decode to DnsInput from invalid string', () => {
+				expect(DnsInput.is('')).to.be.false;
+				expect(DnsInput.is(':')).to.be.false;
+				expect(DnsInput.is('1.2.3.4:')).to.be.false;
+				expect(DnsInput.is(':53')).to.be.false;
+				expect(DnsInput.is('example.com:')).to.be.false;
+				expect(DnsInput.is('1.2.3.4')).to.be.false;
+				expect(DnsInput.is('example.com')).to.be.false;
 			});
 		});
 	});

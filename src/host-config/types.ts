@@ -1,5 +1,15 @@
 import * as t from 'io-ts';
-import { NumericIdentifier } from '../types';
+import { NumericIdentifier, shortStringWithRegex } from '../types';
+
+const AddressString = shortStringWithRegex(
+	'AddressString',
+	/^.+:[0-9]+$/,
+	"must be a string in the format 'ADDRESS:PORT'",
+);
+type AddressString = t.TypeOf<typeof AddressString>;
+
+export const DnsInput = t.union([AddressString, t.boolean]);
+export type DnsInput = t.TypeOf<typeof DnsInput>;
 
 export const ProxyConfig = t.intersection([
 	t.type({
@@ -12,10 +22,11 @@ export const ProxyConfig = t.intersection([
 		ip: t.string,
 		port: NumericIdentifier,
 	}),
-	// login & password are optional fields
+	// login, password, and dns are optional fields
 	t.partial({
 		login: t.string,
 		password: t.string,
+		dns: DnsInput,
 	}),
 ]);
 export type ProxyConfig = t.TypeOf<typeof ProxyConfig>;
