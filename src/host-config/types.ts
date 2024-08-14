@@ -47,10 +47,12 @@ export type HostProxyConfig = t.TypeOf<typeof HostProxyConfig>;
  * with host-config PATCH and provided to the user with host-config GET.
  */
 export const HostConfiguration = t.type({
-	network: t.partial({
-		proxy: HostProxyConfig,
-		hostname: t.string,
-	}),
+	network: t.exact(
+		t.partial({
+			proxy: t.exact(HostProxyConfig),
+			hostname: t.string,
+		}),
+	),
 });
 export type HostConfiguration = t.TypeOf<typeof HostConfiguration>;
 
@@ -61,9 +63,11 @@ export type HostConfiguration = t.TypeOf<typeof HostConfiguration>;
  * valid but has the correct shape.
  */
 export const LegacyHostConfiguration = t.type({
-	network: t.partial({
-		proxy: t.record(t.string, t.any),
-		hostname: t.string,
-	}),
+	network: t.exact(
+		t.partial({
+			proxy: t.record(t.string, t.any),
+			hostname: t.string,
+		}),
+	),
 });
 export type LegacyHostConfiguration = t.TypeOf<typeof LegacyHostConfiguration>;
