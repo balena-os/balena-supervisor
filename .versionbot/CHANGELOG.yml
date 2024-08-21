@@ -1,4 +1,18 @@
 - commits:
+    - subject: Avoid unnecessary config calls during Supervisor init
+      hash: fc6927e53d8460863ee495405750feb62ef0483c
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.5.5
+  title: ""
+  date: 2024-08-21T04:35:54.822Z
+- commits:
     - subject: Add kmod to runtime-base
       hash: aeb9c621a545a2b6aeead64cdd467a9371d76414
       body: |
