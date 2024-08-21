@@ -45,8 +45,8 @@ export class Supervisor {
 
 		initializeContractRequirements({
 			supervisorVersion: version,
-			deviceType: await config.get('deviceType'),
-			deviceArch: await config.get('deviceArch'),
+			deviceType: conf.deviceType,
+			deviceArch: conf.deviceArch,
 			l4tVersion: await osRelease.getL4tVersion(),
 		});
 
@@ -58,9 +58,8 @@ export class Supervisor {
 
 		await deviceState.initialized();
 
-		const unmanaged = await config.get('unmanaged');
 		logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');
-		if (conf.legacyAppsPresent && !unmanaged) {
+		if (conf.legacyAppsPresent && !conf.unmanaged) {
 			log.info('Legacy app detected, running migration');
 			await normaliseLegacyDatabase();
 		}
