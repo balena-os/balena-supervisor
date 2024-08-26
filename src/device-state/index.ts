@@ -268,9 +268,11 @@ function emitAsync<T extends keyof DeviceStateEvents>(
 
 const inferStepsLock = () =>
 	takeGlobalLockRW('inferSteps').disposer((release) => release());
-function usingInferStepsLock<T extends () => any, U extends ReturnType<T>>(
-	fn: T,
-): Bluebird<UnwrappedPromise<U>> {
+// Exported for unit test
+export function usingInferStepsLock<
+	T extends () => any,
+	U extends ReturnType<T>,
+>(fn: T): Bluebird<UnwrappedPromise<U>> {
 	return Bluebird.using(inferStepsLock, () => fn());
 }
 
