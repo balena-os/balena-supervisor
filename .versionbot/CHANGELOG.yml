@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update webpack to v5.94.0 [SECURITY]
+      hash: a480266c5603dde4db0d1630cf5b21748c204d14
+      body: |
+        Update webpack from 5.76.0 to 5.94.0
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 16.5.8
+  title: ""
+  date: 2024-08-27T22:41:39.587Z
+- commits:
     - subject: Add unit test for usingInferStepsLock
       hash: 51e59725f87b03e0e469e872373cf6088f0cb34a
       body: ""
