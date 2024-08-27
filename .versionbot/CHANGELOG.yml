@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add unit test for usingInferStepsLock
+      hash: 51e59725f87b03e0e469e872373cf6088f0cb34a
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.5.7
+  title: ""
+  date: 2024-08-27T21:18:29.272Z
+- commits:
     - subject: "Revert PR #2364"
       hash: 3cebfa9f789c973f94f285da2a4edcc4095e63c0
       body: ""
