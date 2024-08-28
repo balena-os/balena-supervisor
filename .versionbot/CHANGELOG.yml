@@ -1,4 +1,40 @@
 - commits:
+    - subject: Add support for redsocks dnsu2t config
+      hash: eaa07e97a9fd2089d1f6a2f3bdff74215cdee789
+      body: |
+        Users may specify dnsu2t config by including a `dns` field
+        in the `proxy` section of PATCH /v1/device/host-config's body:
+        ```
+        {
+          network: {
+            proxy: {
+              dns: '1.1.1.1:53',
+            }
+          }
+        }
+        ```
+
+        If `dns` is a string, ADDRESS and PORT are required and should be
+        in the format `ADDRESS:PORT`. The endpoint with error with
+        code 400 if either ADDRESS or PORT are missing.
+
+        `dns` may also be a boolean. If true, defaults will be configured.
+        If false, the dns configuration will be removed.
+
+        If `proxy` is patched to empty, `dns` will be removed regardless
+        of its current or input configs, as `dns` depends on an active
+        redsocks proxy to function.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.6.0
+  title: ""
+  date: 2024-08-28T22:47:08.152Z
+- commits:
     - subject: Update webpack to v5.94.0 [SECURITY]
       hash: a480266c5603dde4db0d1630cf5b21748c204d14
       body: |
