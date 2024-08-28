@@ -3,8 +3,8 @@ import path from 'path';
 import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
 
-import type { RedsocksConfig, HostProxyConfig } from './types';
-import { ProxyConfig } from './types';
+import type { RedsocksConfig, HostProxyConfig, DnsInput } from './types';
+import { ProxyConfig, DnsConfig } from './types';
 import { pathOnBoot, readFromBoot, writeToBoot } from '../lib/host-utils';
 import { unlinkAll, mkdirp } from '../lib/fs-utils';
 import { isENOENT } from '../lib/errors';
@@ -16,6 +16,9 @@ const noProxyPath = path.join(proxyBasePath, 'no_proxy');
 const redsocksConfPath = path.join(proxyBasePath, 'redsocks.conf');
 
 const disallowedProxyFields = ['local_ip', 'local_port'];
+
+const DEFAULT_REMOTE_IP = '8.8.8.8';
+const DEFAULT_REMOTE_PORT = 53;
 
 const isAuthField = (field: string): boolean =>
 	['login', 'password'].includes(field);
@@ -38,18 +41,45 @@ export class RedsocksConf {
 	public static stringify(config: RedsocksConfig): string {
 		const blocks: string[] = [];
 
-		if (config.redsocks && Object.keys(config.redsocks).length > 0) {
-			blocks.push(RedsocksConf.stringifyBlock('base', baseBlock));
-			blocks.push(
-				RedsocksConf.stringifyBlock('redsocks', {
-					...config.redsocks,
-					local_ip: '127.0.0.1',
-					local_port: 12345,
-				}),
-			);
+		// If no redsocks config is provided or dns is the only config, return empty string.
+		// A dns-only config is not valid as it depends on proxy being configured to function.
+		if (
+			!config.redsocks ||
+			!Object.keys(config.redsocks).length ||
+			(Object.keys(config.redsocks).length === 1 &&
+				Object.hasOwn(config.redsocks, 'dns'))
+		) {
+			return '';
 		}
 
-		return blocks.length ? blocks.join('\n') : '';
+		// Add base block
+		blocks.push(RedsocksConf.stringifyBlock('base', baseBlock));
+
+		const { dns, ...redsocks } = config.redsocks;
+		// Add redsocks block
+		blocks.push(
+			RedsocksConf.stringifyBlock('redsocks', {
+				...redsocks,
+				local_ip: '127.0.0.1',
+				local_port: 12345,
+			}),
+		);
+
+		// Add optional dnsu2t block if input dns config is true or a string
+		if (dns != null) {
+			const dnsu2t = dnsToDnsu2t(dns);
+			if (dnsu2t) {
+				blocks.push(
+					RedsocksConf.stringifyBlock('dnsu2t', {
+						...dnsu2t,
+						local_ip: '127.0.0.1',
+						local_port: 53,
+					}),
+				);
+			}
+		}
+
+		return blocks.join('\n');
 	}
 
 	public static parse(rawConf: string): RedsocksConfig {
@@ -57,6 +87,20 @@ export class RedsocksConf {
 		rawConf = rawConf.trim();
 		if (rawConf.length === 0) {
 			return conf;
+		}
+
+		// Extract contents of `dnsu2t {...}` using regex if exists
+		let dns: DnsConfig | null = null;
+		const rawDnsu2tBlockMatch = rawConf.match(blockRegexFor('dnsu2t'));
+		if (rawDnsu2tBlockMatch) {
+			const rawDnsu2tBlock = RedsocksConf.parseBlock(
+				rawDnsu2tBlockMatch[1],
+				disallowedProxyFields,
+			);
+			const maybeDnsConfig = DnsConfig.decode(rawDnsu2tBlock);
+			if (isRight(maybeDnsConfig)) {
+				dns = maybeDnsConfig.right;
+			}
 		}
 
 		// Extract contents of `redsocks {...}` using regex
@@ -74,6 +118,8 @@ export class RedsocksConf {
 		if (isRight(maybeProxyConfig)) {
 			conf.redsocks = {
 				...maybeProxyConfig.right,
+				// Only add dns subfield if redsocks config is valid
+				...(dns && { dns: `${dns.remote_ip}:${dns.remote_port}` }),
 			};
 			return conf;
 		} else {
@@ -135,6 +181,25 @@ export class RedsocksConf {
 		}
 
 		return parsedBlock;
+	}
+}
+
+function dnsToDnsu2t(
+	dns: DnsInput,
+): { remote_ip: string; remote_port: number } | null {
+	const dnsu2t = {
+		remote_ip: DEFAULT_REMOTE_IP,
+		remote_port: DEFAULT_REMOTE_PORT,
+	};
+
+	if (typeof dns === 'boolean') {
+		return dns ? dnsu2t : null;
+	} else {
+		// Convert dns string to config object
+		const [ip, port] = dns.split(':');
+		dnsu2t.remote_ip = ip;
+		dnsu2t.remote_port = parseInt(port, 10);
+		return dnsu2t;
 	}
 }
 

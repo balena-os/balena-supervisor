@@ -1,5 +1,15 @@
 import * as t from 'io-ts';
-import { NumericIdentifier } from '../types';
+import { NumericIdentifier, shortStringWithRegex } from '../types';
+
+const AddressString = shortStringWithRegex(
+	'AddressString',
+	/^.+:[0-9]+$/,
+	"must be a string in the format 'ADDRESS:PORT'",
+);
+type AddressString = t.TypeOf<typeof AddressString>;
+
+export const DnsInput = t.union([AddressString, t.boolean]);
+export type DnsInput = t.TypeOf<typeof DnsInput>;
 
 export const ProxyConfig = t.intersection([
 	t.type({
@@ -12,13 +22,20 @@ export const ProxyConfig = t.intersection([
 		ip: t.string,
 		port: NumericIdentifier,
 	}),
-	// login & password are optional fields
+	// login, password, and dns are optional fields
 	t.partial({
 		login: t.string,
 		password: t.string,
+		dns: DnsInput,
 	}),
 ]);
 export type ProxyConfig = t.TypeOf<typeof ProxyConfig>;
+
+export const DnsConfig = t.type({
+	remote_ip: t.string,
+	remote_port: NumericIdentifier,
+});
+export type DnsConfig = t.TypeOf<typeof DnsConfig>;
 
 /**
  * The internal object representation of redsocks.conf, obtained
@@ -47,10 +64,12 @@ export type HostProxyConfig = t.TypeOf<typeof HostProxyConfig>;
  * with host-config PATCH and provided to the user with host-config GET.
  */
 export const HostConfiguration = t.type({
-	network: t.partial({
-		proxy: HostProxyConfig,
-		hostname: t.string,
-	}),
+	network: t.exact(
+		t.partial({
+			proxy: t.exact(HostProxyConfig),
+			hostname: t.string,
+		}),
+	),
 });
 export type HostConfiguration = t.TypeOf<typeof HostConfiguration>;
 
@@ -61,9 +80,18 @@ export type HostConfiguration = t.TypeOf<typeof HostConfiguration>;
  * valid but has the correct shape.
  */
 export const LegacyHostConfiguration = t.type({
-	network: t.partial({
-		proxy: t.record(t.string, t.any),
-		hostname: t.string,
-	}),
+	network: t.exact(
+		t.partial({
+			proxy: t.intersection([
+				t.record(t.string, t.any),
+				// Dns was added after the initial API endpoint was introduced,
+				// so we can be more strict with its type.
+				t.partial({
+					dns: DnsInput,
+				}),
+			]),
+			hostname: t.string,
+		}),
+	),
 });
 export type LegacyHostConfiguration = t.TypeOf<typeof LegacyHostConfiguration>;

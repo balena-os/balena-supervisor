@@ -568,7 +568,8 @@ By default, with [balenaOS 2.82.6](https://github.com/balena-os/meta-balena/blob
 			"port": 8123,
 			"login": "username",
 			"password": "password",
-			"noProxy": [ "152.10.30.4", "253.1.1.0/16" ]
+			"noProxy": [ "152.10.30.4", "253.1.1.0/16" ],
+			"dns": "1.1.1.1:53"
 		},
 		"hostname": "mynewhostname",
 		"force": true
@@ -585,7 +586,9 @@ Keep in mind that, even if transparent proxy redirection will take effect immedi
 The `noProxy` setting for the proxy is an optional array of IP addresses/subnets that should not be routed through the
 proxy. Keep in mind that local/reserved subnets are already [excluded by balenaOS automatically](https://github.com/balena-os/meta-balena/blob/master/meta-balena-common/recipes-connectivity/balena-proxy-config/balena-proxy-config/balena-proxy-config).
 
-If either `proxy` or `hostname` are null or empty values (i.e. `{}` for proxy or an empty string for hostname), they will be cleared to their default values (i.e. not using a proxy, and a hostname equal to the first 7 characters of the device's uuid, respectively).
+As of v16.6.0, the Supervisor supports configuring the `dnsu2t` plugin for redsocks via the `dns` subfield under `proxy`. Only the `remote_ip` and `remote_port` fields are allowed to be modified. The input must be of type `boolean` or `string`. If boolean and `true`, the remote values will be the default, `8.8.8.8:53`. If boolean and false, the configuration will be removed. If string, it should be in the format `ADDRESS:PORT`, with `ADDRESS` and `PORT` both required. You may not configure `dnsu2t` without a redsocks proxy configuration, as `dnsu2t` depends on a working proxy to function.
+
+If any of `proxy`, `dns`, or `hostname` are nullish, falsey, or empty values (i.e. `{}` for proxy, `false` for dns, or an empty string for hostname), they will be cleared to their default settings (i.e. not using a proxy, not using dns, and a hostname equal to the first 7 characters of the device's uuid, respectively).
 
 #### Examples:
 From an app container:
@@ -636,7 +639,8 @@ Response:
 			"port":"8123",
 			"type":"socks5"
 		},
-		"hostname":"27b0fdc"
+		"hostname":"27b0fdc",
+		"dns": "1.1.1.1:53"
 	}
 }
 ```
