@@ -1,4 +1,3 @@
-import Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
@@ -196,35 +195,6 @@ export async function start() {
 			log.error(`Failed to get target state for device: ${err}`);
 		}
 	}
-}
-
-export async function patchDevice(
-	id: number,
-	updatedFields: Dictionary<unknown>,
-) {
-	const conf = await config.getMany(['unmanaged', 'provisioned', 'apiTimeout']);
-
-	if (conf.unmanaged) {
-		throw new Error('Cannot update device in unmanaged mode');
-	}
-
-	if (!conf.provisioned) {
-		throw new Error('Device must be provisioned to update a device');
-	}
-
-	if (balenaApi == null) {
-		throw new InternalInconsistencyError(
-			'Attempt to patch device without an API client',
-		);
-	}
-
-	return Bluebird.resolve(
-		balenaApi.patch({
-			resource: 'device',
-			id,
-			body: updatedFields,
-		}),
-	).timeout(conf.apiTimeout);
 }
 
 export function startCurrentStateReport() {
