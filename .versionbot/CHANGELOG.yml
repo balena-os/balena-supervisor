@@ -1,4 +1,18 @@
 - commits:
+    - subject: Remove unused patchDevice function
+      hash: 788afee9a1ebce3d1a319b0ca998ba4163f482ce
+      body: |
+        This function was a remainder of the dependent devices code that no
+        was removed on #2105
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.6.1
+  title: ""
+  date: 2024-08-29T16:36:07.606Z
+- commits:
     - subject: Add support for redsocks dnsu2t config
       hash: eaa07e97a9fd2089d1f6a2f3bdff74215cdee789
       body: |
