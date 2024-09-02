@@ -1595,6 +1595,97 @@ describe('compose/application-manager', () => {
 			.that.deep.includes({ name: 'main-image' });
 	});
 
+	it('should not calculate steps for a rejected app', async () => {
+		const targetApps = createApps(
+			{
+				services: [
+					await createService({
+						running: true,
+						image: 'main-image-1',
+						appId: 1,
+						appUuid: 'app-one',
+						commit: 'commit-for-app-1',
+					}),
+					await createService({
+						running: true,
+						image: 'main-image-2',
+						appId: 2,
+						appUuid: 'app-two',
+						commit: 'commit-for-app-2',
+					}),
+				],
+				networks: [
+					// Default networks for two apps
+					Network.fromComposeObject('default', 1, 'app-one', {}),
+					Network.fromComposeObject('default', 2, 'app-two', {}),
+				],
+				rejectedAppIds: [1],
+			},
+			true,
+		);
+		const { currentApps, availableImages, downloading, containerIdsByAppId } =
+			createCurrentState({
+				services: [
+					await createService({
+						running: true,
+						image: 'old-image-1',
+						appId: 1,
+						appUuid: 'app-one',
+						commit: 'commit-for-app-0',
+					}),
+				],
+				networks: [
+					// Default networks for two apps
+					Network.fromComposeObject('default', 1, 'app-one', {}),
+					Network.fromComposeObject('default', 2, 'app-two', {}),
+				],
+				images: [
+					createImage({
+						name: 'main-image-1',
+						appId: 1,
+						appUuid: 'app-one',
+						serviceName: 'main',
+						commit: 'commit-for-app-1',
+					}),
+					createImage({
+						name: 'main-image-2',
+						appId: 2,
+						appUuid: 'app-two',
+						serviceName: 'main',
+						commit: 'commit-for-app-2',
+					}),
+				],
+			});
+
+		const steps = await applicationManager.inferNextSteps(
+			currentApps,
+			targetApps,
+			{
+				downloading,
+				availableImages,
+				containerIdsByAppId,
+				// Mock locks taken to avoid takeLock step
+				locksTaken: new LocksTakenMap([{ appId: 2, services: ['main'] }]),
+			},
+		);
+
+		// Expect a start step for both apps
+		expect(
+			steps.filter((s: any) => s.target && s.target.appId === 1),
+		).to.have.lengthOf(0);
+		expect(
+			steps.filter((s: any) => s.image && s.image.appId === 1),
+		).to.have.lengthOf(0);
+		expect(
+			steps.filter(
+				(s: any) =>
+					s.action === 'start' &&
+					s.target.appId === 2 &&
+					s.target.serviceName === 'main',
+			),
+		).to.have.lengthOf(1);
+	});
+
 	it('should correctly generate steps for multiple apps', async () => {
 		const targetApps = createApps(
 			{
@@ -2444,6 +2535,7 @@ describe('compose/application-manager', () => {
 									download_progress: 50,
 								},
 							},
+							update_status: 'downloading',
 						},
 					},
 				},
@@ -2456,6 +2548,7 @@ describe('compose/application-manager', () => {
 									status: 'Downloaded',
 								},
 							},
+							update_status: 'downloaded',
 						},
 						newrelease: {
 							services: {
@@ -2465,6 +2558,7 @@ describe('compose/application-manager', () => {
 									download_progress: 75,
 								},
 							},
+							update_status: 'downloading',
 						},
 					},
 				},
@@ -2548,6 +2642,7 @@ describe('compose/application-manager', () => {
 									download_progress: 0,
 								},
 							},
+							update_status: 'downloading',
 						},
 					},
 				},
@@ -2560,6 +2655,81 @@ describe('compose/application-manager', () => {
 									status: 'exited',
 								},
 							},
+							update_status: 'done',
+						},
+					},
+				},
+			});
+		});
+
+		it('reports aborted state if one of the services/images status is aborted', async () => {
+			getImagesState.resolves([
+				{
+					name: 'ubuntu:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Downloaded',
+				},
+				{
+					name: 'node:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'node',
+					status: 'Downloaded',
+					downloadProgress: 100,
+				},
+				{
+					name: 'alpine:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Aborted',
+					downloadProgress: 0,
+				},
+			]);
+			getServicesState.resolves([
+				{
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Running',
+					createdAt: new Date('2021-09-01T13:00:00'),
+				},
+				{
+					appUuid: 'myapp',
+					commit: 'latestrelease',
+					serviceName: 'node',
+					// we don't have a way to abort a failing service install yet, but
+					// once we do it will need to use the status field
+					status: 'Aborted',
+					createdAt: new Date('2021-09-01T12:00:00'),
+				},
+			]);
+
+			expect(await applicationManager.getState()).to.deep.equal({
+				myapp: {
+					releases: {
+						latestrelease: {
+							services: {
+								ubuntu: {
+									image: 'ubuntu:latest',
+									status: 'Running',
+								},
+								alpine: {
+									image: 'alpine:latest',
+									// we don't have a way to abort a failing download yet, but
+									// once we do it will need to use the status field
+									status: 'Aborted',
+									download_progress: 0,
+								},
+								node: {
+									image: 'node:latest',
+									status: 'Aborted',
+									download_progress: 100,
+								},
+							},
+							update_status: 'aborted',
 						},
 					},
 				},
@@ -2610,6 +2780,7 @@ describe('compose/application-manager', () => {
 									status: 'Awaiting handover',
 								},
 							},
+							update_status: 'applying changes',
 						},
 						oldrelease: {
 							services: {
@@ -2618,6 +2789,7 @@ describe('compose/application-manager', () => {
 									status: 'Handing over',
 								},
 							},
+							update_status: 'done',
 						},
 					},
 				},

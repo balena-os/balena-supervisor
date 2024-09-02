@@ -26,12 +26,7 @@ import type { InstancedDeviceState } from './target-state';
 import * as TargetState from './target-state';
 export { getTarget, setTarget } from './target-state';
 
-import type {
-	DeviceLegacyState,
-	DeviceState,
-	DeviceReport,
-	AppState,
-} from '../types';
+import type { DeviceLegacyState, DeviceState, DeviceReport } from '../types';
 import type {
 	CompositionStepT,
 	CompositionStepAction,
@@ -366,18 +361,34 @@ export async function getCurrentForReport(
 ): Promise<DeviceState> {
 	const apps = await applicationManager.getState();
 
+	const { apps: targetApps, rejections } =
+		await applicationManager.getTargetAppsWithRejections();
+	const targetAppUuids = Object.keys(targetApps);
+
 	// Fiter current apps by the target state as the supervisor cannot
 	// report on apps for which it doesn't have API permissions
-	const targetAppUuids = Object.keys(await applicationManager.getTargetApps());
-	const appsForReport = Object.keys(apps)
-		.filter((appUuid) => targetAppUuids.includes(appUuid))
-		.reduce(
-			(filteredApps, appUuid) => ({
-				...filteredApps,
-				[appUuid]: apps[appUuid],
-			}),
-			{} as { [appUuid: string]: AppState },
-		);
+	// this step also adds rejected commits for the report
+	const appsForReport = Object.fromEntries(
+		Object.entries(apps).flatMap(([appUuid, app]) => {
+			if (!targetAppUuids.includes(appUuid)) {
+				return [];
+			}
+
+			for (const r of rejections) {
+				if (r.appUuid !== appUuid) {
+					continue;
+				}
+
+				// Add the rejected release to apps for report
+				app.releases[r.releaseUuid] = {
+					update_status: 'rejected',
+					services: {},
+				};
+			}
+
+			return [[appUuid, app]];
+		}),
+	);
 
 	const { uuid, localMode } = await config.getMany(['uuid', 'localMode']);
 

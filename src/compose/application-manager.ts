@@ -4,18 +4,14 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
 import type { Transaction } from '../db';
-import { transaction } from '../db';
 import * as logger from '../logger';
 import LocalModeManager from '../local-mode';
 
 import * as dbFormat from '../device-state/db-format';
-import { validateTargetContracts } from '../lib/contracts';
+import * as contracts from '../lib/contracts';
 import * as constants from '../lib/constants';
 import log from '../lib/supervisor-console';
-import {
-	ContractViolationError,
-	InternalInconsistencyError,
-} from '../lib/errors';
+import { InternalInconsistencyError } from '../lib/errors';
 import { getServicesLockedByAppId, LocksTakenMap } from '../lib/update-lock';
 import { checkTruthy } from '../lib/validation';
 
@@ -195,8 +191,19 @@ export async function inferNextSteps(
 
 		// We want to remove images before moving on to anything else
 		if (steps.length === 0) {
-			const targetAndCurrent = _.intersection(currentAppIds, targetAppIds);
-			const onlyTarget = _.difference(targetAppIds, currentAppIds);
+			// We only want to modify existing apps for accepted targets
+			const acceptedTargetAppIds = targetAppIds.filter(
+				(id) => !targetApps[id].isRejected,
+			);
+
+			const targetAndCurrent = _.intersection(
+				currentAppIds,
+				acceptedTargetAppIds,
+			);
+			const onlyTarget = _.difference(acceptedTargetAppIds, currentAppIds);
+
+			// We do not want to remove rejected apps, so we compare with the
+			// original target id list
 			const onlyCurrent = _.difference(currentAppIds, targetAppIds);
 
 			// For apps that exist in both current and target state, calculate what we need to
@@ -503,85 +510,76 @@ export async function executeStep(
 export async function setTarget(
 	apps: TargetApps,
 	source: string,
-	maybeTrx?: Transaction,
+	trx: Transaction,
 ) {
 	const setInTransaction = async (
-		$filteredApps: TargetApps,
-		trx: Transaction,
+		$apps: TargetApps,
+		$rejectedApps: string[],
+		$trx: Transaction,
 	) => {
-		await dbFormat.setApps($filteredApps, source, trx);
-		await trx('app')
+		await dbFormat.setApps($apps, source, $rejectedApps, $trx);
+		await $trx('app')
 			.where({ source })
 			.whereNotIn(
 				'appId',
-				// Use apps here, rather than filteredApps, to
-				// avoid removing a release from the database
-				// without an application to replace it.
-				// Currently this will only happen if the release
-				// which would replace it fails a contract
-				// validation check
-				Object.values(apps).map(({ id: appId }) => appId),
+				// Delete every appId not in the target list
+				Object.values($apps).map(({ id: appId }) => appId),
 			)
 			.del();
 	};
 
-	// We look at the container contracts here, as if we
-	// cannot run the release, we don't want it to be added
-	// to the database, overwriting the current release. This
-	// is because if we just reject the release, but leave it
-	// in the db, if for any reason the current state stops
-	// running, we won't restart it, leaving the device
-	// useless - The exception to this rule is when the only
-	// failing services are marked as optional, then we
-	// filter those out and add the target state to the database
-	const contractViolators: { [appName: string]: string[] } = {};
-	const fulfilledContracts = validateTargetContracts(apps);
+	// We look at the container contracts here, apps with failing contract requirements
+	// are stored in the database with a `rejected: true property`, which tells
+	// the inferNextSteps function to ignore them when making changes.
+	//
+	// Apps with optional services with unmet requirements are stored as
+	// `rejected: false`, but services with unmet requirements are removed
+	const contractViolators: contracts.ContractViolators = {};
+	const fulfilledContracts = contracts.validateTargetContracts(apps);
 	const filteredApps = structuredClone(apps);
-	_.each(
-		fulfilledContracts,
-		(
-			{ valid, unmetServices, fulfilledServices, unmetAndOptional },
-			appUuid,
-		) => {
-			if (!valid) {
-				contractViolators[apps[appUuid].name] = unmetServices;
-				return delete filteredApps[appUuid];
-			} else {
-				// valid is true, but we could still be missing
-				// some optional containers, and need to filter
-				// these out of the target state
-				const [releaseUuid] = Object.keys(filteredApps[appUuid].releases);
-				if (releaseUuid) {
-					const services =
-						filteredApps[appUuid].releases[releaseUuid].services ?? {};
-					filteredApps[appUuid].releases[releaseUuid].services = _.pick(
-						services,
-						Object.keys(services).filter((serviceName) =>
-							fulfilledServices.includes(serviceName),
-						),
-					);
-				}
-
-				if (unmetAndOptional.length !== 0) {
-					return reportOptionalContainers(unmetAndOptional);
-				}
+	for (const [
+		appUuid,
+		{ valid, unmetServices, unmetAndOptional },
+	] of Object.entries(fulfilledContracts)) {
+		if (!valid) {
+			// Add the app to the list of contract violators to generate a system
+			// error
+			contractViolators[appUuid] = {
+				appId: apps[appUuid].id,
+				appName: apps[appUuid].name,
+				services: unmetServices.map(({ serviceName }) => serviceName),
+			};
+		} else {
+			// App is valid, but we could still be missing
+			// some optional containers, and need to filter
+			// these out of the target state
+			const app = filteredApps[appUuid];
+			for (const { commit, serviceName } of unmetAndOptional) {
+				delete app.releases[commit].services[serviceName];
 			}
-		},
-	);
-	let promise;
-	if (maybeTrx != null) {
-		promise = setInTransaction(filteredApps, maybeTrx);
-	} else {
-		promise = transaction((trx) => setInTransaction(filteredApps, trx));
+
+			if (unmetAndOptional.length !== 0) {
+				reportOptionalContainers(
+					unmetAndOptional.map(({ serviceName }) => serviceName),
+				);
+			}
+		}
 	}
-	await promise;
+
+	let rejectedApps: string[] = [];
 	if (!_.isEmpty(contractViolators)) {
-		throw new ContractViolationError(contractViolators);
+		rejectedApps = Object.keys(contractViolators);
+		reportRejectedReleases(contractViolators);
 	}
+	await setInTransaction(filteredApps, rejectedApps, trx);
 }
 
 export async function getTargetApps(): Promise<TargetApps> {
 	return await dbFormat.getTargetJson();
+}
+
+export async function getTargetAppsWithRejections() {
+	return await dbFormat.getTargetWithRejections();
 }
 
 /**
@@ -788,12 +786,19 @@ function reportOptionalContainers(serviceNames: string[]) {
 		'. ',
 	)}`;
 	log.info(message);
-	return logger.logSystemMessage(
-		message,
-		{},
-		'optionalContainerViolation',
-		true,
+	logger.logSystemMessage(message, {});
+}
+
+function reportRejectedReleases(violators: contracts.ContractViolators) {
+	const appStrings = Object.values(violators).map(
+		({ appName, services }) =>
+			`${appName}: Services with unmet requirements: ${services.join(', ')}`,
 	);
+	const message = `Some releases were rejected due to having unmet requirements:\n  ${appStrings.join(
+		'\n  ',
+	)}`;
+	log.error(message);
+	logger.logSystemMessage(message, { error: true });
 }
 
 /**
@@ -875,9 +880,9 @@ export async function getLegacyState() {
 	return { local: apps };
 }
 
-// TODO: this function is probably more inefficient than it needs to be, since
-// it tried to optimize for readability, look for a way to make it simpler
-export async function getState() {
+type AppsReport = { [uuid: string]: AppState };
+
+export async function getState(): Promise<AppsReport> {
 	const [services, images] = await Promise.all([
 		serviceManager.getState(),
 		imageManager.getState(),
@@ -990,7 +995,7 @@ export async function getState() {
 	);
 
 	// Assemble the state of apps
-	const state: { [appUuid: string]: AppState } = {};
+	const state: AppsReport = {};
 	for (const {
 		appId,
 		appUuid,
@@ -999,21 +1004,54 @@ export async function getState() {
 		createdAt,
 		...svc
 	} of servicesToReport) {
-		state[appUuid] = {
-			...state[appUuid],
+		const app = state[appUuid] ?? {
 			// Add the release_uuid if the commit has been stored in the database
 			...(commitsForApp[appId] && { release_uuid: commitsForApp[appId] }),
-			releases: {
-				...state[appUuid]?.releases,
-				[commit]: {
-					...state[appUuid]?.releases[commit],
-					services: {
-						...state[appUuid]?.releases[commit]?.services,
-						[serviceName]: svc,
-					},
-				},
-			},
+			releases: {},
 		};
+
+		const releases = app.releases;
+		releases[commit] = releases[commit] ?? {
+			update_status: 'done',
+			services: {},
+		};
+
+		releases[commit].services[serviceName] = svc;
+
+		// The update_status precedence order is as follows
+		// - aborted
+		// - downloading
+		// - downloaded
+		// - applying changes
+		// - done
+		if (svc.status === 'Aborted') {
+			releases[commit].update_status = 'aborted';
+		} else if (
+			releases[commit].update_status !== 'aborted' &&
+			svc.download_progress != null &&
+			svc.download_progress !== 100
+		) {
+			releases[commit].update_status = 'downloading';
+		} else if (
+			!['aborted', 'downloading'].includes(releases[commit].update_status!) &&
+			(svc.download_progress === 100 || svc.status === 'Downloaded')
+		) {
+			releases[commit].update_status = 'downloaded';
+		} else if (
+			// The `applying changes` state has lower precedence over the aborted/downloading/downloaded
+			// state
+			!['aborted', 'downloading', 'downloaded'].includes(
+				releases[commit].update_status!,
+			) &&
+			['installing', 'installed', 'awaiting handover'].includes(
+				svc.status.toLowerCase(),
+			)
+		) {
+			releases[commit].update_status = 'applying changes';
+		}
+
+		// Update the state object
+		state[appUuid] = app;
 	}
 	return state;
 }

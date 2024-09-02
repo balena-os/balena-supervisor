@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 import type * as db from '../db';
 import * as targetStateCache from './target-state-cache';
 import type { DatabaseApp, DatabaseService } from './target-state-cache';
@@ -7,13 +5,8 @@ import type { DatabaseApp, DatabaseService } from './target-state-cache';
 import { App } from '../compose/app';
 import * as images from '../compose/images';
 
-import type {
-	TargetApp,
-	TargetApps,
-	TargetRelease,
-	TargetService,
-} from '../types/state';
-import type { InstancedAppState } from '../compose/types';
+import type { UUID, TargetApps, TargetRelease, TargetService } from '../types';
+import type { InstancedAppState, AppRelease } from '../compose/types';
 
 type InstancedApp = InstancedAppState[0];
 
@@ -40,16 +33,17 @@ export async function getApps(): Promise<InstancedAppState> {
 export async function setApps(
 	apps: TargetApps,
 	source: string,
+	rejectedApps: UUID[] = [],
 	trx?: db.Transaction,
 ) {
 	const dbApps = Object.keys(apps).map((uuid) => {
 		const { id: appId, ...app } = apps[uuid];
+		const rejected = rejectedApps.includes(uuid);
 
 		// Get the first uuid
-		const [releaseUuid] = Object.keys(app.releases);
-		const release = releaseUuid
-			? app.releases[releaseUuid]
-			: ({} as TargetRelease);
+		const releaseUuid = Object.keys(app.releases).shift();
+		const release =
+			releaseUuid != null ? app.releases[releaseUuid] : ({} as TargetRelease);
 
 		const services = Object.keys(release.services ?? {}).map((serviceName) => {
 			const { id: releaseId } = release;
@@ -77,9 +71,13 @@ export async function setApps(
 			uuid,
 			source,
 			isHost: !!app.is_host,
+			rejected,
 			class: app.class,
 			name: app.name,
-			...(releaseUuid && { releaseId: release.id, commit: releaseUuid }),
+			...(releaseUuid && {
+				releaseId: release.id,
+				commit: releaseUuid,
+			}),
 			services: JSON.stringify(services),
 			networks: JSON.stringify(release.networks ?? {}),
 			volumes: JSON.stringify(release.volumes ?? {}),
@@ -92,67 +90,78 @@ export async function setApps(
 /**
  * Create target state from database state
  */
-export async function getTargetJson(): Promise<TargetApps> {
+export async function getTargetWithRejections(): Promise<{
+	apps: TargetApps;
+	rejections: AppRelease[];
+}> {
 	const dbApps = await getDBEntry();
 
-	return dbApps
-		.map(
-			({
-				source,
-				uuid,
-				releaseId,
-				commit: releaseUuid,
-				...app
-			}): [string, TargetApp] => {
-				const services = (JSON.parse(app.services) as DatabaseService[])
-					.map(
-						({
-							serviceName,
-							serviceId,
-							imageId,
-							...service
-						}): [string, TargetService] => [
-							serviceName,
-							{
-								id: serviceId,
-								image_id: imageId,
-								..._.omit(service, ['appId', 'appUuid', 'commit', 'releaseId']),
-							} as TargetService,
-						],
-					)
-					// Map by serviceName
-					.reduce(
-						(svcs, [serviceName, s]) => ({
-							...svcs,
-							[serviceName]: s,
-						}),
-						{},
-					);
+	const apps: TargetApps = {};
+	const rejections: AppRelease[] = [];
 
-				const releases = releaseUuid
-					? {
-							[releaseUuid]: {
-								id: releaseId,
-								services,
-								networks: JSON.parse(app.networks),
-								volumes: JSON.parse(app.volumes),
-							} as TargetRelease,
-						}
-					: {};
-
-				return [
-					uuid,
+	for (const {
+		source,
+		rejected,
+		uuid,
+		releaseId,
+		commit: releaseUuid,
+		...app
+	} of dbApps) {
+		const services = Object.fromEntries(
+			(JSON.parse(app.services) as DatabaseService[]).map(
+				({
+					serviceName,
+					serviceId,
+					imageId,
+					// Ignore these fields
+					appId: _appId,
+					appUuid: _appUuid,
+					commit: _commit,
+					releaseId: _releaseId,
+					// Use the remainder of the fields for the service description
+					...service
+				}) => [
+					serviceName,
 					{
-						id: app.appId,
-						name: app.name,
-						class: app.class,
-						is_host: !!app.isHost,
-						releases,
-					},
-				];
-			},
-		)
-		.reduce((apps, [uuid, app]) => ({ ...apps, [uuid]: app }), {});
+						id: serviceId,
+						image_id: imageId,
+						...service,
+					} satisfies TargetService,
+				],
+			),
+		);
+
+		const releases =
+			releaseUuid && releaseId
+				? {
+						[releaseUuid]: {
+							id: releaseId,
+							services,
+							networks: JSON.parse(app.networks),
+							volumes: JSON.parse(app.volumes),
+						} satisfies TargetRelease,
+					}
+				: {};
+
+		if (rejected && releaseUuid) {
+			rejections.push({ appUuid: uuid, releaseUuid });
+		}
+
+		apps[uuid] = {
+			id: app.appId,
+			name: app.name,
+			class: app.class,
+			is_host: !!app.isHost,
+			releases,
+		};
+	}
+
+	return { apps, rejections };
+}
+
+export async function getTargetJson(): Promise<TargetApps> {
+	const { apps } = await getTargetWithRejections();
+	return apps;
 }
 
 function getDBEntry(): Promise<DatabaseApp[]>;
