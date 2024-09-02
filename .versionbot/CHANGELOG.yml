@@ -1,4 +1,39 @@
 - commits:
+    - subject: Store rejected apps in the database
+      hash: e9a52e6786e94f6be5e23c9410fc7b59df4726b5
+      body: |
+        This moves from throwing an error when an app is rejected due to unmet
+        requirements (because of contracts) to storing the target with a
+        `rejected` flag on the database.
+
+        The application manager filters rejected apps when calculating steps to
+        prevent them from affecting the current state. The state engine uses the
+        rejection info to generate the state report.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+    - subject: Set the app update status when reporting state
+      hash: 227fee9941b77ec5a7589231979b083fb62d4f00
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+    - subject: Add update status to types
+      hash: e9f460fd75e296fb295b9e1f7a7bb56f7929035d
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 16.7.0
+  title: ""
+  date: 2024-09-02T15:33:39.300Z
+- commits:
     - subject: Remove unused patchDevice function
       hash: 788afee9a1ebce3d1a319b0ca998ba4163f482ce
       body: |
