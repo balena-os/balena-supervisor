@@ -394,6 +394,8 @@ export async function addFeaturesFromLabels(
 		'io.balena.features.sysfs': () => service.config.volumes.push('/sys:/sys'),
 		'io.balena.features.procfs': () =>
 			service.config.volumes.push('/proc:/proc'),
+		'io.balena.features.bootfs': () =>
+			service.config.volumes.push('/mnt/boot:/mnt/boot'),
 		'io.balena.features.gpu': () =>
 			// TODO once the compose-spec has an implementation we
 			// should probably follow that, for now we copy the
