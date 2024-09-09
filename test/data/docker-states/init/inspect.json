@@ -105,7 +105,8 @@
 		"CpuCount": 0,
 		"CpuPercent": 0,
 		"IOMaximumIOps": 0,
-		"IOMaximumBandwidth": 0
+		"IOMaximumBandwidth": 0,
+		"Init": true
 	},
 	"GraphDriver": {
 		"Data": null,

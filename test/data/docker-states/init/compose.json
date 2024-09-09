@@ -1,0 +1,17 @@
+{
+	"imageId": 478890,
+	"serviceName": "main",
+	"image": "sha256:7f54fa690ce19a1f625b04479ae1f12f44d36112a74be7edfefa777ecfdb194b",
+	"running": true,
+	"environment": {},
+	"labels": {},
+	"appId": 1011165,
+	"appUuid": "aaaaaaaa",
+	"releaseId": 597007,
+	"serviceId": 43697,
+	"commit": "ff300a701054ac15281de1f9c0e84b8c",
+	"imageName": "registry2.resin.io/v2/bf9c649a5ac2fe147bbe350875042388@sha256:3a5c17b715b4f8265539c1a006dd1abdd2ff3b758aa23df99f77c792f40c3d43",
+	"composition": {
+		"init": true
+	}
+}

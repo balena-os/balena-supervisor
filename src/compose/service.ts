@@ -337,6 +337,13 @@ class ServiceImpl implements Service {
 			config.tty = Boolean(config.tty);
 		}
 
+		// Only keep init field if it's a boolean
+		if (config.init != null) {
+			config.init = Boolean(config.init);
+		} else {
+			delete config.init;
+		}
+
 		if (Array.isArray(config.sysctls)) {
 			config.sysctls = _.fromPairs(
 				_.map(config.sysctls, (v) => _.split(v, '=')),
@@ -598,6 +605,11 @@ class ServiceImpl implements Service {
 			tty: container.Config.Tty || false,
 		};
 
+		// Only add `init` if true or false, otherwise leave blank
+		if (typeof container.HostConfig.Init === 'boolean') {
+			svc.config.init = container.HostConfig.Init;
+		}
+
 		const appId = checkInt(svc.config.labels['io.balena.app-id']);
 		if (appId == null) {
 			throw new InternalInconsistencyError(
@@ -739,6 +751,7 @@ class ServiceImpl implements Service {
 				UsernsMode: this.config.usernsMode,
 				NanoCpus: this.config.cpus,
 				IpcMode: this.config.ipc,
+				Init: this.config.init,
 			} as Dockerode.ContainerCreateOptions['HostConfig'],
 			Healthcheck: ComposeUtils.serviceHealthcheckToDockerHealthcheck(
 				this.config.healthcheck,
