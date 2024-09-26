@@ -183,7 +183,7 @@ export interface ServiceComposeConfig {
 	groupAdd?: string[];
 	healthcheck?: ComposeHealthcheck;
 	image: string;
-	init?: string | boolean;
+	init?: boolean;
 	labels?: { [labelName: string]: string };
 	running?: boolean;
 	networkMode?: string;
@@ -272,6 +272,7 @@ export interface ServiceConfig {
 	domainname: string;
 	hostname: string;
 	ipc: string;
+	init?: boolean;
 	macAddress: string;
 	memLimit: number;
 	memReservation: number;

@@ -24,6 +24,11 @@ const configs = {
 		imageInfo: require('~/test-data/docker-states/network-mode-service/imageInfo.json'),
 		inspect: require('~/test-data/docker-states/network-mode-service/inspect.json'),
 	},
+	init: {
+		compose: require('~/test-data/docker-states/init/compose.json'),
+		imageInfo: require('~/test-data/docker-states/init/imageInfo.json'),
+		inspect: require('~/test-data/docker-states/init/inspect.json'),
+	},
 };
 
 describe('compose/service: unit tests', () => {
@@ -261,6 +266,31 @@ describe('compose/service: unit tests', () => {
 					'/tmp/balena-supervisor/services/123/test:/tmp/resin',
 					'/tmp/balena-supervisor/services/123/test:/tmp/balena',
 				]);
+		});
+
+		it('should support init property', async () => {
+			const appConfigWithInit = (init?: boolean) => ({
+				appId: 123,
+				serviceId: 123,
+				serviceName: 'test',
+				composition: {
+					init,
+				},
+			});
+			const svc = await Service.fromComposeObject(appConfigWithInit(true), {
+				appName: 'test',
+			} as any);
+			expect(svc.config).to.have.property('init').that.equals(true);
+
+			const svc2 = await Service.fromComposeObject(appConfigWithInit(false), {
+				appName: 'test',
+			} as any);
+			expect(svc2.config).to.have.property('init').that.equals(false);
+
+			const svc3 = await Service.fromComposeObject(appConfigWithInit(), {
+				appName: 'test',
+			} as any);
+			expect(svc3.config).to.not.have.property('init');
 		});
 
 		describe('Parsing memory strings from compose configuration', () => {
@@ -890,6 +920,20 @@ describe('compose/service: unit tests', () => {
 				configs.entrypoint.imageInfo,
 			);
 			const dockerSvc = Service.fromDockerContainer(configs.entrypoint.inspect);
+
+			const composeConfig = omitConfigForComparison(composeSvc.config);
+			const dockerConfig = omitConfigForComparison(dockerSvc.config);
+			expect(composeConfig).to.deep.equal(dockerConfig);
+
+			expect(dockerSvc.isEqualConfig(composeSvc, {})).to.equals(true);
+		});
+
+		it('should correctly handle the init config', async () => {
+			const composeSvc = await Service.fromComposeObject(
+				configs.init.compose,
+				configs.init.imageInfo,
+			);
+			const dockerSvc = Service.fromDockerContainer(configs.init.inspect);
 
 			const composeConfig = omitConfigForComparison(composeSvc.config);
 			const dockerConfig = omitConfigForComparison(dockerSvc.config);

@@ -1,0 +1,103 @@
+{
+	"serviceName": "main",
+	"imageInfo": {
+		"Id": "sha256:7f54fa690ce19a1f625b04479ae1f12f44d36112a74be7edfefa777ecfdb194b",
+		"RepoTags": [],
+		"RepoDigests": [
+			"registry2.resin.io/v2/90e3bf4c3dc1e59221b7b3e659a327f6@sha256:3a5c17b715b4f8265539c1a006dd1abdd2ff3b758aa23df99f77c792f40c3d43"
+		],
+		"Parent": "",
+		"Comment": "",
+		"Created": "2018-09-12T13:00:43.974720835Z",
+		"Container": "07cb0400e218ae235e67cf1fd283dc09559f57fbe2a36f5cc89302388371781c",
+		"ContainerConfig": {
+			"Hostname": "137f767087a2",
+			"Domainname": "",
+			"User": "",
+			"AttachStdin": false,
+			"AttachStdout": false,
+			"AttachStderr": false,
+			"Tty": false,
+			"OpenStdin": false,
+			"StdinOnce": false,
+			"Env": [
+				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+			],
+			"Cmd": [
+				"/bin/sh",
+				"-c",
+				"#(nop) ",
+				"CMD [\"/bin/sh\" \"-c\" \"while true; do echo 'hello'; sleep 5; done;\"]"
+			],
+			"ArgsEscaped": true,
+			"Image": "sha256:8d68949dbddcb3ab1a61caeffa0aa1a6e27425ecc4f7665d04d8d0e5bfa03298",
+			"Volumes": null,
+			"WorkingDir": "",
+			"Entrypoint": null,
+			"OnBuild": [],
+			"Labels": {}
+		},
+		"DockerVersion": "17.05.0-ce",
+		"Author": "",
+		"Config": {
+			"Hostname": "137f767087a2",
+			"Domainname": "",
+			"User": "",
+			"AttachStdin": false,
+			"AttachStdout": false,
+			"AttachStderr": false,
+			"Tty": false,
+			"OpenStdin": false,
+			"StdinOnce": false,
+			"Env": [
+				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+			],
+			"Cmd": [
+				"/bin/sh",
+				"-c",
+				"while true; do echo 'hello'; sleep 5; done;"
+			],
+			"ArgsEscaped": true,
+			"Image": "sha256:8d68949dbddcb3ab1a61caeffa0aa1a6e27425ecc4f7665d04d8d0e5bfa03298",
+			"Volumes": null,
+			"WorkingDir": "",
+			"Entrypoint": null,
+			"OnBuild": [],
+			"Labels": {}
+		},
+		"Architecture": "arm64",
+		"Os": "linux",
+		"Size": 104966431,
+		"VirtualSize": 104966431,
+		"GraphDriver": {
+			"Data": null,
+			"Name": "aufs"
+		},
+		"RootFS": {
+			"Type": "layers",
+			"Layers": [
+				"sha256:a3075e9def48840598abcfe08c1ee564c989d1014d847082d950dca2c94098ec",
+				"sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+			]
+		},
+		"Metadata": {
+			"LastTagTime": "0001-01-01T00:00:00Z"
+		}
+	},
+	"appName": "supervisortest",
+	"supervisorApiHost": "172.17.0.1",
+	"hostPathExists": {
+		"firmware": true,
+		"modules": true
+	},
+	"hostname": "7dadabd",
+	"uuid": "a7feb967fac7f559ccf2a006a36bcf5d",
+	"listenPort": "48484",
+	"name": "Office",
+	"apiSecret": "d4bf8369519c32adaa5dd1f84367aa817403f2a3ce976be9c9bacd4d344fdd",
+	"deviceApiKey": "ff89e1d8db58a7ca52a435f2adea319a",
+	"version": "7.18.0",
+	"deviceArch": "amd64",
+	"deviceType": "raspberrypi3",
+	"osVersion": "Resin OS 2.13.6+rev1"
+}
