@@ -7,7 +7,6 @@ import SupervisorAPI from './device-api';
 import * as v1 from './device-api/v1';
 import * as v2 from './device-api/v2';
 import logMonitor from './logging/monitor';
-import * as memory from './memory';
 
 import { initializeContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/legacy';
@@ -72,11 +71,7 @@ export class Supervisor {
 				log.info('Starting API server');
 				this.api = new SupervisorAPI({
 					routers: [v1.router, v2.router],
-					healthchecks: [
-						apiBinder.healthcheck,
-						deviceState.healthcheck,
-						memory.healthcheck,
-					],
+					healthchecks: [apiBinder.healthcheck, deviceState.healthcheck],
 				});
 				deviceState.on('shutdown', () => this.api.stop());
 				return this.api.listen(conf.listenPort, conf.apiTimeout);
