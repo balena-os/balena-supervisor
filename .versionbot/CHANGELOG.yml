@@ -1,4 +1,20 @@
 - commits:
+    - subject: Add support for init field from compose
+      hash: ed1c18e3691e60bc22652e930be49e428d2ef1fe
+      body: |
+        Init supports boolean values, and is not included in the config when
+        not defined.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.7.1
+  title: ""
+  date: 2024-09-26T14:28:03.356Z
+- commits:
     - subject: Store rejected apps in the database
       hash: e9a52e6786e94f6be5e23c9410fc7b59df4726b5
       body: |
