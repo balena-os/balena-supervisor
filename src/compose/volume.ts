@@ -122,7 +122,7 @@ class VolumeImpl implements Volume {
 		name: string;
 		appId: number;
 	} {
-		const match = name.match(/(\d+)_(\S+)/);
+		const match = name.match(/^(\d+)_(\S+)$/);
 		if (match == null) {
 			throw new InternalInconsistencyError(
 				`Could not detect volume data from docker name: ${name}`,
