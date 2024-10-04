@@ -306,4 +306,55 @@ describe('config/config-txt', () => {
 
 		await tfs.restore();
 	});
+
+	it('ignores empty dtoverlay on the target state', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('config.txt')]: stripIndent`
+	        enable_uart=1
+					dtparam=i2c_arm=on
+					dtparam=spi=on
+					disable_splash=1
+					dtparam=audio=on
+					gpu_mem=16
+					`,
+		}).enable();
+
+		const configTxt = new ConfigTxt();
+
+		await configTxt.setBootConfig({
+			dtparam: ['i2c=on', 'audio=on'],
+			dtoverlay: [''],
+			enable_uart: '1',
+			avoid_warnings: '1',
+			gpu_mem: '256',
+			initramfs: 'initramf.gz 0x00800000',
+			'hdmi_force_hotplug:1': '1',
+		});
+
+		await expect(
+			fs.readFile(hostUtils.pathOnBoot('config.txt'), 'utf8'),
+		).to.eventually.equal(
+			stripIndent`
+					dtparam=i2c=on
+					dtparam=audio=on
+					enable_uart=1
+					avoid_warnings=1
+					gpu_mem=256
+					initramfs initramf.gz 0x00800000
+					hdmi_force_hotplug:1=1
+				` + '\n',
+		);
+
+		// Will try to parse /test/data/mnt/boot/config.txt
+		await expect(configTxt.getBootConfig()).to.eventually.deep.equal({
+			dtparam: ['i2c=on', 'audio=on'],
+			enable_uart: '1',
+			avoid_warnings: '1',
+			gpu_mem: '256',
+			initramfs: 'initramf.gz 0x00800000',
+			'hdmi_force_hotplug:1': '1',
+		});
+
+		await tfs.restore();
+	});
 });
