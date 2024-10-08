@@ -1,8 +1,8 @@
 ARG ARCH=%%BALENA_ARCH%%
 ARG FATRW_VERSION=0.2.21
-ARG NODE="nodejs~=20"
-ARG NPM="npm~=10"
-ARG ALPINE_VERSION="3.19"
+ARG NODE="nodejs~=18"
+ARG NPM="npm~=9"
+ARG ALPINE_VERSION="3.18"
 
 ###################################################
 # Build the supervisor dependencies
@@ -43,6 +43,9 @@ RUN FATRW_ARCHIVE="fatrw-$(/rust-arch.sh).tar.gz" && \
 
 # Just install dev dependencies first
 RUN npm ci --build-from-source=sqlite3 --sqlite=/usr/lib
+
+# Echo node version
+RUN node --version
 
 ###################################################################
 # Journal access.
