@@ -3,7 +3,6 @@ import _ from 'lodash';
 
 import * as constants from '../lib/constants';
 import * as hostUtils from '../lib/host-utils';
-import * as osRelease from '../lib/os-release';
 import { takeGlobalLockRO, takeGlobalLockRW } from '../lib/process-lock';
 import type * as Schema from './schema';
 
@@ -12,17 +11,20 @@ export default class ConfigJsonConfigBackend {
 	private readonly writeLockConfigJson: () => Bluebird.Disposer<() => void>;
 
 	private readonly schema: Schema.Schema;
+	/**
+	 * @deprecated configPath is only set by legacy tests
+	 */
 	private readonly configPath?: string;
 
 	private cache: { [key: string]: unknown } = {};
 
-	private readonly init = _.once(async () =>
-		Object.assign(this.cache, await this.read()),
-	);
+	private readonly init = _.once(async () => {
+		Object.assign(this.cache, await this.read());
+	});
 
 	public constructor(schema: Schema.Schema, configPath?: string) {
-		this.configPath = configPath;
 		this.schema = schema;
+		this.configPath = configPath;
 
 		this.writeLockConfigJson = () =>
 			takeGlobalLockRW('config.json').disposer((release) => release());
@@ -91,16 +93,17 @@ export default class ConfigJsonConfigBackend {
 		return JSON.parse(await hostUtils.readFromBoot(filename, 'utf-8'));
 	}
 
+	/**
+	 * @deprecated Either read the config.json path from lib/constants, or
+	 * pass a validated path to the constructor and fail if no path is passed.
+	 * TODO: Remove this once api-binder tests are migrated. The only
+	 * time configPath is passed to the constructor is in the legacy tests.
+	 */
 	private async path(): Promise<string> {
 		// TODO: Remove this once api-binder tests are migrated. The only
 		// time configPath is passed to the constructor is in the legacy tests.
 		if (this.configPath != null) {
 			return this.configPath;
-		}
-
-		const osVersion = await osRelease.getOSVersion(constants.hostOSVersionPath);
-		if (osVersion == null) {
-			throw new Error('Failed to detect OS version!');
 		}
 
 		// The default path in the boot partition
