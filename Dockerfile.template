@@ -96,7 +96,8 @@ RUN apk add --update --no-cache \
 	dmidecode \
 	sqlite-libs \
 	lsblk \
-	kmod
+	kmod \
+	device-mapper
 
 # Iptables should be pinned to 1.8.9 (legacy) as balenaOS still uses iptables-legacy
 RUN apk add --update --no-cache \
