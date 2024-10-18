@@ -1,4 +1,21 @@
 - commits:
+    - subject: Use bookworm image to source journalctl binaries
+      hash: 57a17ea2075d7aadd440b7c2be78f52136988ad9
+      body: |
+        Debian no longer publishes linux/arm/v5 images for bullseye, breaking
+        support for raspberry pi zero.
+
+        This change might not solve the issue indefinitely
+        as we don't know how long debian will continue publishing armv5 images.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.7.2
+  title: ""
+  date: 2024-10-18T15:20:52.555Z
+- commits:
     - subject: Add support for init field from compose
       hash: ed1c18e3691e60bc22652e930be49e428d2ef1fe
       body: |
