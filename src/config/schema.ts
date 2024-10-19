@@ -84,6 +84,18 @@ export const schema = {
 		mutable: false,
 		removeIfNull: false,
 	},
+	/**
+	 * Protected fields
+	 *
+	 * `mutable` & `removeIfNull` do not apply to protected fields, so are
+	 * set to false to avoid modifications or deletions which do not go through
+	 * the protected workflow.
+	 */
+	os: {
+		source: 'config.json',
+		mutable: false,
+		removeIfNull: false,
+	},
 
 	name: {
 		source: 'db',
