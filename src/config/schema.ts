@@ -206,3 +206,13 @@ export const schema = {
 
 export type Schema = typeof schema;
 export type SchemaKey = keyof Schema;
+
+/**
+ * Protected schema fields are object fields in config.json where the Supervisor
+ * only manages some of the fields within the object. Other fields not managed
+ * by the Supervisor should be read-only and otherwise ignored by the Supervisor
+ * when comparing.
+ */
+export const PROTECTED_FIELDS = ['os'] as const;
+export type ProtectedFields = typeof PROTECTED_FIELDS;
+export type ProtectedFieldsMember = (typeof PROTECTED_FIELDS)[number];
