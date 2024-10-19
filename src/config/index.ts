@@ -38,7 +38,7 @@ interface ConfigEventTypes {
 }
 
 export const configJsonBackend: ConfigJsonConfigBackend =
-	new ConfigJsonConfigBackend(Schema.schema);
+	new ConfigJsonConfigBackend(Schema.schema, Schema.PROTECTED_FIELDS);
 
 type ConfigEventEmitter = StrictEventEmitter<EventEmitter, ConfigEventTypes>;
 class ConfigEvents extends (EventEmitter as new () => ConfigEventEmitter) {}

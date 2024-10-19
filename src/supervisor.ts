@@ -84,7 +84,7 @@ export class Supervisor {
 			apiBinder.start(),
 		]);
 
-		await logMonitor.start();
+		await logMonitor.start(logger.logSystemMessage);
 	}
 }
 

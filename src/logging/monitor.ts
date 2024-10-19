@@ -24,6 +24,10 @@ interface JournalRow {
 const JOURNALCTL_ERROR_RETRY_DELAY = 5000;
 const JOURNALCTL_ERROR_RETRY_DELAY_MAX = 15 * 60 * 1000;
 
+// System services that configure boot configs upon receiving changes to config.json.
+// The Supervisor streams these logs for better user visibility into these config changes.
+const SYSTEM_CONFIG_UNITS = ['os-fan-profile.service', 'os-power-mode.service'];
+
 function messageFieldToString(entry: JournalRow['MESSAGE']): string | null {
 	if (Array.isArray(entry)) {
 		return String.fromCharCode(...entry);
@@ -51,6 +55,9 @@ async function* splitStream(chunkIterable: AsyncIterable<any>) {
 	}
 }
 
+const getFilterString = (units: string[]) =>
+	units.map((unit) => `_SYSTEMD_UNIT=${unit}`).join(' ');
+
 /**
  * Streams logs from journalctl and calls container hooks when a record is received matching container id
  */
@@ -65,14 +72,23 @@ class LogMonitor {
 	// Only stream logs since the start of the supervisor
 	private lastSentTimestamp = Date.now() - performance.now();
 
-	public async start(): Promise<void> {
+	public async start(
+		logSystemMessage: (
+			message: string,
+			eventObj?: Dictionary<any> | null,
+			eventName?: string,
+			track?: boolean,
+		) => void,
+	): Promise<void> {
 		try {
 			// TODO: do not spawn journalctl if logging is not enabled
 			const { stdout, stderr } = spawnJournalctl({
 				all: true,
 				follow: true,
 				format: 'json',
-				filterString: '_SYSTEMD_UNIT=balena.service',
+				filterString: getFilterString(
+					['balena.service'].concat(SYSTEM_CONFIG_UNITS),
+				),
 				since: toJournalDate(this.lastSentTimestamp),
 			});
 			if (!stdout) {
@@ -81,7 +97,7 @@ class LogMonitor {
 			}
 
 			stderr?.on('data', (data) =>
-				log.error('journalctl - balena.service stderr: ', data.toString()),
+				log.error('System log monitor error during startup: ', data.toString()),
 			);
 
 			const self = this;
@@ -96,15 +112,17 @@ class LogMonitor {
 							self.containers[row.CONTAINER_ID_FULL]
 						) {
 							await self.handleRow(row);
+						} else if (SYSTEM_CONFIG_UNITS.includes(row._SYSTEMD_UNIT)) {
+							await self.handleSystemRow(row, logSystemMessage);
 						}
 					} catch {
 						// ignore parsing errors
 					}
 				}
 			});
-			log.debug('balena.service journalctl process exit.');
+			log.debug('System log monitor: journalctl process exit.');
 		} catch (e: any) {
-			log.error('journalctl - balena.service error: ', e.message ?? e);
+			log.error('System log monitor error: ', e.message ?? e);
 		}
 
 		// On exit of process try to create another
@@ -113,12 +131,10 @@ class LogMonitor {
 			JOURNALCTL_ERROR_RETRY_DELAY_MAX,
 		);
 		log.debug(
-			`Spawning another process to watch balena.service logs in ${
-				wait / 1000
-			}s`,
+			`Spawning another process to watch system logs in ${wait / 1000}s`,
 		);
 		await setTimeout(wait);
-		void this.start();
+		void this.start(logSystemMessage);
 	}
 
 	public isAttached(containerId: string): boolean {
@@ -157,6 +173,25 @@ class LogMonitor {
 		const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
 
 		await this.containers[containerId].hook({ message, isStdErr, timestamp });
+		this.lastSentTimestamp = timestamp;
+	}
+
+	private async handleSystemRow(
+		row: JournalRow,
+		logFn: (
+			message: string,
+			eventObj?: Dictionary<any> | null,
+			eventName?: string,
+			track?: boolean,
+		) => void,
+	) {
+		const message = messageFieldToString(row.MESSAGE);
+		if (message == null) {
+			return;
+		}
+		const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
+
+		await logFn(message, null, 'System service config', false);
 		this.lastSentTimestamp = timestamp;
 	}
 }

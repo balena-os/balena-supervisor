@@ -84,6 +84,26 @@ export const schemaTypes = {
 		type: t.string,
 		default: NullOrUndefined,
 	},
+	// Protected config.json types
+	// As protected object fields may contain keys that are unmanaged,
+	// use exact or strict types to filter out unrelated keys when decoding.
+	os: {
+		type: t.exact(
+			t.partial({
+				power: t.exact(
+					t.partial({
+						mode: t.string,
+					}),
+				),
+				fan: t.exact(
+					t.partial({
+						profile: t.string,
+					}),
+				),
+			}),
+		),
+		default: t.never,
+	},
 
 	// Database types
 	name: {
