@@ -7,6 +7,8 @@ import { Extlinux } from '~/src/config/backends/extlinux';
 import { ConfigTxt } from '~/src/config/backends/config-txt';
 import { ConfigFs } from '~/src/config/backends/config-fs';
 import { SplashImage } from '~/src/config/backends/splash-image';
+import { PowerFanConfig } from '~/src/config/backends/power-fan';
+import { configJsonBackend } from '~/src/config';
 import type { ConfigBackend } from '~/src/config/backends/backend';
 
 import * as hostUtils from '~/lib/host-utils';
@@ -63,6 +65,7 @@ const BACKENDS: Record<string, ConfigBackend> = {
 	configtxt: new ConfigTxt(),
 	configfs: new ConfigFs(),
 	splashImage: new SplashImage(),
+	powerFan: new PowerFanConfig(configJsonBackend),
 };
 
 const CONFIGS = {
@@ -123,4 +126,14 @@ const CONFIGS = {
 	// 		ssdt: ['spidev1,1']
 	// 	},
 	// },
+	powerFan: {
+		envVars: {
+			HOST_CONFIG_power_mode: 'low',
+			HOST_CONFIG_fan_profile: 'quiet',
+		},
+		bootConfig: {
+			power_mode: 'low',
+			fan_profile: 'quiet',
+		},
+	},
 };
