@@ -6,7 +6,7 @@ import * as config from '../config';
 import * as db from '../db';
 
 import * as globalEventBus from '../event-bus';
-import * as deviceConfig from '../device-config';
+import * as deviceConfig from './device-config';
 
 import { TargetStateError } from '../lib/errors';
 import { takeGlobalLockRO, takeGlobalLockRW } from '../lib/process-lock';
