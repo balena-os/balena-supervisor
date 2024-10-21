@@ -9,7 +9,7 @@ import * as config from '../config';
 import * as logger from '../logging';
 
 import * as network from '../network';
-import * as deviceConfig from '../device-config';
+import * as deviceConfig from './device-config';
 
 import * as constants from '../lib/constants';
 import * as dbus from '../lib/dbus';
@@ -25,6 +25,12 @@ import * as commitStore from '../compose/commit';
 import type { InstancedDeviceState } from './target-state';
 import * as TargetState from './target-state';
 export { getTarget, setTarget } from './target-state';
+
+export {
+	formatConfigKeys,
+	getCurrent as getCurrentConfig,
+	getDefaults as getDefaultConfig,
+} from './device-config';
 
 import type { DeviceLegacyState, DeviceState, DeviceReport } from '../types';
 import type {

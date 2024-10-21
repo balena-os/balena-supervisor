@@ -2,21 +2,22 @@ import _ from 'lodash';
 import { inspect } from 'util';
 import { promises as fs } from 'fs';
 
-import * as config from './config';
-import * as db from './db';
-import * as logger from './logging';
-import * as dbus from './lib/dbus';
-import type { EnvVarObject } from './types';
-import { UnitNotLoadedError } from './lib/errors';
-import { checkInt, checkTruthy } from './lib/validation';
-import log from './lib/supervisor-console';
-import * as configUtils from './config/utils';
-import type { SchemaTypeKey } from './config/schema-type';
-import { matchesAnyBootConfig } from './config/backends';
-import type { ConfigBackend } from './config/backends/backend';
-import { Odmdata } from './config/backends/odmdata';
-import * as fsUtils from './lib/fs-utils';
-import { pathOnRoot } from './lib/host-utils';
+import * as config from '../config';
+import * as db from '../db';
+import * as logger from '../logging';
+import * as dbus from '../lib/dbus';
+import type { EnvVarObject } from '../types';
+import { UnitNotLoadedError } from '../lib/errors';
+import { checkInt, checkTruthy } from '../lib/validation';
+import log from '../lib/supervisor-console';
+import * as fsUtils from '../lib/fs-utils';
+import { pathOnRoot } from '../lib/host-utils';
+
+import * as configUtils from '../config/utils';
+import type { SchemaTypeKey } from '../config/schema-type';
+import { matchesAnyBootConfig } from '../config/backends';
+import type { ConfigBackend } from '../config/backends/backend';
+import { Odmdata } from '../config/backends/odmdata';
 
 const vpnServiceName = 'openvpn';
 
@@ -210,7 +211,7 @@ const configKeys: Dictionary<ConfigOption> = {
 	},
 };
 
-export const validKeys = [
+const validKeys = [
 	'SUPERVISOR_VPN_CONTROL',
 	'OVERRIDE_LOCK',
 	..._.map(configKeys, 'envVarName'),

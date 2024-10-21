@@ -11,7 +11,6 @@ import { Volume } from '../compose/volume';
 import * as commitStore from '../compose/commit';
 import * as config from '../config';
 import * as db from '../db';
-import * as deviceConfig from '../device-config';
 import * as logger from '../logging';
 import * as images from '../compose/images';
 import * as volumeManager from '../compose/volume-manager';
@@ -512,7 +511,7 @@ router.get('/v2/device/tags', async (_req, res) => {
 });
 
 router.get('/v2/device/vpn', async (_req, res) => {
-	const conf = await deviceConfig.getCurrent();
+	const conf = await deviceState.getCurrentConfig();
 	// Build VPNInfo
 	const info = {
 		enabled: conf.SUPERVISOR_VPN_CONTROL === 'true',
