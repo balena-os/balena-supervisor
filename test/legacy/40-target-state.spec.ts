@@ -8,7 +8,7 @@ import { expect } from 'chai';
 import * as TargetState from '~/src/api-binder/poll';
 import Log from '~/lib/supervisor-console';
 import * as request from '~/lib/request';
-import * as deviceConfig from '~/src/device-config';
+import * as deviceConfig from '~/src/device-state/device-config';
 import { UpdatesLockedError } from '~/lib/errors';
 import { setTimeout } from 'timers/promises';
 
