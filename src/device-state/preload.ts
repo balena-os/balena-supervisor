@@ -6,9 +6,9 @@ import { imageFromService } from '../compose/images';
 import { NumericIdentifier } from '../types';
 import { setTarget } from './target-state';
 import * as config from '../config';
-import * as deviceConfig from '../device-config';
 import * as eventTracker from '../event-tracker';
 import * as imageManager from '../compose/images';
+import * as deviceState from '../device-state';
 
 import {
 	AppsJsonParseError,
@@ -126,8 +126,8 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 			await imageManager.save(image);
 		}
 
-		const deviceConf = await deviceConfig.getCurrent();
-		const formattedConf = deviceConfig.formatConfigKeys(preloadState.config);
+		const deviceConf = await deviceState.getCurrentConfig();
+		const formattedConf = deviceState.formatConfigKeys(preloadState.config);
 		const localState = {
 			[uuid]: {
 				name: '',
