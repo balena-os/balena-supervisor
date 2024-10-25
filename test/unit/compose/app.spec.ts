@@ -21,6 +21,8 @@ const defaultContext = {
 	downloading: [] as string[],
 	lock: null,
 	hasLeftoverLocks: false,
+	rebootBreadcrumbSet: false,
+	bootTime: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
 };
 
 const mockLock: Lock = {
@@ -2110,6 +2112,128 @@ describe('compose/app', () => {
 				target,
 			);
 			expectSteps('start', steps3, 2);
+		});
+
+		it('should set the reboot breadcrumb after a service with `requires-reboot` has been installed', async () => {
+			// Container is a "run once" type of service so it has exitted.
+			const current = createApp({
+				services: [
+					await createService(
+						{
+							labels: { 'io.balena.update.requires-reboot': 'true' },
+							running: false,
+						},
+						{ state: { createdAt: new Date(), status: 'Installed' } },
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+
+			// Now test that another start step is not added on this service
+			const target = createApp({
+				services: [
+					await createService({
+						labels: { 'io.balena.update.requires-reboot': 'true' },
+						running: true,
+					}),
+				],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					rebootBreadcrumbSet: false,
+					// 30 minutes ago
+					bootTime: new Date(Date.now() - 30 * 60 * 1000),
+				},
+				target,
+			);
+			expect(steps.length).to.equal(1);
+			expectSteps('requireReboot', steps);
+		});
+
+		it('should not try to start a container with `requires-reboot` if the reboot has not taken place yet', async () => {
+			// Container is a "run once" type of service so it has exitted.
+			const current = createApp({
+				services: [
+					await createService(
+						{
+							labels: { 'io.balena.update.requires-reboot': 'true' },
+							running: false,
+						},
+						{ state: { createdAt: new Date(), status: 'Installed' } },
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+
+			// Now test that another start step is not added on this service
+			const target = createApp({
+				services: [
+					await createService({
+						labels: { 'io.balena.update.requires-reboot': 'true' },
+						running: true,
+					}),
+				],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					rebootBreadcrumbSet: true,
+					bootTime: new Date(Date.now() - 30 * 60 * 1000),
+				},
+				target,
+			);
+			expect(steps.length).to.equal(0);
+			expectNoStep('start', steps);
+		});
+
+		it('should start a container with `requires-reboot` after reboot has taken place', async () => {
+			// Container is a "run once" type of service so it has exitted.
+			const current = createApp({
+				services: [
+					await createService(
+						{
+							labels: { 'io.balena.update.requires-reboot': 'true' },
+							running: false,
+						},
+						// Container was created 5 minutes ago
+						{
+							state: {
+								createdAt: new Date(Date.now() - 5 * 60 * 1000),
+								status: 'Installed',
+							},
+						},
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+
+			// Now test that another start step is not added on this service
+			const target = createApp({
+				services: [
+					await createService({
+						labels: { 'io.balena.update.requires-reboot': 'true' },
+						running: true,
+					}),
+				],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					rebootBreadcrumbSet: true,
+					// Reboot just happened
+					bootTime: new Date(),
+				},
+				target,
+			);
+			expect(steps.length).to.equal(1);
+			expectSteps('start', steps);
 		});
 	});
 

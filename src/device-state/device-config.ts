@@ -104,7 +104,13 @@ const actionExecutors: DeviceActionExecutors = {
 			await setBootConfig(backend, step.target as Dictionary<string>);
 		}
 	},
-	setRebootBreadcrumb,
+	setRebootBreadcrumb: async (step) => {
+		const changes =
+			step != null && step.target != null && typeof step.target === 'object'
+				? step.target
+				: {};
+		return setRebootBreadcrumb(changes);
+	},
 };
 
 const configBackends: ConfigBackend[] = [];
@@ -396,6 +402,7 @@ function getConfigSteps(
 	target: Dictionary<string>,
 ) {
 	const configChanges: Dictionary<string> = {};
+	const rebootingChanges: Dictionary<string> = {};
 	const humanReadableConfigChanges: Dictionary<string> = {};
 	let reboot = false;
 	const steps: ConfigStep[] = [];
@@ -431,6 +438,9 @@ function getConfigSteps(
 				}
 				if (changingValue != null) {
 					configChanges[key] = changingValue;
+					if ($rebootRequired) {
+						rebootingChanges[key] = changingValue;
+					}
 					humanReadableConfigChanges[envVarName] = changingValue;
 					reboot = $rebootRequired || reboot;
 				}
@@ -440,7 +450,7 @@ function getConfigSteps(
 
 	if (!_.isEmpty(configChanges)) {
 		if (reboot) {
-			steps.push({ action: 'setRebootBreadcrumb' });
+			steps.push({ action: 'setRebootBreadcrumb', target: rebootingChanges });
 		}
 
 		steps.push({
@@ -527,7 +537,11 @@ async function getBackendSteps(
 	return [
 		// All backend steps require a reboot except fan control
 		...(steps.length > 0 && rebootRequired
-			? [{ action: 'setRebootBreadcrumb' } as ConfigStep]
+			? [
+					{
+						action: 'setRebootBreadcrumb',
+					} as ConfigStep,
+				]
 			: []),
 		...steps,
 	];

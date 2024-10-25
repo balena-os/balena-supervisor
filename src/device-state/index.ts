@@ -657,7 +657,7 @@ export const applyTarget = async ({
 		// For application manager, the reboot breadcrumb should
 		// be set after all downloads are ready and target containers
 		// have been installed
-		if (_.every(steps, ({ action }) => action === 'noop') && rebootRequired) {
+		if (steps.every(({ action }) => action === 'noop') && rebootRequired) {
 			steps.push({
 				action: 'reboot',
 			});
