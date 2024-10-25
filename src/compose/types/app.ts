@@ -12,6 +12,8 @@ export interface UpdateState {
 	hasLeftoverLocks: boolean;
 	lock: Lock | null;
 	force: boolean;
+	rebootBreadcrumbSet: boolean;
+	bootTime: Date;
 }
 
 export interface App {

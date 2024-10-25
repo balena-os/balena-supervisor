@@ -87,5 +87,4 @@ export const touch = (file: string, time = new Date()) =>
 	);
 
 // Get the system boot time as a Date object
-export const getBootTime = () =>
-	new Date(new Date().getTime() - uptime() * 1000);
+export const getBootTime = () => new Date(Date.now() - uptime() * 1000);

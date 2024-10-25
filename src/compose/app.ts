@@ -682,6 +682,8 @@ class AppImpl implements App {
 					context.appsToLock,
 					context.targetApp.services,
 					servicesLocked,
+					context.rebootBreadcrumbSet,
+					context.bootTime,
 				);
 			}
 
@@ -761,6 +763,8 @@ class AppImpl implements App {
 		appsToLock: AppsToLockMap,
 		targetServices: Service[],
 		servicesLocked: boolean,
+		rebootBreadcrumbSet: boolean,
+		bootTime: Date,
 	): CompositionStep[] {
 		// Update container metadata if service release has changed
 		if (current.commit !== target.commit) {
@@ -774,16 +778,36 @@ class AppImpl implements App {
 				return [];
 			}
 		} else if (target.config.running !== current.config.running) {
-			// Take lock for all services before starting/stopping container
-			if (!servicesLocked) {
-				this.services.concat(targetServices).forEach((s) => {
-					appsToLock[target.appId].add(s.serviceName);
-				});
-				return [];
-			}
 			if (target.config.running) {
+				// if the container has a reboot
+				// required label and the boot time is before the creation time, then
+				// return a 'noop' to ensure a reboot happens before starting the container
+				const requiresReboot =
+					target.config.labels?.['io.balena.update.requires-reboot'] !== null &&
+					current.createdAt != null &&
+					current.createdAt > bootTime;
+
+				if (requiresReboot && rebootBreadcrumbSet) {
+					// Do not return a noop to allow locks to be released by the
+					// app module
+					return [];
+				} else if (requiresReboot) {
+					return [
+						generateStep('requireReboot', {
+							serviceName: target.serviceName,
+						}),
+					];
+				}
+
 				return [generateStep('start', { target })];
 			} else {
+				// Take lock for all services before stopping container
+				if (!servicesLocked) {
+					this.services.concat(targetServices).forEach((s) => {
+						appsToLock[target.appId].add(s.serviceName);
+					});
+					return [];
+				}
 				return [generateStep('stop', { current })];
 			}
 		} else {
@@ -893,11 +917,11 @@ class AppImpl implements App {
 			return false;
 		}
 
-		const depedencyUnmet = _.some(target.dependsOn, (dep) =>
+		const dependencyUnmet = _.some(target.dependsOn, (dep) =>
 			_.some(servicePairs, (pair) => pair.target?.serviceName === dep),
 		);
 
-		if (depedencyUnmet) {
+		if (dependencyUnmet) {
 			return false;
 		}
 
