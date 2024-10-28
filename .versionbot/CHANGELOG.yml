@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update express to v4.20.0 [SECURITY]
+      hash: f2aaf7372d0716e3b62118ed3102a7eac0f169a5
+      body: |
+        Update express from 4.19.2 to 4.20.0
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 16.7.4
+  title: ""
+  date: 2024-10-28T14:40:42.702Z
+- commits:
     - subject: Add NXP support to balenaOS secure boot
       hash: 619f64429931975a6f33f1ef444928962d82e200
       body: |
