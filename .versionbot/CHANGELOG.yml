@@ -1,4 +1,23 @@
 - commits:
+    - subject: Add NXP support to balenaOS secure boot
+      hash: 619f64429931975a6f33f1ef444928962d82e200
+      body: |
+        On NXP iMX devices the partitions are not encrypted with LUKS but with
+        the lower level dm-crypt subsystem.
+
+        Adapt the partition mount script to use dmsetup which works for both
+        LUKS and dm-crypt encrypted partitions.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+      nested: []
+  version: 16.7.3
+  title: ""
+  date: 2024-10-28T14:04:22.141Z
+- commits:
     - subject: Use bookworm image to source journalctl binaries
       hash: 57a17ea2075d7aadd440b7c2be78f52136988ad9
       body: |
