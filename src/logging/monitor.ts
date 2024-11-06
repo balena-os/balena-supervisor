@@ -81,7 +81,7 @@ class LogMonitor {
 			}
 
 			stderr?.on('data', (data) =>
-				log.error('journalctl - balena.service stderr: ', data.toString()),
+				log.error('Journalctl process stderr: ', data.toString()),
 			);
 
 			const self = this;
@@ -102,9 +102,9 @@ class LogMonitor {
 					}
 				}
 			});
-			log.debug('balena.service journalctl process exit.');
+			log.debug('Journalctl process exit.');
 		} catch (e: any) {
-			log.error('journalctl - balena.service error: ', e.message ?? e);
+			log.error('Journalctl process error: ', e.message ?? e);
 		}
 
 		// On exit of process try to create another
@@ -113,9 +113,7 @@ class LogMonitor {
 			JOURNALCTL_ERROR_RETRY_DELAY_MAX,
 		);
 		log.debug(
-			`Spawning another process to watch balena.service logs in ${
-				wait / 1000
-			}s`,
+			`Spawning another process to watch journal logs in ${wait / 1000}s`,
 		);
 		await setTimeout(wait);
 		void this.start();
