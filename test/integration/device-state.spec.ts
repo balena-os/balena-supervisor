@@ -488,6 +488,124 @@ describe('device-state', () => {
 		expect(app2).to.have.property('isRejected').that.is.false;
 	});
 
+	// Resolves an issue in balenaMachine instances that were installed at <v14.1.0,
+	// in which a Supervisor app with random UUID is kept in the target db due to its appId
+	// being the same, even after the BM instance has upgraded to v14.1.0 which patches
+	// the correct reserved Supervisor app UUIDs in. This results in two Supervisors running
+	// on devices under the BM instance which persists after BM upgrade.
+	// See: https://balena.fibery.io/search/T7ozi#Inputs/Pattern/Two-supervisors-are-running-on-device-3370
+	it('removes apps with UUIDs not in target but where appId are the same as those in target, from target state', async () => {
+		const WRONG_UUID = '50e35121417640b1b28a680504e4039a';
+		const RIGHT_UUID = '52e35121417640b1b28a680504e4039b';
+		const APP_ID = 1667442;
+		await deviceState.setTarget({
+			local: {
+				name: 'trixie',
+				config: {},
+				apps: {
+					// Supervisor has the wrong app UUID initially, but the right appId
+					[WRONG_UUID]: {
+						id: APP_ID,
+						name: 'amd64-supervisor',
+						class: 'app',
+						releases: {
+							deadbeef: {
+								id: 1,
+								services: {
+									'balena-test-supervisor': {
+										id: 2,
+										image_id: 3,
+										image: 'registry2.balena-cloud.com/deadca1f',
+										environment: {},
+										labels: {},
+									},
+								},
+								volumes: {},
+								networks: {},
+							},
+						},
+					},
+				},
+			},
+		} as TargetState);
+		const targetState = await deviceState.getTarget();
+		expect(targetState)
+			.to.have.property('local')
+			.that.has.property('apps')
+			.that.has.property(APP_ID.toString())
+			.that.is.an('object');
+
+		const testSupervisor = targetState.local.apps[APP_ID];
+		expect(testSupervisor)
+			.to.have.property('appName')
+			.that.equals('amd64-supervisor');
+		expect(testSupervisor).to.have.property('appUuid').that.equals(WRONG_UUID);
+		expect(testSupervisor).to.have.property('commit').that.equals('deadbeef');
+		expect(testSupervisor)
+			.to.have.property('services')
+			.that.is.an('array')
+			.with.length(1);
+		expect(testSupervisor.services[0])
+			.to.have.property('config')
+			.that.has.property('image')
+			.that.equals('registry2.balena-cloud.com/deadca1f:latest');
+
+		await deviceState.setTarget({
+			local: {
+				name: 'trixie',
+				config: {},
+				apps: {
+					// Supervisor apps have been patched in user's BM to have
+					// the right app UUID, so this is now sent in the target state
+					[RIGHT_UUID]: {
+						id: APP_ID,
+						name: 'amd64-supervisor',
+						class: 'app',
+						releases: {
+							deadbeef: {
+								id: 1,
+								services: {
+									'balena-test-supervisor': {
+										id: 2,
+										image_id: 3,
+										image: 'registry2.balena-cloud.com/deadca1f',
+										environment: {},
+										labels: {},
+									},
+								},
+								volumes: {},
+								networks: {},
+							},
+						},
+					},
+				},
+			},
+		} as TargetState);
+		const targetState2 = await deviceState.getTarget();
+		expect(targetState2)
+			.to.have.property('local')
+			.that.has.property('apps')
+			.that.has.property(APP_ID.toString())
+			.that.is.an('object');
+
+		const testSupervisor2 = targetState2.local.apps[APP_ID];
+		expect(testSupervisor2)
+			.to.have.property('appName')
+			.that.equals('amd64-supervisor');
+		// Db apps whose UUIDs aren't in target are removed
+		// (As opposed to before, where appIds were compared for removal)
+		expect(testSupervisor2).to.have.property('appUuid').that.equals(RIGHT_UUID);
+		expect(testSupervisor2).to.have.property('commit').that.equals('deadbeef');
+		expect(testSupervisor2)
+			.to.have.property('services')
+			.that.is.an('array')
+			.with.length(1);
+		expect(testSupervisor2.services[0])
+			.to.have.property('config')
+			.that.has.property('image')
+			.that.equals('registry2.balena-cloud.com/deadca1f:latest');
+	});
+
 	// TODO: There is no easy way to test this behaviour with the current
 	// interface of device-state. We should really think about the device-state
 	// interface to allow this flexibility (and to avoid having to change module

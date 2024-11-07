@@ -521,9 +521,9 @@ export async function setTarget(
 		await $trx('app')
 			.where({ source })
 			.whereNotIn(
-				'appId',
-				// Delete every appId not in the target list
-				Object.values($apps).map(({ id: appId }) => appId),
+				'uuid',
+				// Delete every appUuid not in the target list
+				Object.keys($apps),
 			)
 			.del();
 	};
