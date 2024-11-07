@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update firewall documentation
+      hash: 1b747f6d65372632a5491a0630e7de00f92c773f
+      body: |
+        Removes experimental warning and updates issues
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.7.6
+  title: ""
+  date: 2024-11-07T21:02:38.875Z
+- commits:
     - subject: Delete apps not in target from db by appUuid instead of appId
       hash: 3d3f659f1616cc291824d1f46da08583c138f39c
       body: >
