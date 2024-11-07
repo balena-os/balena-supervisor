@@ -1,4 +1,33 @@
 - commits:
+    - subject: Delete apps not in target from db by appUuid instead of appId
+      hash: 3d3f659f1616cc291824d1f46da08583c138f39c
+      body: >
+        Resolve an issue in balenaMachine instances that were installed at
+        <v14.1.0,
+
+        in which a Supervisor app with random UUID is kept in the target db due
+        to its appId
+
+        being the same, even after the BM instance has upgraded to v14.1.0 which
+        patches
+
+        the correct reserved Supervisor app UUIDs in. This results in two
+        Supervisors running
+
+        on devices under the BM instance which persists after BM upgrade.
+      footer:
+        See: https://balena.fibery.io/search/T7ozi#Inputs/Pattern/Two-supervisors-are-running-on-device-3370
+        see: https://balena.fibery.io/search/T7ozi#Inputs/Pattern/Two-supervisors-are-running-on-device-3370
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.7.5
+  title: ""
+  date: 2024-11-07T13:34:05.062Z
+- commits:
     - subject: Update express to v4.20.0 [SECURITY]
       hash: f2aaf7372d0716e3b62118ed3102a7eac0f169a5
       body: |
