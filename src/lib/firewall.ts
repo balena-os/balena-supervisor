@@ -56,10 +56,17 @@ const standardServices: iptables.Rule[] = [
 		target: 'ACCEPT',
 	},
 	{
-		comment: 'DNS',
+		comment: 'DNS from balena0',
 		action: iptables.RuleAction.Append,
 		proto: 'udp',
 		matches: ['--dport 53', '-i balena0'],
+		target: 'ACCEPT',
+	},
+	{
+		comment: 'DNS from custom Engine networks',
+		action: iptables.RuleAction.Append,
+		proto: 'udp',
+		matches: ['--dport 53', '-i br+'],
 		target: 'ACCEPT',
 	},
 ];
