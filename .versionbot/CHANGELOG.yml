@@ -1,4 +1,23 @@
 - commits:
+    - subject: "Firewall: allow DNS requests from custom Docker bridge networks"
+      hash: 7e1cafa866d7ce04d983a990aa219dbd23de26c7
+      body: |
+        We only allow DNS requests through `balena0` interface, but this
+        is the default Docker bridge which is used for containers that
+        don't have a custom bridge. However, the Supervisor creates a
+        custom bridge for all containers unless another network mode is
+        specified.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.7.7
+  title: ""
+  date: 2024-11-11T19:02:34.485Z
+- commits:
     - subject: Update firewall documentation
       hash: 1b747f6d65372632a5491a0630e7de00f92c773f
       body: |
