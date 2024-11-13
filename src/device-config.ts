@@ -529,18 +529,21 @@ async function getBackendSteps(
 	const { deviceType } = await config.getMany(['deviceType']);
 
 	// Check for required bootConfig changes
+	let rebootRequired = false;
 	for (const backend of backends) {
 		if (changeRequired(backend, current, target, deviceType)) {
 			steps.push({
 				action: 'setBootConfig',
 				target,
 			});
+			rebootRequired =
+				(await backend.isRebootRequired(target)) || rebootRequired;
 		}
 	}
 
 	return [
-		// All backend steps require a reboot
-		...(steps.length > 0
+		// All backend steps require a reboot except fan control
+		...(steps.length > 0 && rebootRequired
 			? [{ action: 'setRebootBreadcrumb' } as ConfigStep]
 			: []),
 		...steps,
