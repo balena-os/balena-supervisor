@@ -1,6 +1,7 @@
 import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
 import * as t from 'io-ts';
+import * as _ from 'lodash';
 
 import { ConfigBackend } from './backend';
 import type { ConfigOptions } from './backend';
@@ -156,6 +157,16 @@ export class PowerFanConfig extends ConfigBackend {
 
 	public isBootConfigVar(envVar: string): boolean {
 		return PowerFanConfig.CONFIGS.has(PowerFanConfig.stripPrefix(envVar));
+	}
+
+	public async isRebootRequired(opts: ConfigOptions): Promise<boolean> {
+		const supportedOpts = _.pickBy(
+			_.mapKeys(opts, (_value, key) => PowerFanConfig.stripPrefix(key)),
+			(_value, key) => this.isSupportedConfig(key),
+		);
+		const current = await this.getBootConfig();
+		// A reboot is only required if the power mode is changing
+		return current.power_mode !== supportedOpts.power_mode;
 	}
 
 	public processConfigVarName(envVar: string): string {

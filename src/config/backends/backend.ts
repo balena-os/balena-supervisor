@@ -41,6 +41,12 @@ export abstract class ConfigBackend {
 	// Example an empty string should return null.
 	public abstract createConfigVarName(configName: string): string | null;
 
+	// Is a reboot required for the given config options?
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public async isRebootRequired(_opts: ConfigOptions): Promise<boolean> {
+		return true;
+	}
+
 	// Allow a chosen config backend to be initialised
 	public async initialise(): Promise<ConfigBackend> {
 		return this;
