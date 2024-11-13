@@ -57,9 +57,8 @@ export default class ConfigJsonConfigBackend {
 
 	public async get(key: Schema.SchemaKey): Promise<unknown> {
 		await this.init();
-		return Bluebird.using(
-			this.readLockConfigJson(),
-			async () => this.cache[key],
+		return Bluebird.using(this.readLockConfigJson(), async () =>
+			structuredClone(this.cache[key]),
 		);
 	}
 
