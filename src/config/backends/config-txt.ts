@@ -2,6 +2,7 @@ import _ from 'lodash';
 
 import type { ConfigOptions } from './backend';
 import { ConfigBackend } from './backend';
+import { isSupportedConfig as isPowerFanSupportedConfig } from './power-fan';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { exists } from '../../lib/fs-utils';
@@ -231,11 +232,21 @@ export class ConfigTxt extends ConfigBackend {
 	}
 
 	public isSupportedConfig(configName: string): boolean {
-		return !ConfigTxt.forbiddenConfigKeys.includes(configName);
+		return (
+			!ConfigTxt.forbiddenConfigKeys.includes(configName) &&
+			// power_mode and fan_profile are managed by the power-fan backend, so
+			// need to be excluded here as the config var name prefix is the same.
+			!isPowerFanSupportedConfig(configName)
+		);
 	}
 
 	public isBootConfigVar(envVar: string): boolean {
-		return envVar.startsWith(ConfigTxt.bootConfigVarPrefix);
+		return (
+			envVar.startsWith(ConfigTxt.bootConfigVarPrefix) &&
+			// power_mode and fan_profile are managed by the power-fan backend, so
+			// need to be excluded here as the config var name prefix is the same.
+			!isPowerFanSupportedConfig(envVar)
+		);
 	}
 
 	public processConfigVarName(envVar: string): string {
