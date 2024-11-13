@@ -43,14 +43,10 @@ export default class ConfigJsonConfigBackend {
 		await Bluebird.using(this.writeLockConfigJson(), async () => {
 			let changed = false;
 			_.forOwn(keyVals, (value, key: T) => {
-				if (this.cache[key] !== value) {
+				if (this.schema[key] != null && !_.isEqual(this.cache[key], value)) {
 					this.cache[key] = value;
 
-					if (
-						value == null &&
-						this.schema[key] != null &&
-						this.schema[key].removeIfNull
-					) {
+					if (value == null && this.schema[key].removeIfNull) {
 						delete this.cache[key];
 					}
 
@@ -63,7 +59,7 @@ export default class ConfigJsonConfigBackend {
 		});
 	}
 
-	public async get(key: string): Promise<unknown> {
+	public async get(key: Schema.SchemaKey): Promise<unknown> {
 		await this.init();
 		return Bluebird.using(
 			this.readLockConfigJson(),
@@ -71,7 +67,7 @@ export default class ConfigJsonConfigBackend {
 		);
 	}
 
-	public async remove(key: string) {
+	public async remove(key: Schema.SchemaKey) {
 		await this.init();
 		return Bluebird.using(this.writeLockConfigJson(), async () => {
 			let changed = false;
