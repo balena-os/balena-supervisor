@@ -81,29 +81,28 @@ async function dispose(
 }
 
 /**
- * Composition step used by Supervisor compose module.
- * Take all locks for an appId | appUuid, creating directories if they don't exist.
+ * Take process lock for an appId, then take all service locks of an appId.
+ * Override existing service locks if lockOverride is true.
+ * Return a list of services that were locked and a function that releases the process lock.
+ * Meant to only be used internally as it does not release the process lock if
+ * the lock succeeds.
  */
-export async function takeLock(
+async function takeLockFor(
 	appId: number,
 	services: string[],
 	force: boolean = false,
-) {
-	logger.logSystemEvent(logTypes.takeLock, {
-		appId,
-		services,
-		force,
-	});
-
+): Promise<{ actuallyLocked: string[]; release: () => void }> {
 	const release = await takeGlobalLockRW(appId);
 
-	let lockOverride: boolean;
-	try {
-		lockOverride = await config.get('lockOverride');
-	} catch (err: any) {
-		throw new InternalInconsistencyError(
-			`Error getting lockOverride config value: ${err?.message ?? err}`,
-		);
+	let lockOverride = force;
+	if (!lockOverride) {
+		try {
+			lockOverride = await config.get('lockOverride');
+		} catch (err: any) {
+			throw new InternalInconsistencyError(
+				`Error getting lockOverride config value: ${err?.message ?? err}`,
+			);
+		}
 	}
 
 	try {
@@ -117,10 +116,10 @@ export async function takeLock(
 		);
 		for (const service of servicesWithoutLock) {
 			await mkdirp(pathOnRoot(lockPath(appId, service)));
-			await lockService(appId, service, force || lockOverride);
+			await lockService(appId, service, lockOverride);
 			actuallyLocked.push(service);
 		}
-		return actuallyLocked;
+		return { actuallyLocked, release };
 	} catch (err) {
 		// If something errors while taking the lock, we should remove any
 		// lockfiles that may have been created so that all services return
@@ -128,10 +127,40 @@ export async function takeLock(
 		await dispose(appId, release);
 		// Re-throw error to be handled in caller
 		throw err;
+	}
+}
+
+/**
+ * Composition step used by Supervisor compose module.
+ * Take process lock for an appId, lock all services, then release process lock.
+ */
+export async function takeLock(
+	appId: number,
+	services: string[],
+	force: boolean = false,
+) {
+	logger.logSystemEvent(logTypes.takeLock, {
+		appId,
+		services,
+		force,
+	});
+
+	let release: null | (() => void) = null;
+	try {
+		// Errors thrown should be handled by function callee
+		const { actuallyLocked, release: releaseFn } = await takeLockFor(
+			appId,
+			services,
+			force,
+		);
+		release = releaseFn;
+		return actuallyLocked;
 	} finally {
 		// If not already released from catch, released the RW process lock.
 		// If already released, this will not error.
-		release();
+		if (release) {
+			release();
+		}
 	}
 }
 
@@ -269,7 +298,10 @@ export async function getServicesLockedByAppId(): Promise<LocksTakenMap> {
 
 /**
  * Try to take the locks for an application. If force is set, it will remove
- * all existing lockfiles before performing the operation
+ * all existing lockfiles before performing the passed operation.
+ *
+ * This is used by actions such as reboot and shutdown to ensure locks are taken
+ * before executing those actions.
  *
  * TODO: convert to native Promises and async/await. May require native implementation of Bluebird's dispose / using
  */
@@ -286,37 +318,29 @@ export async function lock<T>(
 	// Sort appIds so they are always locked in the same sequence
 	const sortedIds = appIdsToLock.sort();
 
-	let lockOverride: boolean;
-	try {
-		lockOverride = await config.get('lockOverride');
-	} catch (err: any) {
-		throw new InternalInconsistencyError(
-			`Error getting lockOverride config value: ${err?.message ?? err}`,
-		);
-	}
-
-	const releases = new Map<number, () => void>();
+	const processLocks = new Map<number, () => void>();
 	try {
 		for (const id of sortedIds) {
+			// Get services for appId.
+			// Folders under an appId directory are the names of the services
+			// in that appId, which are created as part of container creation.
 			const lockDir = pathOnRoot(lockPath(id));
-			// Acquire write lock for appId
-			releases.set(id, await takeGlobalLockRW(id));
-			// Get list of service folders in lock directory
-			const serviceFolders = await fs.readdir(lockDir).catch((e) => {
+			const services = await fs.readdir(lockDir).catch((e) => {
 				if (isENOENT(e)) {
 					return [];
 				}
 				throw e;
 			});
-			// Attempt to create a lock for each service
-			for (const service of serviceFolders) {
-				await lockService(id, service, force || lockOverride);
-			}
+			// Take process lock for appId and lock all services
+			const { release } = await takeLockFor(id, services, force);
+			// Store process lock release for appId, to delay
+			// releasing process lock until all appIds are locked.
+			processLocks.set(id, release);
 		}
 		// Resolve the function passed
 		return await fn();
 	} finally {
-		for (const [id, release] of releases.entries()) {
+		for (const [id, release] of processLocks.entries()) {
 			// Try to dispose all the locks
 			await dispose(id, release);
 		}

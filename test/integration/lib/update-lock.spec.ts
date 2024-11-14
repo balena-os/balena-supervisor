@@ -76,12 +76,12 @@ describe('lib/update-lock', () => {
 
 		const supportedLockfiles = ['resin-updates.lock', 'updates.lock'];
 
-		const takeLocks = () =>
+		const takeLocksWithUid = (uid: number = updateLock.LOCKFILE_UID) =>
 			Promise.all(
 				supportedLockfiles.map((lf) =>
 					lockfile.lock(
 						path.join(lockdir(testAppId, testServiceName), lf),
-						updateLock.LOCKFILE_UID,
+						uid,
 					),
 				),
 			);
@@ -146,8 +146,8 @@ describe('lib/update-lock', () => {
 		});
 
 		it('should throw UpdatesLockedError if lockfiles exists', async () => {
-			// Take the locks before testing
-			await takeLocks();
+			// Take locks as user before testing
+			await takeLocksWithUid(0);
 
 			await expectLocks(true, 'locks should exist before the lock is taken');
 
@@ -241,7 +241,8 @@ describe('lib/update-lock', () => {
 		});
 
 		it('resolves input function without locking when appId is null', async () => {
-			await takeLocks();
+			// Take locks as user before testing
+			await takeLocksWithUid(0);
 
 			await expect(
 				updateLock.lock(null as any, { force: false }, () => Promise.resolve()),
@@ -256,7 +257,8 @@ describe('lib/update-lock', () => {
 		});
 
 		it('unlocks lockfile to resolve function if force option specified', async () => {
-			await takeLocks();
+			// Take locks as user before testing
+			await takeLocksWithUid(0);
 
 			await expect(
 				updateLock.lock(testAppId, { force: true }, () =>
@@ -274,7 +276,8 @@ describe('lib/update-lock', () => {
 		});
 
 		it('unlocks lockfile to resolve function if lockOverride option specified', async () => {
-			await takeLocks();
+			// Take locks as user before testing
+			await takeLocksWithUid(0);
 
 			// Change the configuration
 			await config.set({ lockOverride: true });
@@ -292,6 +295,27 @@ describe('lib/update-lock', () => {
 				false,
 				'using lockOverride gave lock ownership to the callback, so they should now be deleted',
 			);
+		});
+
+		it('should not try to take Supervisor locks that are already taken', async () => {
+			// Take Supervisor locks
+			await takeLocksWithUid(updateLock.LOCKFILE_UID);
+
+			// Attempt to take locks again from another context,
+			// which should not throw an error as locks that are already
+			// taken should not be taken again by the Supervisor.
+			await updateLock
+				.lock(testAppId, { force: false }, () => Promise.resolve())
+				.catch(async (err) => {
+					expect(
+						await updateLock.getLocksTaken(),
+						'Locks taken in initially should still be held',
+					).to.have.length(1);
+					expect.fail(`update lock should not throw error but got: ${err}`);
+				});
+
+			// Release locks
+			await releaseLocks();
 		});
 	});
 
