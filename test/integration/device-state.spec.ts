@@ -1,19 +1,30 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import { UpdatesLockedError } from '~/lib/errors';
-import * as fsUtils from '~/lib/fs-utils';
-import * as updateLock from '~/lib/update-lock';
+import { promises as fs } from 'fs';
+import * as path from 'path';
+import { testfs } from 'mocha-pod';
+import Docker from 'dockerode';
+import { setTimeout } from 'timers/promises';
+import { inspect } from 'util';
+
 import * as config from '~/src/config';
 import * as deviceState from '~/src/device-state';
 import { appsJsonBackup, loadTargetFromFile } from '~/src/device-state/preload';
 import type { TargetState } from '~/src/types';
-import { promises as fs } from 'fs';
+import * as applicationManager from '~/src/compose/application-manager';
+import * as updateLock from '~/lib/update-lock';
+import { UpdatesLockedError } from '~/lib/errors';
+import * as fsUtils from '~/lib/fs-utils';
+import { pathOnState, pathOnRoot } from '~/lib/host-utils';
 import { initializeContractRequirements } from '~/lib/contracts';
 
-import { testfs } from 'mocha-pod';
 import { createDockerImage } from '~/test-lib/docker-helper';
-import Docker from 'dockerode';
-import { setTimeout } from 'timers/promises';
+import {
+	createApps,
+	createService,
+	DEFAULT_NETWORK,
+} from '~/test-lib/state-helper';
+import { dbusSend } from '~/test-lib/dbus';
 
 describe('device-state', () => {
 	const docker = new Docker();
@@ -616,19 +627,183 @@ describe('device-state', () => {
 
 	it.skip('applies the target state for applications');
 
-	it('prevents reboot or shutdown when HUP rollback breadcrumbs are present', async () => {
-		const testErrMsg = 'Waiting for Host OS updates to finish';
-		sinon
-			.stub(updateLock, 'abortIfHUPInProgress')
-			.throws(new UpdatesLockedError(testErrMsg));
+	describe('reboot and shutdown', () => {
+		it('reboots the device', async () => {
+			// Reset mock power state
+			await dbusSend(
+				'org.freedesktop.login1',
+				'/org/freedesktop/login1',
+				'org.freedesktop.login1.Manager.MockReset',
+			);
 
-		await expect(deviceState.shutdown({ reboot: true }))
-			.to.eventually.be.rejectedWith(testErrMsg)
-			.and.be.an.instanceOf(UpdatesLockedError);
-		await expect(deviceState.shutdown())
-			.to.eventually.be.rejectedWith(testErrMsg)
-			.and.be.an.instanceOf(UpdatesLockedError);
+			// Should not throw
+			await deviceState.shutdown({ reboot: true });
 
-		(updateLock.abortIfHUPInProgress as sinon.SinonStub).restore();
+			await expect(
+				dbusSend(
+					'org.freedesktop.login1',
+					'/org/freedesktop/login1',
+					'org.freedesktop.DBus.Properties.Get',
+					'string:org.freedesktop.login1.Manager',
+					'string:MockState',
+				),
+			).to.eventually.equal('variant       string "rebooting"');
+		});
+
+		it('shuts down the device', async () => {
+			// Reset mock power state
+			await dbusSend(
+				'org.freedesktop.login1',
+				'/org/freedesktop/login1',
+				'org.freedesktop.login1.Manager.MockReset',
+			);
+
+			// Should not throw
+			await deviceState.shutdown();
+
+			await expect(
+				dbusSend(
+					'org.freedesktop.login1',
+					'/org/freedesktop/login1',
+					'org.freedesktop.DBus.Properties.Get',
+					'string:org.freedesktop.login1.Manager',
+					'string:MockState',
+				),
+			).to.eventually.equal('variant       string "off"');
+		});
+
+		it('prevents reboot or shutdown when HUP breadcrumbs are present', async () => {
+			// Reset mock power state
+			await dbusSend(
+				'org.freedesktop.login1',
+				'/org/freedesktop/login1',
+				'org.freedesktop.login1.Manager.MockReset',
+			);
+
+			for (const breadcrumb of [
+				'rollback-health-breadcrumb',
+				'rollback-altboot-breadcrumb',
+			]) {
+				// Set up HUP breadcrumb
+				await testfs({
+					[pathOnState(breadcrumb)]: '',
+				}).enable();
+
+				const errMsg = 'Waiting for Host OS update to finish';
+				await expect(deviceState.shutdown({ reboot: true }))
+					.to.eventually.be.rejectedWith(errMsg)
+					.and.be.an.instanceOf(UpdatesLockedError);
+				await expect(deviceState.shutdown())
+					.to.eventually.be.rejectedWith(errMsg)
+					.and.be.an.instanceOf(UpdatesLockedError);
+
+				await testfs.restore();
+			}
+		});
+
+		it('prevents reboot or shutdown when user service locks are present', async () => {
+			// Set up a user service lock
+			sinon.stub(applicationManager, 'getCurrentApps').resolves(
+				createApps(
+					{
+						services: [
+							await createService({
+								running: true,
+								appId: 123,
+								serviceName: 'test',
+							}),
+						],
+						networks: [DEFAULT_NETWORK],
+					},
+					false,
+				),
+			);
+			await testfs({
+				[pathOnRoot(
+					path.join(updateLock.lockPath(123, 'test'), 'updates.lock'),
+				)]: testfs.file({ uid: 0 }),
+				[pathOnRoot(
+					path.join(updateLock.lockPath(123, 'test'), 'resin-updates.lock'),
+				)]: testfs.file({ uid: 0 }),
+			}).enable();
+
+			const errMsg = 'Lockfile exists for { appId: 123, service: test }';
+			await expect(deviceState.shutdown({ reboot: true }))
+				.to.eventually.be.rejectedWith(errMsg)
+				.and.be.an.instanceOf(UpdatesLockedError);
+			await expect(deviceState.shutdown())
+				.to.eventually.be.rejectedWith(errMsg)
+				.and.be.an.instanceOf(UpdatesLockedError);
+
+			await testfs.restore();
+			(applicationManager.getCurrentApps as sinon.SinonStub).restore();
+		});
+
+		it('prevents reboot or shutdown while update lock module is under process lock', async () => {
+			// Set up a Supervisor service lock
+			sinon.stub(applicationManager, 'getCurrentApps').resolves(
+				createApps(
+					{
+						services: [
+							await createService({
+								running: true,
+								appId: 123,
+								serviceName: 'test',
+							}),
+						],
+						networks: [DEFAULT_NETWORK],
+					},
+					false,
+				),
+			);
+			await testfs({
+				[pathOnRoot(updateLock.lockPath(123, 'test'))]: {
+					'ignored.lock': testfs.file({ uid: updateLock.LOCKFILE_UID }),
+				},
+			}).enable();
+
+			let shouldResolve = false;
+			// Generate a function which doesn't resolve until specified
+			const waitToResolve = async () => {
+				while (!shouldResolve) {
+					await setTimeout(100);
+				}
+				return true;
+			};
+
+			// Take lock and execute the function, which will keep the process lock
+			// until the function is resolved
+			const lockPromise = updateLock.lock(123, { force: false }, waitToResolve);
+			await setTimeout(500);
+			expect(inspect(lockPromise)).to.include('pending');
+
+			// While the Supervisor lock is taken in another context, reboot & shutdown
+			// should wait until locks are freed, so the shutdown promise is pending
+			// until the lockPromise is resolved
+			const rebootPromise = deviceState.shutdown({ reboot: true });
+			await setTimeout(500);
+			expect(inspect(rebootPromise)).to.include('pending');
+
+			// Resolve pending lock
+			shouldResolve = true;
+			await setTimeout(500);
+			expect(inspect(lockPromise)).to.not.include('pending');
+
+			// Reboot promise should now resolve
+			// This will time out if reboot promise doesn't resolve
+			await rebootPromise;
+			await expect(
+				dbusSend(
+					'org.freedesktop.login1',
+					'/org/freedesktop/login1',
+					'org.freedesktop.DBus.Properties.Get',
+					'string:org.freedesktop.login1.Manager',
+					'string:MockState',
+				),
+			).to.eventually.equal('variant       string "rebooting"');
+
+			await testfs.restore();
+			(applicationManager.getCurrentApps as sinon.SinonStub).restore();
+		});
 	});
 });
