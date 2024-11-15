@@ -1,6 +1,5 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import type { Stats } from 'fs';
 import { isRight } from 'fp-ts/lib/Either';
 
 import {
@@ -212,11 +211,10 @@ export class LocksTakenMap extends Map<number, Set<string>> {
 export async function getLocksTaken(
 	rootDir: string = pathOnRoot(BASE_LOCK_DIR),
 ): Promise<string[]> {
-	return await lockfile.getLocksTaken(
-		rootDir,
-		(p: string, s: Stats) =>
-			p.endsWith('updates.lock') && s.uid === LOCKFILE_UID,
-	);
+	return await lockfile.findAll({
+		root: rootDir,
+		filter: (l) => l.path.endsWith('updates.lock') && l.owner === LOCKFILE_UID,
+	});
 }
 
 /**

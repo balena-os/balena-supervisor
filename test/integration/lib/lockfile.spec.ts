@@ -165,7 +165,7 @@ describe('lib/lockfile', () => {
 		await Promise.all(locks.map((lock) => lockfile.lock(lock)));
 
 		// Assert all locks are listed as taken
-		expect(await lockfile.getLocksTaken(lockdir)).to.have.members(
+		expect(await lockfile.findAll({ root: lockdir })).to.have.members(
 			locks.concat([`${lockdir}/other.lock`]),
 		);
 
@@ -194,30 +194,23 @@ describe('lib/lockfile', () => {
 		// Assert appropriate locks are listed as taken...
 		// - with a specific UID
 		expect(
-			await lockfile.getLocksTaken(
-				lockdir,
-				(p, stats) => p.endsWith('.lock') && stats.uid === NOBODY_UID,
-			),
+			await lockfile.findAll({
+				root: lockdir,
+				filter: (lock) =>
+					lock.path.endsWith('.lock') && lock.owner === NOBODY_UID,
+			}),
 		).to.have.members([
 			`${lockdir}/updates.lock`,
 			`${lockdir}/1/resin-updates.lock`,
 			`${lockdir}/other.lock`,
 		]);
-		// - as a directory
-		expect(
-			await lockfile.getLocksTaken(
-				lockdir,
-				(p, stats) => p.endsWith('.lock') && stats.isDirectory(),
-			),
-		).to.have.members([
-			`${lockdir}/1/updates.lock`,
-			`${lockdir}/1/resin-updates.lock`,
-		]);
+
 		// - under a different root dir from default
 		expect(
-			await lockfile.getLocksTaken(`${lockdir}/services`, (p) =>
-				p.endsWith('.lock'),
-			),
+			await lockfile.findAll({
+				root: `${lockdir}/services`,
+				filter: (lock) => lock.path.endsWith('.lock'),
+			}),
 		).to.have.members([
 			`${lockdir}/services/main/updates.lock`,
 			`${lockdir}/services/aux/resin-updates.lock`,
@@ -233,9 +226,10 @@ describe('lib/lockfile', () => {
 		// Create symlink lock
 		await fs.symlink('/nonexistent', `${lockdir}/updates.lock`);
 
-		expect(
-			await lockfile.getLocksTaken(lockdir, (_p, s) => s.isSymbolicLink()),
-		).to.have.members([`${lockdir}/updates.lock`]);
+		expect(await lockfile.findAll({ root: lockdir })).to.have.members([
+			`${lockdir}/other.lock`,
+			`${lockdir}/updates.lock`,
+		]);
 
 		// Cleanup symlink lock
 		await fs.rm(`${lockdir}/updates.lock`);

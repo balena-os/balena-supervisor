@@ -634,9 +634,9 @@ describe('lib/update-lock', () => {
 
 				// Take lock for second service of two services
 				await lockfile.lock(`${lockdir}/1/${svcs[1]}/updates.lock`);
-				expect(await lockfile.getLocksTaken(lockdir)).to.deep.include.members([
-					`${lockdir}/1/${svcs[1]}/updates.lock`,
-				]);
+				expect(
+					await lockfile.findAll({ root: lockdir }),
+				).to.deep.include.members([`${lockdir}/1/${svcs[1]}/updates.lock`]);
 
 				// Watch for added files, as Supervisor-taken locks should be added
 				// then removed within updateLock.takeLock
@@ -656,16 +656,16 @@ describe('lib/update-lock', () => {
 
 				// ..but upon error, Supervisor-taken locks should have been cleaned up
 				expect(
-					await lockfile.getLocksTaken(lockdir),
+					await lockfile.findAll({ root: lockdir }),
 				).to.not.deep.include.members([
 					`${lockdir}/1/${svcs[0]}/updates.lock`,
 					`${lockdir}/1/${svcs[0]}/resin-updates.lock`,
 				]);
 
 				// User lock should be left behind
-				expect(await lockfile.getLocksTaken(lockdir)).to.deep.include.members([
-					`${lockdir}/1/${svcs[1]}/updates.lock`,
-				]);
+				expect(
+					await lockfile.findAll({ root: lockdir }),
+				).to.deep.include.members([`${lockdir}/1/${svcs[1]}/updates.lock`]);
 
 				// Clean up watcher
 				await watcher.close();
