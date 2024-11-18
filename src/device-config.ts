@@ -4,7 +4,7 @@ import { promises as fs } from 'fs';
 
 import * as config from './config';
 import * as db from './db';
-import * as logger from './logger';
+import * as logger from './logging';
 import * as dbus from './lib/dbus';
 import type { EnvVarObject } from './types';
 import { UnitNotLoadedError } from './lib/errors';

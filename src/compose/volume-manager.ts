@@ -8,7 +8,7 @@ import { pathOnData } from '../lib/host-utils';
 import { docker } from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
 import log from '../lib/supervisor-console';
-import * as logger from '../logger';
+import * as logger from '../logging';
 import { ResourceRecreationAttemptError } from './errors';
 import type { VolumeConfig } from './types';
 import { Volume } from './volume';
