@@ -1,18 +1,4 @@
-type BaseLogMessage = {
-	message: string;
-	isStdErr?: boolean;
-	timestamp: number;
-};
-export type LogMessage = BaseLogMessage &
-	(
-		| {
-				serviceId: number;
-				isSystem?: false;
-		  }
-		| {
-				isSystem: true;
-		  }
-	);
+import type { LogMessage } from './types';
 
 export abstract class LogBackend {
 	public unmanaged: boolean;

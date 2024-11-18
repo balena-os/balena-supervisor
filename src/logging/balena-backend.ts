@@ -6,7 +6,7 @@ import url from 'url';
 import zlib from 'zlib';
 import { setTimeout } from 'timers/promises';
 
-import type { LogMessage } from './log-backend';
+import type { LogMessage } from './types';
 import { LogBackend } from './log-backend';
 
 import log from '../lib/supervisor-console';

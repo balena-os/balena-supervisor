@@ -7,7 +7,8 @@ import type { LogType } from '../lib/log-types';
 import { takeGlobalLockRW } from '../lib/process-lock';
 import { BalenaLogBackend } from './balena-backend';
 import { LocalLogBackend } from './local-backend';
-import type { LogBackend, LogMessage } from './log-backend';
+import type { LogBackend } from './log-backend';
+import type { LogMessage } from './types';
 import logMonitor from './monitor';
 
 import * as globalEventBus from '../event-bus';
@@ -48,6 +49,8 @@ export const initialized = _.once(async () => {
 	backend = localMode ? localBackend : balenaBackend;
 	backend.unmanaged = unmanaged;
 	backend.publishEnabled = loggingEnabled;
+
+	logMonitor.attachSystemLogger(log);
 
 	if (!balenaBackend.isInitialised()) {
 		globalEventBus.getInstance().once('deviceProvisioned', async () => {
