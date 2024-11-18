@@ -7,7 +7,7 @@ import { docker } from '../lib/docker-utils';
 import { InternalInconsistencyError } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import type { LabelObject } from '../types';
-import * as logger from '../logger';
+import * as logger from '../logging';
 import * as ComposeUtils from './utils';
 
 import type {

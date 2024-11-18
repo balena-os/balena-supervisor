@@ -4,7 +4,7 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
 import type { Transaction } from '../db';
-import * as logger from '../logger';
+import * as logger from '../logging';
 import LocalModeManager from '../local-mode';
 
 import * as dbFormat from '../device-state/db-format';

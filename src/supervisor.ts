@@ -2,7 +2,7 @@ import * as apiBinder from './api-binder';
 import * as db from './db';
 import * as config from './config';
 import * as deviceState from './device-state';
-import * as logger from './logger';
+import * as logger from './logging';
 import SupervisorAPI from './device-api';
 import * as v1 from './device-api/v1';
 import * as v2 from './device-api/v2';

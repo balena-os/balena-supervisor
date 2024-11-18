@@ -4,7 +4,7 @@ import * as config from '../config/index';
 import * as constants from './constants';
 import * as iptables from './iptables';
 import { log } from './supervisor-console';
-import { logSystemMessage } from '../logger';
+import { logSystemMessage } from '../logging';
 
 import * as dbFormat from '../device-state/db-format';
 

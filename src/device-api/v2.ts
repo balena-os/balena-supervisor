@@ -12,7 +12,7 @@ import * as commitStore from '../compose/commit';
 import * as config from '../config';
 import * as db from '../db';
 import * as deviceConfig from '../device-config';
-import * as logger from '../logger';
+import * as logger from '../logging';
 import * as images from '../compose/images';
 import * as volumeManager from '../compose/volume-manager';
 import * as serviceManager from '../compose/service-manager';
