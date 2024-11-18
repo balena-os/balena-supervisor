@@ -78,7 +78,10 @@ export class Supervisor {
 						memory.healthcheck,
 					],
 				});
-				deviceState.on('shutdown', () => this.api.stop());
+				deviceState.on('shutdown', () => {
+					void this.api.stop();
+					logMonitor.detachSystemLogger();
+				});
 				return this.api.listen(conf.listenPort, conf.apiTimeout);
 			})(),
 			apiBinder.start(),

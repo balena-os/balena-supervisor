@@ -49,6 +49,8 @@ export const initialized = _.once(async () => {
 	backend.unmanaged = unmanaged;
 	backend.publishEnabled = loggingEnabled;
 
+	logMonitor.attachSystemLogger(log);
+
 	if (!balenaBackend.isInitialised()) {
 		globalEventBus.getInstance().once('deviceProvisioned', async () => {
 			const conf = await config.getMany([

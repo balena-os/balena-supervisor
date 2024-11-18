@@ -1,14 +1,18 @@
 import { pipeline } from 'stream/promises';
+import { setTimeout } from 'timers/promises';
 
 import { spawnJournalctl, toJournalDate } from '../lib/journald';
 import log from '../lib/supervisor-console';
-import { setTimeout } from 'timers/promises';
 
-export type MonitorHook = (message: {
+type MonitorHookMessage = {
 	message: string;
 	isStdErr: boolean;
 	timestamp: number;
-}) => Resolvable<void>;
+};
+type MonitorHook = (message: MonitorHookMessage) => Promise<void>;
+type SystemMonitorHook = (
+	message: MonitorHookMessage & { isSystem: true },
+) => Promise<void>;
 
 // This is nowhere near the amount of fields provided by journald, but simply the ones
 // that we are interested in
@@ -18,6 +22,7 @@ interface JournalRow {
 	MESSAGE: string | number[];
 	PRIORITY: string;
 	__REALTIME_TIMESTAMP: string;
+	_SYSTEMD_UNIT?: string;
 }
 
 // Wait 5s when journalctl failed before trying to read the logs again
@@ -55,11 +60,24 @@ async function* splitStream(chunkIterable: AsyncIterable<any>) {
  * Streams logs from journalctl and calls container hooks when a record is received matching container id
  */
 class LogMonitor {
+	// Additional host services we want to stream the logs for
+	private HOST_SERVICES = [
+		// Balena service which applies power mode to config file on boot
+		'os-power-mode.service',
+		// Balena service which applies fan profile to device at runtime
+		'os-fan-profile.service',
+		// Nvidia power daemon which logs result from applying power mode from config file to device
+		'nvpmodel.service',
+		// Runs at boot time and checks if Orin QSPI is accessible after provisioning
+		'jetson-qspi-manager.service',
+	];
+
 	private containers: {
 		[containerId: string]: {
 			hook: MonitorHook;
 		};
 	} = {};
+	private systemHook: SystemMonitorHook | null = null;
 	private setupAttempts = 0;
 
 	// Only stream logs since the start of the supervisor
@@ -72,11 +90,16 @@ class LogMonitor {
 				all: true,
 				follow: true,
 				format: 'json',
-				filterString: '_SYSTEMD_UNIT=balena.service',
+				filter: [
+					// Monitor logs from balenad by default for container log-streaming
+					'balena.service',
+					// Add any host services we want to stream
+					...this.HOST_SERVICES,
+				].map((s) => `_SYSTEMD_UNIT=${s}`),
 				since: toJournalDate(this.lastSentTimestamp),
 			});
 			if (!stdout) {
-				// this will be catched below
+				// This error will be caught below
 				throw new Error('failed to open process stream');
 			}
 
@@ -96,6 +119,8 @@ class LogMonitor {
 							self.containers[row.CONTAINER_ID_FULL]
 						) {
 							await self.handleRow(row);
+						} else if (self.HOST_SERVICES.includes(row._SYSTEMD_UNIT)) {
+							await self.handleHostServiceRow(row);
 						}
 					} catch {
 						// ignore parsing errors
@@ -135,6 +160,16 @@ class LogMonitor {
 		delete this.containers[containerId];
 	}
 
+	public attachSystemLogger(hook: SystemMonitorHook) {
+		if (this.systemHook == null) {
+			this.systemHook = hook;
+		}
+	}
+
+	public detachSystemLogger() {
+		this.systemHook = null;
+	}
+
 	private async handleRow(row: JournalRow) {
 		if (
 			row.CONTAINER_ID_FULL == null ||
@@ -156,6 +191,23 @@ class LogMonitor {
 
 		await this.containers[containerId].hook({ message, isStdErr, timestamp });
 		this.lastSentTimestamp = timestamp;
+	}
+
+	private async handleHostServiceRow(
+		row: JournalRow & { _SYSTEMD_UNIT: string },
+	) {
+		const message = messageFieldToString(row.MESSAGE);
+		if (message == null) {
+			return;
+		}
+		const isStdErr = row.PRIORITY === '3';
+		const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
+		void this.systemHook?.({
+			message,
+			isStdErr,
+			timestamp,
+			isSystem: true,
+		});
 	}
 }
 
