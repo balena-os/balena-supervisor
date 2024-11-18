@@ -1,8 +1,11 @@
 import { pipeline } from 'stream/promises';
 import { setTimeout } from 'timers/promises';
+import type { ContainerInspectInfo } from 'dockerode';
 
 import { spawnJournalctl, toJournalDate } from '../lib/journald';
 import log from '../lib/supervisor-console';
+import { docker } from '../lib/docker-utils';
+import type { SpawnJournalctlOpts } from '../lib/journald';
 import type { SystemLogMessage, BaseLogMessage } from './types';
 
 type MonitorHook = (message: BaseLogMessage) => Promise<void>;
@@ -62,6 +65,19 @@ async function* splitStream(chunkIterable: AsyncIterable<any>) {
 	}
 }
 
+const getSupervisorContainer =
+	async (): Promise<ContainerInspectInfo | null> => {
+		try {
+			return await Promise.any([
+				docker.getContainer('balena_supervisor').inspect(),
+				docker.getContainer('resin_supervisor').inspect(),
+			]);
+		} catch {
+			// If all promises reject, return null
+			return null;
+		}
+	};
+
 /**
  * Streams logs from journalctl and calls container hooks when a record is received matching container id
  */
@@ -76,24 +92,17 @@ class LogMonitor {
 	};
 	private setupAttempts = 0;
 
-	// Only stream logs since the start of the supervisor
-	private lastSentTimestamp = Date.now() - performance.now();
+	// By default, only stream logs since the start of the Supervisor process
+	private lastSentTimestamp: number | null = null;
 
 	public async start(): Promise<void> {
+		// Get journalctl spawn options
+		const opts = await this.getJournalctlOptions();
+
+		// Spawn journalctl process to stream logs
 		try {
 			// TODO: do not spawn journalctl if logging is not enabled
-			const { stdout, stderr } = spawnJournalctl({
-				all: true,
-				follow: true,
-				format: 'json',
-				filter: [
-					// Monitor logs from balenad by default for container log-streaming
-					'balena.service',
-					// Add any host services we want to stream
-					...HOST_SERVICES,
-				].map((s) => `_SYSTEMD_UNIT=${s}`),
-				since: toJournalDate(this.lastSentTimestamp),
-			});
+			const { stdout, stderr } = spawnJournalctl(opts);
 			if (!stdout) {
 				// This error will be caught below
 				throw new Error('failed to open process stream');
@@ -138,6 +147,46 @@ class LogMonitor {
 		);
 		await setTimeout(wait);
 		void this.start();
+	}
+
+	private async getJournalctlOptions(): Promise<SpawnJournalctlOpts> {
+		// On SV start, journalctl is spawned with a timestamp to only
+		// get logs since the last Supervisor State.FinishedAt. This will catch any
+		// host and container logs generated while the Supervisor was not running.
+		const supervisorContainer = await getSupervisorContainer();
+		if (supervisorContainer !== null) {
+			const finishedAt = supervisorContainer.State.FinishedAt;
+			const finishedAtDate = new Date(finishedAt).getTime();
+			// When a container has never exited with any exit code,
+			// the FinishedAt timestamp is "0001-01-01T00:00:00Z". Any
+			// timestamp below 0 in ms value is from before the epoch.
+			// Only set the lastSentTimestamp to the last Supervisor State.FinishedAt if:
+			// - finishedAtDate is greater than 0 (i.e. the supervisor container has exited at least once)
+			// - lastSentTimestamp is null (i.e. this is the first time we've started the monitor)
+			//   - This prevents the case of the logs getting streamed from State.FinishedAt for
+			//     subsequent monitor.start() calls due to the underlying journalctl process dying.
+			if (finishedAtDate > 0 && this.lastSentTimestamp == null) {
+				this.lastSentTimestamp = finishedAtDate;
+			}
+		}
+
+		// If the conditions weren't met to set the lastSentTimestamp, use the process uptime
+		if (this.lastSentTimestamp == null) {
+			this.lastSentTimestamp = Date.now() - performance.now();
+		}
+
+		return {
+			all: true,
+			follow: true,
+			format: 'json',
+			filter: [
+				// Monitor logs from balenad by default for container log-streaming
+				'balena.service',
+				// Add any host services we want to stream
+				...HOST_SERVICES,
+			].map((s) => `_SYSTEMD_UNIT=${s}`),
+			since: toJournalDate(this.lastSentTimestamp),
+		};
 	}
 
 	public isAttached(containerId: string): boolean {
