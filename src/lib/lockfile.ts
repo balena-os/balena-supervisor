@@ -26,9 +26,12 @@ interface FindAllArgs {
 	recursive: boolean;
 }
 
-// Returns all current locks taken under a directory (default: /tmp)
-// Optionally accepts filter function for only getting locks that match a condition.
-// A file is counted as a lock by default if it ends with `.lock`.
+/**
+ * Find all existing lockfiles under a given root directory (defaults to /mp)
+ *
+ * Optionally accepts filter function for only getting locks that match a condition.
+ * It will recursively look for all locks unless `recursive` is set  to `false`
+ */
 export async function findAll({
 	root = '/tmp',
 	filter = (l) => l.path.endsWith('.lock'),
@@ -96,6 +99,11 @@ export class LockfileExistsError implements ChildProcessError {
 	}
 }
 
+/**
+ * Lock the file provided as path
+ *
+ * Optionally accepts a user id to lock the path as
+ */
 export async function lock(path: string, uid: number = os.userInfo().uid) {
 	/**
 	 * Set parent directory permissions to `drwxrwxrwt` (octal 1777), which are needed
@@ -145,6 +153,9 @@ export async function lock(path: string, uid: number = os.userInfo().uid) {
 	}
 }
 
+/**
+ * Removes the lock indicated by the path
+ */
 export async function unlock(path: string): Promise<void> {
 	// Removing the lockfile releases the lock
 	await fs.unlink(path).catch((e) => {

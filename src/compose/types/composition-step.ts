@@ -2,6 +2,7 @@ import type { Image } from './image';
 import type { Service } from './service';
 import type { Network } from './network';
 import type { Volume } from './volume';
+import type { Lock } from '../../lib/update-lock';
 
 export interface CompositionStepArgs {
 	stop: {
@@ -67,12 +68,13 @@ export interface CompositionStepArgs {
 	ensureSupervisorNetwork: object;
 	noop: object;
 	takeLock: {
-		appId: number;
+		appId: string | number;
 		services: string[];
 		force: boolean;
 	};
 	releaseLock: {
-		appId: number;
+		appId: string | number;
+		lock: Lock;
 	};
 }
 

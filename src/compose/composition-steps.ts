@@ -5,9 +5,10 @@ import * as serviceManager from './service-manager';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
 import * as commitStore from './commit';
-import * as updateLock from '../lib/update-lock';
+import { Lockable } from '../lib/update-lock';
 import type { DeviceLegacyReport } from '../types/state';
 import type { CompositionStepAction, CompositionStepT } from './types';
+import type { Lock } from '../lib/update-lock';
 
 export type {
 	CompositionStep,
@@ -27,6 +28,8 @@ interface CompositionCallbacks {
 	fetchTime: (time: number) => void;
 	stateReport: (state: DeviceLegacyReport) => void;
 	bestDeltaSource: (image: Image, available: Image[]) => string | null;
+	registerLock: (appId: string | number, lock: Lock) => void;
+	unregisterLock: (appId: string | number) => void;
 }
 
 export function generateStep<T extends CompositionStepAction>(
@@ -141,10 +144,14 @@ export function getExecutors(app: { callbacks: CompositionCallbacks }) {
 			/* async noop */
 		},
 		takeLock: async (step) => {
-			await updateLock.takeLock(step.appId, step.services, step.force);
+			const lockable = Lockable.from(step.appId, step.services);
+			const lockOverride = await config.get('lockOverride');
+			const lock = await lockable.lock({ force: step.force || lockOverride });
+			app.callbacks.registerLock(step.appId, lock);
 		},
 		releaseLock: async (step) => {
-			await updateLock.releaseLock(step.appId);
+			app.callbacks.unregisterLock(step.appId);
+			await step.lock.unlock();
 		},
 	};
 

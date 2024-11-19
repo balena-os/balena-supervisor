@@ -12,7 +12,7 @@ import * as contracts from '../lib/contracts';
 import * as constants from '../lib/constants';
 import log from '../lib/supervisor-console';
 import { InternalInconsistencyError } from '../lib/errors';
-import { getServicesLockedByAppId, LocksTakenMap } from '../lib/update-lock';
+import type { Lock } from '../lib/update-lock';
 import { checkTruthy } from '../lib/validation';
 
 import { App } from './app';
@@ -61,6 +61,13 @@ export function resetTimeSpentFetching(value: number = 0) {
 	timeSpentFetching = value;
 }
 
+interface LockRegistry {
+	[appId: string | number]: Lock;
+}
+
+// In memory registry of all app locks
+const lockRegistry: LockRegistry = {};
+
 const actionExecutors = getExecutors({
 	callbacks: {
 		fetchStart: () => {
@@ -76,6 +83,12 @@ const actionExecutors = getExecutors({
 			reportCurrentState(state);
 		},
 		bestDeltaSource,
+		registerLock: (appId: string | number, lock: Lock) => {
+			lockRegistry[appId.toString()] = lock;
+		},
+		unregisterLock: (appId: string | number) => {
+			delete lockRegistry[appId.toString()];
+		},
 	},
 });
 
@@ -134,8 +147,19 @@ export async function getRequiredSteps(
 		downloading,
 		availableImages,
 		containerIdsByAppId,
-		locksTaken: await getServicesLockedByAppId(),
+		appLocks: lockRegistry,
 	});
+}
+
+interface InferNextOpts {
+	keepImages: boolean;
+	keepVolumes: boolean;
+	delta: boolean;
+	force: boolean;
+	downloading: UpdateState['downloading'];
+	availableImages: UpdateState['availableImages'];
+	containerIdsByAppId: { [appId: number]: UpdateState['containerIds'] };
+	appLocks: LockRegistry;
 }
 
 // Calculate the required steps from the current to the target state
@@ -147,13 +171,11 @@ export async function inferNextSteps(
 		keepVolumes = false,
 		delta = true,
 		force = false,
-		downloading = [] as UpdateState['downloading'],
-		availableImages = [] as UpdateState['availableImages'],
-		containerIdsByAppId = {} as {
-			[appId: number]: UpdateState['containerIds'];
-		},
-		locksTaken = new LocksTakenMap(),
-	} = {},
+		downloading = [],
+		availableImages = [],
+		containerIdsByAppId = {},
+		appLocks = {},
+	}: Partial<InferNextOpts>,
 ) {
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
 	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
@@ -215,8 +237,8 @@ export async function inferNextSteps(
 							availableImages,
 							containerIds: containerIdsByAppId[id],
 							downloading,
-							locksTaken,
 							force,
+							lock: appLocks[id],
 						},
 						targetApps[id],
 					),
@@ -230,8 +252,8 @@ export async function inferNextSteps(
 						keepVolumes,
 						downloading,
 						containerIds: containerIdsByAppId[id],
-						locksTaken,
 						force,
+						lock: appLocks[id],
 					}),
 				);
 			}
@@ -255,8 +277,8 @@ export async function inferNextSteps(
 							availableImages,
 							containerIds: containerIdsByAppId[id] ?? {},
 							downloading,
-							locksTaken,
 							force,
+							lock: appLocks[id],
 						},
 						targetApps[id],
 					),

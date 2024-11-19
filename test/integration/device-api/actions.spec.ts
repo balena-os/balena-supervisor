@@ -5,6 +5,7 @@ import Docker from 'dockerode';
 import request from 'supertest';
 import { setTimeout } from 'timers/promises';
 import { testfs } from 'mocha-pod';
+import { promises as fs } from 'fs';
 
 import * as deviceState from '~/src/device-state';
 import * as config from '~/src/config';
@@ -378,7 +379,9 @@ describe('manages application lifecycle', () => {
 			await setTimeout(1000);
 
 			// User lock should be overridden
-			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+			await expect(
+				fs.readdir(pathOnRoot(updateLock.lockPath(1, 'server'))),
+			).to.eventually.deep.equal([]);
 		});
 
 		it('should restart an application when user locks are present if lockOverride is specified', async () => {
@@ -423,7 +426,9 @@ describe('manages application lifecycle', () => {
 			await setTimeout(1000);
 
 			// User lock should be overridden
-			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+			await expect(
+				fs.readdir(pathOnRoot(updateLock.lockPath(1, 'server'))),
+			).to.eventually.deep.equal([]);
 		});
 
 		it('should restart service by removing and recreating corresponding container', async () => {
@@ -519,7 +524,9 @@ describe('manages application lifecycle', () => {
 			await setTimeout(1000);
 
 			// User lock should be overridden
-			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+			await expect(
+				fs.readdir(pathOnRoot(updateLock.lockPath(1, 'server'))),
+			).to.eventually.deep.equal([]);
 		});
 
 		it('should restart service when user locks are present if lockOverride is specified', async () => {
@@ -566,7 +573,9 @@ describe('manages application lifecycle', () => {
 			await setTimeout(1000);
 
 			// User lock should be overridden
-			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+			await expect(
+				fs.readdir(pathOnRoot(updateLock.lockPath(1, 'server'))),
+			).to.eventually.deep.equal([]);
 		});
 
 		it('should stop a running service', async () => {
@@ -873,7 +882,9 @@ describe('manages application lifecycle', () => {
 			await setTimeout(500);
 
 			// User lock should be overridden
-			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+			await expect(
+				fs.readdir(pathOnRoot(updateLock.lockPath(1, 'server'))),
+			).to.eventually.deep.equal([]);
 		});
 
 		it('should restart an application when user locks are present if lockOverride is specified', async () => {
@@ -918,7 +929,9 @@ describe('manages application lifecycle', () => {
 			await setTimeout(500);
 
 			// User lock should be overridden
-			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+			await expect(
+				fs.readdir(pathOnRoot(updateLock.lockPath(1, 'server'))),
+			).to.eventually.deep.equal([]);
 		});
 
 		it('should restart service by removing and recreating corresponding container', async () => {
@@ -1026,7 +1039,9 @@ describe('manages application lifecycle', () => {
 			await setTimeout(500);
 
 			// User lock should be overridden
-			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+			await expect(
+				fs.readdir(pathOnRoot(updateLock.lockPath(1, 'server'))),
+			).to.eventually.deep.equal([]);
 		});
 
 		it('should restart service when user locks are present if lockOverride is specified', async () => {
@@ -1073,7 +1088,9 @@ describe('manages application lifecycle', () => {
 			await setTimeout(500);
 
 			// User lock should be overridden
-			expect(await updateLock.getLocksTaken()).to.deep.equal([]);
+			await expect(
+				fs.readdir(pathOnRoot(updateLock.lockPath(1, 'server'))),
+			).to.eventually.deep.equal([]);
 		});
 
 		it('should stop a running service', async () => {

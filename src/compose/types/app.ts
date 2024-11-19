@@ -1,7 +1,7 @@
 import type { Network } from './network';
 import type { Volume } from './volume';
 import type { Service } from './service';
-import type { LocksTakenMap } from '../../lib/update-lock';
+import type { Lock } from '../../lib/update-lock';
 import type { Image } from './image';
 import type { CompositionStep } from './composition-step';
 
@@ -9,7 +9,7 @@ export interface UpdateState {
 	availableImages: Image[];
 	containerIds: Dictionary<string>;
 	downloading: string[];
-	locksTaken: LocksTakenMap;
+	lock: Lock | null;
 	force: boolean;
 }
 
