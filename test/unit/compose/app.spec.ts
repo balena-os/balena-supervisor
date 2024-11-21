@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import type { Image } from '~/src/compose/images';
 import { Network } from '~/src/compose/network';
 import { Volume } from '~/src/compose/volume';
-import type { Lock } from '~/lib/update-lock';
+import { type Lock } from '~/lib/update-lock';
 
 import {
 	createService,
@@ -20,6 +20,7 @@ const defaultContext = {
 	containerIds: {},
 	downloading: [] as string[],
 	lock: null,
+	hasLeftoverLocks: false,
 };
 
 const mockLock: Lock = {
@@ -318,6 +319,7 @@ describe('compose/app', () => {
 				networks: [DEFAULT_NETWORK],
 				volumes: [volume],
 			});
+
 			expect(
 				currentWithServiceRemoved.nextStepsForAppUpdate(
 					contextWithImages,
@@ -2091,7 +2093,7 @@ describe('compose/app', () => {
 	});
 
 	describe('update lock state behavior', () => {
-		it('should infer a releaseLock step if there are locks to be released before settling target state', async () => {
+		it('should not infer a releaseLock step if there are locks to be released before settling target state', async () => {
 			const services = [
 				await createService({ serviceName: 'server' }),
 				await createService({ serviceName: 'client' }),
@@ -2126,6 +2128,29 @@ describe('compose/app', () => {
 			);
 			const [releaseLockStep2] = expectSteps('releaseLock', steps2, 1);
 			expect(releaseLockStep2).to.have.property('appId').that.equals(1);
+		});
+
+		it('should infer a releaseLock step if there are leftover locks', async () => {
+			const services = [
+				await createService({ serviceName: 'server' }),
+				await createService({ serviceName: 'client' }),
+			];
+			const current = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, hasLeftoverLocks: true },
+				target,
+			);
+			expect(steps).to.have.length(1);
+			expectSteps('releaseLock', steps);
 		});
 
 		it('should not infer a releaseLock step if there are no locks to be released', async () => {

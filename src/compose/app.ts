@@ -201,9 +201,8 @@ class AppImpl implements App {
 				);
 			}
 
-			// If the app still has a lock, release it
-			if (state.lock != null) {
-				// Release locks for all services before settling state
+			// Release locks (if any) for all services before settling state
+			if (state.lock || state.hasLeftoverLocks) {
 				steps.push(
 					generateStep('releaseLock', {
 						appId: target.appId,

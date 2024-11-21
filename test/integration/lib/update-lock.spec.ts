@@ -425,4 +425,93 @@ describe('lib/update-lock', () => {
 			await expectLocks(123, ['one', 'two'], false);
 		});
 	});
+
+	describe('cleanLocksForApp', () => {
+		afterEach(async () => {
+			await fs.rm(pathOnRoot('/tmp/balena-supervisor/services/123'), {
+				recursive: true,
+				force: true,
+			});
+		});
+
+		it('removes remaining supervisor locks and ignores user locks', async () => {
+			const userLock = path.join(lockdir(123, 'one'), 'updates.lock');
+			const serviceLock = path.join(lockdir(123, 'two'), 'resin-updates.lock');
+			const tmp = await testfs({
+				[userLock]: testfs.file({ uid: 0 }),
+				[serviceLock]: testfs.file({ uid: updateLock.LOCKFILE_UID }),
+			}).enable();
+
+			await updateLock.cleanLocksForApp(123);
+
+			// Supervisor locks should have been removed
+			await expect(fs.readdir(lockdir(123, 'two'))).to.eventually.deep.equal(
+				[],
+			);
+			await expect(fs.readdir(lockdir(123, 'one'))).to.eventually.deep.equal([
+				'updates.lock',
+			]);
+			await tmp.restore();
+		});
+
+		it('removes remaining supervisor locks and ignores user legacy locks', async () => {
+			const userLock = path.join(lockdir(123, 'one'), 'resin-updates.lock');
+			const serviceLock = path.join(lockdir(123, 'two'), 'updates.lock');
+			const tmp = await testfs({
+				[userLock]: testfs.file({ uid: 0 }),
+				[serviceLock]: testfs.file({ uid: updateLock.LOCKFILE_UID }),
+			}).enable();
+
+			await updateLock.cleanLocksForApp(123);
+
+			// Supervisor locks should have been removed
+			await expect(fs.readdir(lockdir(123, 'two'))).to.eventually.deep.equal(
+				[],
+			);
+			await expect(fs.readdir(lockdir(123, 'one'))).to.eventually.deep.equal([
+				'resin-updates.lock',
+			]);
+			await tmp.restore();
+		});
+
+		it('ignores locks if taken somewhere else in the supervisor', async () => {
+			// No locks before locking takes place
+			await expectLocks(123, ['one', 'two'], false);
+
+			const lockable = Lockable.from(123, ['one', 'two']);
+			const lock = await lockable.lock();
+
+			// Locks should exist now
+			await expectLocks(123, ['one', 'two']);
+
+			// Clean locks should not remove anything
+			await expect(updateLock.cleanLocksForApp(123)).to.eventually.equal(false);
+
+			// Locks should still exist
+			await expectLocks(123, ['one', 'two']);
+
+			await lock.unlock();
+			await expectLocks(123, ['one', 'two'], false);
+		});
+
+		it('only removes locks for the given app', async () => {
+			const otherLock = path.join(lockdir(456, 'main'), 'updates.lock');
+			const serviceLock = path.join(lockdir(123, 'main'), 'resin-updates.lock');
+			const tmp = await testfs({
+				[otherLock]: testfs.file({ uid: updateLock.LOCKFILE_UID }),
+				[serviceLock]: testfs.file({ uid: updateLock.LOCKFILE_UID }),
+			}).enable();
+
+			await updateLock.cleanLocksForApp(123);
+
+			// Supervisor locks should have been removed
+			await expect(fs.readdir(lockdir(123, 'main'))).to.eventually.deep.equal(
+				[],
+			);
+			await expect(fs.readdir(lockdir(456, 'main'))).to.eventually.deep.equal([
+				'updates.lock',
+			]);
+			await tmp.restore();
+		});
+	});
 });

@@ -5,7 +5,7 @@ import * as serviceManager from './service-manager';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
 import * as commitStore from './commit';
-import { Lockable } from '../lib/update-lock';
+import { Lockable, cleanLocksForApp } from '../lib/update-lock';
 import type { DeviceLegacyReport } from '../types/state';
 import type { CompositionStepAction, CompositionStepT } from './types';
 import type { Lock } from '../lib/update-lock';
@@ -151,7 +151,11 @@ export function getExecutors(app: { callbacks: CompositionCallbacks }) {
 		},
 		releaseLock: async (step) => {
 			app.callbacks.unregisterLock(step.appId);
-			await step.lock.unlock();
+			if (step.lock != null) {
+				await step.lock.unlock();
+			}
+			// Clean up any remaining locks
+			await cleanLocksForApp(step.appId);
 		},
 	};
 

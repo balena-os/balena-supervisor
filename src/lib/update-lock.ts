@@ -158,11 +158,8 @@ function newLockable(appId: string, services: string[]): Lockable {
 			// Find all the locks already taken for the appId
 			// if this is not empty it probably means these locks are from
 			// a previous run of the supervisor
-			currentLocks = await lockfile.findAll({
-				root: pathOnRoot(lockPath(appId)),
-				filter: (l) =>
-					l.path.endsWith('updates.lock') && l.owner === LOCKFILE_UID,
-			});
+
+			currentLocks = await leftoverLocks(appId);
 
 			// Group locks by service
 			const locksByService = services.map((service) => {
@@ -327,5 +324,47 @@ export async function withLock<T>(
 	} finally {
 		// Unlock all taken locks
 		await Promise.all(locks.map((l) => l.unlock()));
+	}
+}
+
+async function leftoverLocks(appId: string | number) {
+	// Find all the locks for the appId that are owned by the supervisor
+	return await lockfile.findAll({
+		root: pathOnRoot(lockPath(appId)),
+		filter: (l) => l.path.endsWith('updates.lock') && l.owner === LOCKFILE_UID,
+	});
+}
+
+export async function hasLeftoverLocks(appId: string | number) {
+	const leftover = await leftoverLocks(appId);
+	return leftover.length > 0;
+}
+
+export async function cleanLocksForApp(
+	appId: string | number,
+): Promise<boolean> {
+	let disposer: ReadWriteLock.Release = () => {
+		/* noop */
+	};
+	try {
+		// Take the lock for the app to avoid removing locks used somewhere
+		// else. Wait at most 10ms. If the process lock is taken elsewhere
+		// it is expected that cleanup will happen after it is released anyway
+		disposer = await takeGlobalLockOrFail(appId.toString(), 10);
+
+		// Find all the locks for the appId that are owned by the supervisor
+		const currentLocks = await leftoverLocks(appId);
+
+		// Remove any remaining locks
+		await Promise.all(currentLocks.map((l) => fs.rm(l)));
+		return true;
+	} catch (e) {
+		if (e instanceof UpdatesLockedError) {
+			// Ignore locking  errors when trying to take the global lock
+			return false;
+		}
+		throw e;
+	} finally {
+		disposer();
 	}
 }

@@ -74,7 +74,7 @@ export interface CompositionStepArgs {
 	};
 	releaseLock: {
 		appId: string | number;
-		lock: Lock;
+		lock: Lock | null;
 	};
 }
 

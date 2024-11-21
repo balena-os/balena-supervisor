@@ -9,6 +9,7 @@ export interface UpdateState {
 	availableImages: Image[];
 	containerIds: Dictionary<string>;
 	downloading: string[];
+	hasLeftoverLocks: boolean;
 	lock: Lock | null;
 	force: boolean;
 }

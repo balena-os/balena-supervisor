@@ -13,6 +13,7 @@ import * as constants from '../lib/constants';
 import log from '../lib/supervisor-console';
 import { InternalInconsistencyError } from '../lib/errors';
 import type { Lock } from '../lib/update-lock';
+import { hasLeftoverLocks } from '../lib/update-lock';
 import { checkTruthy } from '../lib/validation';
 
 import { App } from './app';
@@ -180,6 +181,10 @@ export async function inferNextSteps(
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
 	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
 
+	const withLeftoverLocks = await Promise.all(
+		currentAppIds.map((id) => hasLeftoverLocks(id)),
+	);
+
 	let steps: CompositionStep[] = [];
 
 	// First check if we need to create the supervisor network
@@ -239,6 +244,7 @@ export async function inferNextSteps(
 							downloading,
 							force,
 							lock: appLocks[id],
+							hasLeftoverLocks: withLeftoverLocks[id],
 						},
 						targetApps[id],
 					),
@@ -254,6 +260,7 @@ export async function inferNextSteps(
 						containerIds: containerIdsByAppId[id],
 						force,
 						lock: appLocks[id],
+						hasLeftoverLocks: withLeftoverLocks[id],
 					}),
 				);
 			}
@@ -279,6 +286,7 @@ export async function inferNextSteps(
 							downloading,
 							force,
 							lock: appLocks[id],
+							hasLeftoverLocks: false,
 						},
 						targetApps[id],
 					),
