@@ -15,7 +15,7 @@ import {
 	StatusError,
 } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
-import * as logger from '../logger';
+import * as logger from '../logging';
 import { ImageDownloadBackoffError } from './errors';
 
 import type { Service } from './service';

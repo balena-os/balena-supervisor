@@ -4,7 +4,7 @@ import { promises as fs } from 'fs';
 
 import * as config from './config';
 import * as db from './db';
-import * as logger from './logger';
+import * as logger from './logging';
 import * as dbus from './lib/dbus';
 import type { EnvVarObject } from './types';
 import { UnitNotLoadedError } from './lib/errors';
@@ -529,18 +529,21 @@ async function getBackendSteps(
 	const { deviceType } = await config.getMany(['deviceType']);
 
 	// Check for required bootConfig changes
+	let rebootRequired = false;
 	for (const backend of backends) {
 		if (changeRequired(backend, current, target, deviceType)) {
 			steps.push({
 				action: 'setBootConfig',
 				target,
 			});
+			rebootRequired =
+				(await backend.isRebootRequired(target)) || rebootRequired;
 		}
 	}
 
 	return [
-		// All backend steps require a reboot
-		...(steps.length > 0
+		// All backend steps require a reboot except fan control
+		...(steps.length > 0 && rebootRequired
 			? [{ action: 'setRebootBreadcrumb' } as ConfigStep]
 			: []),
 		...steps,

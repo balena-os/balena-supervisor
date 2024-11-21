@@ -14,7 +14,7 @@ import * as images from '~/src/compose/images';
 import * as config from '~/src/config';
 import * as mockedDockerode from '~/test-lib/mocked-dockerode';
 import * as applicationManager from '~/src/compose/application-manager';
-import * as logger from '~/src/logger';
+import * as logger from '~/src/logging';
 
 describe('SupervisorAPI [V2 Endpoints]', () => {
 	let serviceManagerMock: SinonStub;

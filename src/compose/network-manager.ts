@@ -6,7 +6,7 @@ import { isNotFoundError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
 import log from '../lib/supervisor-console';
 
-import * as logger from '../logger';
+import * as logger from '../logging';
 import { Network } from './network';
 import { ResourceRecreationAttemptError } from './errors';
 

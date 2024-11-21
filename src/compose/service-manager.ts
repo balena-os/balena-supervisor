@@ -8,7 +8,7 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
 import { docker } from '../lib/docker-utils';
-import * as logger from '../logger';
+import * as logger from '../logging';
 
 import { PermissiveNumber } from '../config/types';
 import * as constants from '../lib/constants';

@@ -4,7 +4,7 @@ import { getGlobalApiKey, refreshKey } from '../lib/api-keys';
 import * as messages from './messages';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
-import * as logger from '../logger';
+import * as logger from '../logging';
 import * as config from '../config';
 import * as hostConfig from '../host-config';
 import type {

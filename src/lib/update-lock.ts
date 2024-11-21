@@ -14,7 +14,7 @@ import * as config from '../config';
 import * as lockfile from './lockfile';
 import { NumericIdentifier, StringIdentifier, DockerName } from '../types';
 import { takeGlobalLockRW } from './process-lock';
-import * as logger from '../logger';
+import * as logger from '../logging';
 import * as logTypes from './log-types';
 
 const decodedUid = NumericIdentifier.decode(process.env.LOCKFILE_UID);

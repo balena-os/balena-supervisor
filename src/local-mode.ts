@@ -6,7 +6,7 @@ import * as constants from './lib/constants';
 import { docker } from './lib/docker-utils';
 import { SupervisorContainerNotFoundError } from './lib/errors';
 import log from './lib/supervisor-console';
-import * as logger from './logger';
+import * as logger from './logging';
 
 // EngineSnapshot represents a list of containers, images, volumens, and networks present on the engine.
 // A snapshot is taken before entering local mode in order to perform cleanup when we exit local mode.

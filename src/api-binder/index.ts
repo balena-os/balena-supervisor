@@ -20,7 +20,7 @@ import log from '../lib/supervisor-console';
 import * as deviceState from '../device-state';
 import * as globalEventBus from '../event-bus';
 import * as TargetState from './poll';
-import * as logger from '../logger';
+import * as logger from '../logging';
 
 import * as apiHelper from '../lib/api-helper';
 import { startReporting, stateReportErrors } from './report';

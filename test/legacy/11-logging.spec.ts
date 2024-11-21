@@ -9,7 +9,7 @@ import { setTimeout } from 'timers/promises';
 import * as config from '~/src/config';
 
 describe('Logger', function () {
-	let logger: typeof import('~/src/logger');
+	let logger: typeof import('~/src/logging');
 	let configStub: sinon.SinonStub;
 
 	beforeEach(async function () {
