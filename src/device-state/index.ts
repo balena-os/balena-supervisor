@@ -455,6 +455,7 @@ export async function shutdown({
 	// Get current apps to create locks for
 	const apps = await applicationManager.getCurrentApps();
 	const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
+	const lockOverride = await config.get('lockOverride');
 	// Try to create a lock for all the services before shutting down
 	return updateLock.withLock(
 		appIds,
@@ -474,7 +475,7 @@ export async function shutdown({
 			emitAsync('shutdown', undefined);
 			return dbusAction;
 		},
-		{ force },
+		{ force: force || lockOverride },
 	);
 }
 

@@ -103,6 +103,7 @@ export async function patch(
 		const { noProxy, ...targetConf } = conf.network.proxy;
 		// It's possible for appIds to be an empty array, but patch shouldn't fail
 		// as it's not dependent on there being any running user applications.
+		const lockOverride = await config.get('lockOverride');
 		return updateLock.withLock(
 			appIds,
 			async () => {
@@ -124,7 +125,7 @@ export async function patch(
 				);
 				await setProxy(patchedConf, noProxy);
 			},
-			{ force },
+			{ force: force || lockOverride },
 		);
 	}
 }
