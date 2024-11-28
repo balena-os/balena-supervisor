@@ -26,6 +26,7 @@ import {
 	NotFoundError,
 	BadRequestError,
 } from '../lib/errors';
+import { withLock } from '../lib/update-lock';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -233,39 +234,24 @@ const executeDeviceActionWithLock = async ({
 	targetService?: Service;
 	force: boolean;
 }) => {
-	try {
-		if (currentService) {
-			const lockOverride = await config.get('lockOverride');
-			// Take lock for current service to be modified / stopped
+	const lockOverride = await config.get('lockOverride');
+	await withLock(
+		appId,
+		async () => {
+			// Execute action on service
 			await executeDeviceAction(
-				generateStep('takeLock', {
-					appId,
-					services: [currentService.serviceName],
-					force: force || lockOverride,
+				generateStep(action, {
+					current: currentService,
+					target: targetService,
+					wait: true,
 				}),
 				// FIXME: deviceState.executeStepAction only accepts force as a separate arg
 				// instead of reading force from the step object, so we have to pass it twice
-				force || lockOverride,
+				force,
 			);
-		}
-
-		// Execute action on service
-		await executeDeviceAction(
-			generateStep(action, {
-				current: currentService,
-				target: targetService,
-				wait: true,
-			}),
-			force,
-		);
-	} finally {
-		// Release lock regardless of action success to prevent leftover lockfile
-		await executeDeviceAction(
-			generateStep('releaseLock', {
-				appId,
-			}),
-		);
-	}
+		},
+		{ force: force || lockOverride },
+	);
 };
 
 /**

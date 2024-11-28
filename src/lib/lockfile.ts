@@ -1,5 +1,4 @@
 import { promises as fs } from 'fs';
-import type { Stats, Dirent } from 'fs';
 import os from 'os';
 import { dirname } from 'path';
 
@@ -9,38 +8,71 @@ import { isENOENT, isEISDIR, isEPERM } from './errors';
 // Equivalent to `drwxrwxrwt`
 const STICKY_WRITE_PERMISSIONS = 0o1777;
 
-// Returns all current locks taken under a directory (default: /tmp)
-// Optionally accepts filter function for only getting locks that match a condition.
-// A file is counted as a lock by default if it ends with `.lock`.
-export const getLocksTaken = async (
-	rootDir: string = '/tmp',
-	lockFilter: (path: string, stat: Stats) => boolean = (p) =>
-		p.endsWith('.lock'),
-): Promise<string[]> => {
-	const locksTaken: string[] = [];
-	let filesOrDirs: Dirent[] = [];
-	try {
-		filesOrDirs = await fs.readdir(rootDir, { withFileTypes: true });
-	} catch (err) {
-		// If lockfile directory doesn't exist, no locks are taken
-		if (isENOENT(err)) {
-			return locksTaken;
+interface LockInfo {
+	/**
+	 * The lock file path
+	 */
+	path: string;
+	/**
+	 * The linux user id (uid) of the
+	 * lock
+	 */
+	owner: number;
+}
+
+interface FindAllArgs {
+	root: string;
+	filter: (lock: LockInfo) => boolean;
+	recursive: boolean;
+}
+
+/**
+ * Find all existing lockfiles under a given root directory (defaults to /mp)
+ *
+ * Optionally accepts filter function for only getting locks that match a condition.
+ * It will recursively look for all locks unless `recursive` is set  to `false`
+ */
+export async function findAll({
+	root = '/tmp',
+	filter = (l) => l.path.endsWith('.lock'),
+	recursive = true,
+}: Partial<FindAllArgs>): Promise<string[]> {
+	// Queue of directories to search
+	const queue: string[] = [root];
+	const locks: string[] = [];
+
+	while (queue.length > 0) {
+		root = queue.shift()!;
+		try {
+			const contents = await fs.readdir(root, { withFileTypes: true });
+
+			for (const file of contents) {
+				const path = `${root}/${file.name}`;
+				const stats = await fs.lstat(path);
+
+				// A lock is taken if it's a file or directory within root dir that passes filter fn.
+				// We also don't want to follow symlinks since we don't want to follow the lock to
+				// the target path if it's a symlink and only care that it exists or not.
+				if (filter({ path, owner: stats.uid })) {
+					locks.push(path);
+				} else if (file.isDirectory() && recursive) {
+					// Otherwise, if non-lock directory, seek locks recursively within directory
+					queue.push(path);
+				}
+			}
+		} catch (err) {
+			// if file of directory does not exist continue the search
+			// the file, could have been deleted after starting the call
+			// to findAll
+			if (isENOENT(err)) {
+				continue;
+			}
+			throw err;
 		}
 	}
-	for (const fileOrDir of filesOrDirs) {
-		const lockPath = `${rootDir}/${fileOrDir.name}`;
-		// A lock is taken if it's a file or directory within rootDir that passes filter fn.
-		// We also don't want to follow symlinks since we don't want to follow the lock to
-		// the target path if it's a symlink and only care that it exists or not.
-		if (lockFilter(lockPath, await fs.lstat(lockPath))) {
-			locksTaken.push(lockPath);
-			// Otherwise, if non-lock directory, seek locks recursively within directory
-		} else if (fileOrDir.isDirectory()) {
-			locksTaken.push(...(await getLocksTaken(lockPath, lockFilter)));
-		}
-	}
-	return locksTaken;
-};
+
+	return locks;
+}
 
 interface ChildProcessError {
 	code: number;
@@ -67,6 +99,11 @@ export class LockfileExistsError implements ChildProcessError {
 	}
 }
 
+/**
+ * Lock the file provided as path
+ *
+ * Optionally accepts a user id to lock the path as
+ */
 export async function lock(path: string, uid: number = os.userInfo().uid) {
 	/**
 	 * Set parent directory permissions to `drwxrwxrwt` (octal 1777), which are needed
@@ -116,6 +153,9 @@ export async function lock(path: string, uid: number = os.userInfo().uid) {
 	}
 }
 
+/**
+ * Removes the lock indicated by the path
+ */
 export async function unlock(path: string): Promise<void> {
 	// Removing the lockfile releases the lock
 	await fs.unlink(path).catch((e) => {

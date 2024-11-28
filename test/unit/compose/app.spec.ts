@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import type { Image } from '~/src/compose/images';
 import { Network } from '~/src/compose/network';
 import { Volume } from '~/src/compose/volume';
-import { LocksTakenMap } from '~/lib/update-lock';
+import { type Lock } from '~/lib/update-lock';
 
 import {
 	createService,
@@ -19,7 +19,14 @@ const defaultContext = {
 	availableImages: [] as Image[],
 	containerIds: {},
 	downloading: [] as string[],
-	locksTaken: new LocksTakenMap(),
+	lock: null,
+	hasLeftoverLocks: false,
+};
+
+const mockLock: Lock = {
+	async unlock() {
+		/* noop */
+	},
 };
 
 describe('compose/app', () => {
@@ -190,7 +197,7 @@ describe('compose/app', () => {
 					...defaultContext,
 					availableImages,
 					// Mock lock already taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -287,7 +294,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks already taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				intermediateTarget,
 			);
@@ -299,7 +306,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks already taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				intermediateTarget,
 			);
@@ -312,6 +319,7 @@ describe('compose/app', () => {
 				networks: [DEFAULT_NETWORK],
 				volumes: [volume],
 			});
+
 			expect(
 				currentWithServiceRemoved.nextStepsForAppUpdate(
 					contextWithImages,
@@ -362,7 +370,7 @@ describe('compose/app', () => {
 					{
 						...contextWithImages,
 						// Mock locks already taken
-						locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+						lock: mockLock,
 					},
 					target,
 				);
@@ -525,7 +533,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -553,7 +561,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -678,7 +686,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -806,7 +814,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -879,9 +887,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -958,9 +964,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1108,9 +1112,7 @@ describe('compose/app', () => {
 					...defaultContext,
 					availableImages: [createImage({ serviceName: 'main' })],
 					// Mock locks already taken
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['main', 'aux'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1247,7 +1249,7 @@ describe('compose/app', () => {
 			const steps2 = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1282,7 +1284,7 @@ describe('compose/app', () => {
 			const steps2 = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1356,7 +1358,7 @@ describe('compose/app', () => {
 			const stepsToIntermediate = current.nextStepsForAppUpdate(
 				{
 					...contextWithImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1376,7 +1378,7 @@ describe('compose/app', () => {
 			const stepsToTarget = intermediate.nextStepsForAppUpdate(
 				{
 					...contextWithImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1435,9 +1437,7 @@ describe('compose/app', () => {
 			const contextWithImages = {
 				...defaultContext,
 				...{ availableImages },
-				locksTaken: new LocksTakenMap([
-					{ appId: 1, services: ['main', 'dep'] },
-				]),
+				lock: mockLock,
 			};
 
 			// Only one start step and it should be that of the 'dep' service
@@ -1555,7 +1555,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks taken before kill
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1575,7 +1575,7 @@ describe('compose/app', () => {
 					...contextWithImages,
 					// Mock locks still taken after kill (releaseLock not
 					// yet inferred as state is not yet settled)
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1703,7 +1703,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks taken from previous step
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1719,7 +1719,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks taken from previous step
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1762,7 +1762,7 @@ describe('compose/app', () => {
 			const steps2 = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1849,9 +1849,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks already taken
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two', 'three'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -2029,9 +2027,7 @@ describe('compose/app', () => {
 							serviceName: 'other',
 						}),
 					],
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['main', 'other'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -2097,7 +2093,7 @@ describe('compose/app', () => {
 	});
 
 	describe('update lock state behavior', () => {
-		it('should infer a releaseLock step if there are locks to be released before settling target state', async () => {
+		it('should not infer a releaseLock step if there are locks to be released before settling target state', async () => {
 			const services = [
 				await createService({ serviceName: 'server' }),
 				await createService({ serviceName: 'client' }),
@@ -2115,9 +2111,7 @@ describe('compose/app', () => {
 			const steps = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['server', 'client'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -2128,12 +2122,35 @@ describe('compose/app', () => {
 			const steps2 = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['server'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
 			const [releaseLockStep2] = expectSteps('releaseLock', steps2, 1);
 			expect(releaseLockStep2).to.have.property('appId').that.equals(1);
+		});
+
+		it('should infer a releaseLock step if there are leftover locks', async () => {
+			const services = [
+				await createService({ serviceName: 'server' }),
+				await createService({ serviceName: 'client' }),
+			];
+			const current = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, hasLeftoverLocks: true },
+				target,
+			);
+			expect(steps).to.have.length(1);
+			expectSteps('releaseLock', steps);
 		});
 
 		it('should not infer a releaseLock step if there are no locks to be released', async () => {
@@ -2173,10 +2190,7 @@ describe('compose/app', () => {
 			const steps = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['server', 'client'] },
-						{ appId: 2, services: ['main'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);

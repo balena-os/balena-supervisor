@@ -170,7 +170,7 @@ class AppImpl implements App {
 			if (services.size > 0) {
 				steps.push(
 					generateStep('takeLock', {
-						appId: parseInt(appId, 10),
+						appId,
 						services: Array.from(services),
 						force: state.force,
 					}),
@@ -200,19 +200,13 @@ class AppImpl implements App {
 					}),
 				);
 			}
-			// Current & target should be the same appId, but one of either current
-			// or target may not have any services, so we need to check both
-			const allServices = this.services.concat(target.services);
-			if (
-				allServices.length > 0 &&
-				allServices.some((s) =>
-					state.locksTaken.isLocked(s.appId, s.serviceName),
-				)
-			) {
-				// Release locks for all services before settling state
+
+			// Release locks (if any) for all services before settling state
+			if (state.lock || state.hasLeftoverLocks) {
 				steps.push(
 					generateStep('releaseLock', {
 						appId: target.appId,
+						lock: state.lock,
 					}),
 				);
 			}
@@ -225,11 +219,7 @@ class AppImpl implements App {
 	): CompositionStep[] {
 		if (Object.keys(this.services).length > 0) {
 			// Take all locks before killing
-			if (
-				this.services.some(
-					(svc) => !state.locksTaken.isLocked(svc.appId, svc.serviceName),
-				)
-			) {
+			if (state.lock == null) {
 				return [
 					generateStep('takeLock', {
 						appId: this.appId,
@@ -628,9 +618,7 @@ class AppImpl implements App {
 			appsToLock: AppsToLockMap;
 		} & UpdateState,
 	): CompositionStep[] {
-		const servicesLocked = this.services
-			.concat(context.targetApp.services)
-			.every((svc) => context.locksTaken.isLocked(svc.appId, svc.serviceName));
+		const servicesLocked = context.lock != null;
 		if (current?.status === 'Stopping') {
 			// There's a kill step happening already, emit a noop to ensure
 			// we stay alive while this happens

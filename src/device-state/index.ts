@@ -455,23 +455,28 @@ export async function shutdown({
 	// Get current apps to create locks for
 	const apps = await applicationManager.getCurrentApps();
 	const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
+	const lockOverride = await config.get('lockOverride');
 	// Try to create a lock for all the services before shutting down
-	return updateLock.lock(appIds, { force }, async () => {
-		let dbusAction;
-		switch (reboot) {
-			case true:
-				logger.logSystemMessage('Rebooting', {}, 'Reboot');
-				dbusAction = await dbus.reboot();
-				break;
-			case false:
-				logger.logSystemMessage('Shutting down', {}, 'Shutdown');
-				dbusAction = await dbus.shutdown();
-				break;
-		}
-		shuttingDown = true;
-		emitAsync('shutdown', undefined);
-		return dbusAction;
-	});
+	return updateLock.withLock(
+		appIds,
+		async () => {
+			let dbusAction;
+			switch (reboot) {
+				case true:
+					logger.logSystemMessage('Rebooting', {}, 'Reboot');
+					dbusAction = await dbus.reboot();
+					break;
+				case false:
+					logger.logSystemMessage('Shutting down', {}, 'Shutdown');
+					dbusAction = await dbus.shutdown();
+					break;
+			}
+			shuttingDown = true;
+			emitAsync('shutdown', undefined);
+			return dbusAction;
+		},
+		{ force: force || lockOverride },
+	);
 }
 
 // FIXME: this method should not be exported, all target state changes
