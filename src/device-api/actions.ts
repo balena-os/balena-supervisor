@@ -151,9 +151,6 @@ export const doPurge = async (appId: number, force: boolean = false) => {
 			keepVolumes: false,
 			force,
 		});
-		// Restore user app after purge
-		currentState.local.apps[appId] = app;
-		await deviceState.applyIntermediateTarget(currentState);
 		logger.logSystemMessage('Purged data', { appId }, 'Purge data success');
 	} catch (err: any) {
 		logger.logSystemMessage(
@@ -163,7 +160,9 @@ export const doPurge = async (appId: number, force: boolean = false) => {
 		);
 		throw err;
 	} finally {
-		deviceState.triggerApplyTarget();
+		// Restore user app after purge. Do not wait for the result
+		currentState.local.apps[appId] = app;
+		void deviceState.applyIntermediateTarget(currentState);
 	}
 };
 
