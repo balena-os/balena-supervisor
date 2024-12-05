@@ -92,40 +92,47 @@ export async function patch(
 	conf: HostConfiguration | LegacyHostConfiguration,
 	force: boolean = false,
 ): Promise<void> {
-	const apps = await applicationManager.getCurrentApps();
-	const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
-
+	const ops: Array<() => Promise<void>> = [];
 	if (conf.network.hostname != null) {
-		await setHostname(conf.network.hostname);
+		const hostname = conf.network.hostname;
+		ops.push(async () => await setHostname(hostname));
 	}
 
 	if (conf.network.proxy != null) {
 		const { noProxy, ...targetConf } = conf.network.proxy;
+		ops.push(async () => {
+			const proxyConf = await readProxy();
+			let currentConf: ProxyConfig | undefined = undefined;
+			if (proxyConf) {
+				delete proxyConf.noProxy;
+				currentConf = proxyConf;
+			}
+
+			// Merge current & target redsocks.conf
+			const patchedConf = patchProxy(
+				{
+					redsocks: currentConf,
+				},
+				{
+					redsocks: targetConf,
+				},
+			);
+			await setProxy(patchedConf, noProxy);
+		});
+	}
+
+	if (ops.length > 0) {
 		// It's possible for appIds to be an empty array, but patch shouldn't fail
 		// as it's not dependent on there being any running user applications.
+		const apps = await applicationManager.getCurrentApps();
+		const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
 		const lockOverride = await config.get('lockOverride');
-		return updateLock.withLock(
+		await updateLock.withLock(
 			appIds,
-			async () => {
-				const proxyConf = await readProxy();
-				let currentConf: ProxyConfig | undefined = undefined;
-				if (proxyConf) {
-					delete proxyConf.noProxy;
-					currentConf = proxyConf;
-				}
-
-				// Merge current & target redsocks.conf
-				const patchedConf = patchProxy(
-					{
-						redsocks: currentConf,
-					},
-					{
-						redsocks: targetConf,
-					},
-				);
-				await setProxy(patchedConf, noProxy);
+			() => Promise.all(ops.map((fn) => fn())),
+			{
+				force: force || lockOverride,
 			},
-			{ force: force || lockOverride },
 		);
 	}
 }
