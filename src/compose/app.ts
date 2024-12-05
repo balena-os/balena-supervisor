@@ -813,24 +813,28 @@ class AppImpl implements App {
 					serviceName: target.serviceName,
 				}),
 			];
-		} else if (
-			target != null &&
-			this.dependenciesMetForServiceStart(
-				target,
-				targetApp,
-				availableImages,
-				networkPairs,
-				volumePairs,
-				servicePairs,
-			)
-		) {
-			if (!servicesLocked) {
-				this.services
-					.concat(targetApp.services)
-					.forEach((svc) => appsToLock[target.appId].add(svc.serviceName));
-				return [];
+		} else if (target != null) {
+			if (
+				this.dependenciesMetForServiceStart(
+					target,
+					targetApp,
+					availableImages,
+					networkPairs,
+					volumePairs,
+					servicePairs,
+				)
+			) {
+				if (!servicesLocked) {
+					this.services
+						.concat(targetApp.services)
+						.forEach((svc) => appsToLock[target.appId].add(svc.serviceName));
+					return [];
+				}
+				return [generateStep('start', { target })];
+			} else {
+				// Wait for dependencies to be started
+				return [generateStep('noop', {})];
 			}
-			return [generateStep('start', { target })];
 		} else {
 			return [];
 		}
@@ -881,7 +885,7 @@ class AppImpl implements App {
 		// different to a dependency which is in the servicePairs below, as these
 		// are services which are changing). We could have a dependency which is
 		// starting up, but is not yet running.
-		const depInstallingButNotRunning = _.some(targetApp.services, (svc) => {
+		const depInstallingButNotRunning = _.some(this.services, (svc) => {
 			if (target.dependsOn?.includes(svc.serviceName)) {
 				if (!svc.config.running) {
 					return true;

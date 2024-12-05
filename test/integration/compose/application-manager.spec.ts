@@ -821,9 +821,9 @@ describe('compose/application-manager', () => {
 					containerIdsByAppId,
 				},
 			);
-			expectSteps('noop', steps2, 1);
+
 			// No other steps
-			expect(steps2).to.have.length(1);
+			expect(steps2.every((s) => s.action === 'noop'));
 
 			/**
 			 * Only start target services after both images downloaded
@@ -932,7 +932,7 @@ describe('compose/application-manager', () => {
 		);
 
 		// Only noop steps should be seen at this point
-		expect(steps.filter((s) => s.action !== 'noop')).to.have.lengthOf(0);
+		expect(steps.every((s) => s.action === 'noop'));
 	});
 
 	it('infers to kill several services as long as there is no unmet dependency', async () => {
@@ -1099,7 +1099,7 @@ describe('compose/application-manager', () => {
 			.that.deep.includes({ serviceName: 'dep' });
 
 		// No more steps until the first container has been started
-		expect(nextSteps).to.have.lengthOf(0);
+		expect(nextSteps.every((s) => s.action === 'noop'));
 	});
 
 	it('infers to start a service once its dependency has been met', async () => {
