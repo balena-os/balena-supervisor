@@ -1,4 +1,19 @@
 - commits:
+    - subject: Take update locks for host-config changes
+      hash: a2d4b31b231d7e7981d2032b0bb76d301088ca95
+      body: |
+        This adds update-lock support to hostname changes via the host-config
+        endpoint, in addition to proxy changes as changing the hostname may
+        cause an engine restart from the OS.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 16.8.0
+  title: ""
+  date: 2024-12-05T17:06:07.578Z
+- commits:
     - subject: Clean up remaining locks on state settle
       hash: 9c09329b86f08523501d4fbc54511cb2051b4bea
       body: |
