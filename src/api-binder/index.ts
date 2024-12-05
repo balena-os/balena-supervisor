@@ -5,7 +5,6 @@ import _ from 'lodash';
 import type { PinejsClientRequest } from 'pinejs-client-request';
 
 import * as config from '../config';
-import * as deviceConfig from '../device-config';
 import * as eventTracker from '../event-tracker';
 import { loadBackupFromMigration } from '../lib/migration';
 
@@ -332,10 +331,10 @@ async function reportInitialEnv(
 		);
 	}
 
-	const defaultConfig = deviceConfig.getDefaults();
+	const defaultConfig = deviceState.getDefaultConfig();
 
-	const currentConfig = await deviceConfig.getCurrent();
-	const targetConfig = deviceConfig.formatConfigKeys(targetConfigUnformatted);
+	const currentConfig = await deviceState.getCurrentConfig();
+	const targetConfig = deviceState.formatConfigKeys(targetConfigUnformatted);
 
 	if (!currentConfig) {
 		throw new InternalInconsistencyError(

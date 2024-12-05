@@ -40,6 +40,8 @@ import type {
 	Image,
 	InstancedAppState,
 } from './types';
+import { isRebootBreadcrumbSet } from '../lib/reboot';
+import { getBootTime } from '../lib/fs-utils';
 
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
@@ -127,6 +129,7 @@ export async function getRequiredSteps(
 			config.getMany(['localMode', 'delta']),
 		]);
 	const containerIdsByAppId = getAppContainerIds(currentApps);
+	const rebootBreadcrumbSet = await isRebootBreadcrumbSet();
 
 	// Local mode sets the image and volume retention only
 	// if not explicitely set by the caller
@@ -149,6 +152,7 @@ export async function getRequiredSteps(
 		availableImages,
 		containerIdsByAppId,
 		appLocks: lockRegistry,
+		rebootBreadcrumbSet,
 	});
 }
 
@@ -161,6 +165,7 @@ interface InferNextOpts {
 	availableImages: UpdateState['availableImages'];
 	containerIdsByAppId: { [appId: number]: UpdateState['containerIds'] };
 	appLocks: LockRegistry;
+	rebootBreadcrumbSet: boolean;
 }
 
 // Calculate the required steps from the current to the target state
@@ -176,6 +181,7 @@ export async function inferNextSteps(
 		availableImages = [],
 		containerIdsByAppId = {},
 		appLocks = {},
+		rebootBreadcrumbSet = false,
 	}: Partial<InferNextOpts>,
 ) {
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
@@ -184,6 +190,7 @@ export async function inferNextSteps(
 	const withLeftoverLocks = await Promise.all(
 		currentAppIds.map((id) => hasLeftoverLocks(id)),
 	);
+	const bootTime = getBootTime();
 
 	let steps: CompositionStep[] = [];
 
@@ -245,6 +252,8 @@ export async function inferNextSteps(
 							force,
 							lock: appLocks[id],
 							hasLeftoverLocks: withLeftoverLocks[id],
+							rebootBreadcrumbSet,
+							bootTime,
 						},
 						targetApps[id],
 					),
@@ -261,6 +270,8 @@ export async function inferNextSteps(
 						force,
 						lock: appLocks[id],
 						hasLeftoverLocks: withLeftoverLocks[id],
+						rebootBreadcrumbSet,
+						bootTime,
 					}),
 				);
 			}
@@ -287,6 +298,8 @@ export async function inferNextSteps(
 							force,
 							lock: appLocks[id],
 							hasLeftoverLocks: false,
+							rebootBreadcrumbSet,
+							bootTime,
 						},
 						targetApps[id],
 					),

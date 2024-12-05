@@ -76,6 +76,7 @@ export interface CompositionStepArgs {
 		appId: string | number;
 		lock: Lock | null;
 	};
+	requireReboot: { serviceName: string };
 }
 
 export type CompositionStepAction = keyof CompositionStepArgs;

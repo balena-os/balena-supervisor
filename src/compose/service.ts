@@ -128,7 +128,6 @@ class ServiceImpl implements Service {
 		service.releaseId = parseInt(appConfig.releaseId, 10);
 		service.serviceId = parseInt(appConfig.serviceId, 10);
 		service.imageName = appConfig.image;
-		service.createdAt = appConfig.createdAt;
 		service.commit = appConfig.commit;
 		service.appUuid = appConfig.appUuid;
 
