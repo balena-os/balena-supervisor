@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import * as config from '~/src/config';
-import * as logger from '~/src/logger';
+import * as logger from '~/src/logging';
 import * as iptablesMock from '~/test-lib/mocked-iptables';
 import * as dbFormat from '~/src/device-state/db-format';
 

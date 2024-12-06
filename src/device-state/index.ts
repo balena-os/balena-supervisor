@@ -6,7 +6,7 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 import prettyMs from 'pretty-ms';
 
 import * as config from '../config';
-import * as logger from '../logger';
+import * as logger from '../logging';
 
 import * as network from '../network';
 import * as deviceConfig from '../device-config';

@@ -9,7 +9,7 @@ import { mkdirp } from './fs-utils';
 import * as lockfile from './lockfile';
 import { takeGlobalLockRW } from './process-lock';
 import * as logTypes from './log-types';
-import * as logger from '../logger';
+import * as logger from '../logging';
 
 export const LOCKFILE_UID = 65534;
 export const BASE_LOCK_DIR = '/tmp/balena-supervisor/services';
