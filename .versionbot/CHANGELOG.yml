@@ -1,4 +1,37 @@
 - commits:
+    - subject: Add ability to stream logs from host services to cloud
+      hash: fb6fa9b16caa33eabeb44414d4681cea52d11784
+      body: >
+        Add `os-power-mode.service`, `nvpmodel.service`, and
+        `os-fan-profile.service`
+
+        which report status from applying power mode and fan profile configs as
+        read
+
+        from config.json. The Supervisor sets these configs in config.json for
+        these
+
+        host services to pick up and apply.
+
+
+        Also add host log streaming from `jetson-qspi-manager.service` as it
+
+        will very soon be needed for Jetson Orins.
+      footer:
+        Relates-to: "#2379"
+        relates-to: "#2379"
+        See: balena-os/balena-jetson-orin#513
+        see: balena-os/balena-jetson-orin#513
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.9.0
+  title: ""
+  date: 2024-12-06T17:52:55.615Z
+- commits:
     - subject: Take update locks for host-config changes
       hash: a2d4b31b231d7e7981d2032b0bb76d301088ca95
       body: |
