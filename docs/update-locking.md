@@ -17,6 +17,8 @@ On devices running Supervisor v13.1.0 or newer, the Supervisor creates lockfiles
 
 ### Location of the lockfile
 
+__Note:__ Please do not try to delete `/tmp/balena` or legacy `/tmp/resin` directories, as you will get an error complaining of a busy resource.
+
 On devices running Supervisor v7.22.0 and higher, the lockfile is located at `/tmp/balena/updates.lock`. This lock is cleared automatically when the device reboots, so the user app must take it every time it starts up.
 
 On older devices (with v4.0.0 <= Supervisor version < v7.22.0), the lock is located at `/tmp/resin/resin-updates.lock`. The latest Supervisor versions still take the lock at this legacy path for backwards compatibility.
