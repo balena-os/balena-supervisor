@@ -36,6 +36,8 @@ const HOST_SERVICES = [
 	'nvpmodel.service',
 	// Runs at boot time and checks if Orin QSPI is accessible after provisioning
 	'jetson-qspi-manager.service',
+	// os-update service which logs status of HUP and update-balena-supervisor
+	'os-update.service',
 ];
 
 function messageFieldToString(entry: JournalRow['MESSAGE']): string | null {
