@@ -70,14 +70,15 @@ function isBaseParam(dtparam: string): boolean {
  * 	- {BALENA|RESIN}_HOST_CONFIG_gpio = value | "value" | "value1","value2"
  */
 export class ConfigTxt extends ConfigBackend {
-	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}CONFIG_`;
-	private static bootConfigPath = hostUtils.pathOnBoot('config.txt');
-
-	public static bootConfigVarRegex = new RegExp(
-		'(?:' + _.escapeRegExp(ConfigTxt.bootConfigVarPrefix) + ')(.+)',
+	private static PREFIX = `${constants.hostConfigVarPrefix}CONFIG_`;
+	private static PATH = hostUtils.pathOnBoot('config.txt');
+	private static REGEX = new RegExp(
+		'(?:' + _.escapeRegExp(ConfigTxt.PREFIX) + ')(.+)',
 	);
-
-	private static forbiddenConfigKeys = [
+	// These keys are not config.txt keys and are managed by the power-fan backend.
+	private static UNSUPPORTED_KEYS = ['power_mode', 'fan_profile'];
+	// These keys are config.txt keys, but are not mutable by the Supervisor.
+	private static FORBIDDEN_KEYS = [
 		'disable_commandline_tags',
 		'cmdline',
 		'kernel',
@@ -89,7 +90,7 @@ export class ConfigTxt extends ConfigBackend {
 		'device_tree_address',
 		'init_emmc_clock',
 		'avoid_safe_mode',
-	];
+	].concat(ConfigTxt.UNSUPPORTED_KEYS);
 
 	public async matches(deviceType: string): Promise<boolean> {
 		return (
@@ -109,11 +110,8 @@ export class ConfigTxt extends ConfigBackend {
 	public async getBootConfig(): Promise<ConfigOptions> {
 		let configContents = '';
 
-		if (await exists(ConfigTxt.bootConfigPath)) {
-			configContents = await hostUtils.readFromBoot(
-				ConfigTxt.bootConfigPath,
-				'utf-8',
-			);
+		if (await exists(ConfigTxt.PATH)) {
+			configContents = await hostUtils.readFromBoot(ConfigTxt.PATH, 'utf-8');
 		} else {
 			return {};
 		}
@@ -227,19 +225,29 @@ export class ConfigTxt extends ConfigBackend {
 		}
 
 		const confStr = `${confStatements.join('\n')}\n`;
-		await hostUtils.writeToBoot(ConfigTxt.bootConfigPath, confStr);
+		await hostUtils.writeToBoot(ConfigTxt.PATH, confStr);
+	}
+
+	public static stripPrefix(name: string): string {
+		if (!name.startsWith(ConfigTxt.PREFIX)) {
+			return name;
+		}
+		return name.substring(ConfigTxt.PREFIX.length);
 	}
 
 	public isSupportedConfig(configName: string): boolean {
-		return !ConfigTxt.forbiddenConfigKeys.includes(configName);
+		return !ConfigTxt.FORBIDDEN_KEYS.includes(configName);
 	}
 
 	public isBootConfigVar(envVar: string): boolean {
-		return envVar.startsWith(ConfigTxt.bootConfigVarPrefix);
+		return (
+			envVar.startsWith(ConfigTxt.PREFIX) &&
+			!ConfigTxt.UNSUPPORTED_KEYS.includes(ConfigTxt.stripPrefix(envVar))
+		);
 	}
 
 	public processConfigVarName(envVar: string): string {
-		return envVar.replace(ConfigTxt.bootConfigVarRegex, '$1');
+		return envVar.replace(ConfigTxt.REGEX, '$1');
 	}
 
 	public processConfigVarValue(key: string, value: string): string | string[] {
@@ -254,7 +262,7 @@ export class ConfigTxt extends ConfigBackend {
 	}
 
 	public createConfigVarName(configName: string): string {
-		return ConfigTxt.bootConfigVarPrefix + configName;
+		return ConfigTxt.PREFIX + configName;
 	}
 
 	// Ensure that the balena-fin overlay is defined in the target configuration
