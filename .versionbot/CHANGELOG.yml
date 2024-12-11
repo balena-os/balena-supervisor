@@ -1,4 +1,20 @@
 - commits:
+    - subject: Specify `/tmp/balena|resin` directories as necessary
+      hash: dc740a159b9b299b85885bc8ab65e97cc4d356a3
+      body: ""
+      footer:
+        See: https://forums.balena.io/t/rm-cant-remove-tmp-balena-resource-busy/367888/5
+        see: https://forums.balena.io/t/rm-cant-remove-tmp-balena-resource-busy/367888/5
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.10.1
+  title: ""
+  date: 2024-12-11T00:28:17.295Z
+- commits:
     - subject: Add PowerFanConfig config backend
       hash: 828bd22ba053aa08ca2bde8e72b3aa7ed82aae02
       body: >
