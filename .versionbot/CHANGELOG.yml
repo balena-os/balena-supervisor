@@ -1,4 +1,23 @@
 - commits:
+    - subject: Wait for service dependencies to be running
+      hash: 8e6c0fcad729b56e386ac27754c48c97517e293a
+      body: |
+        This fixes a regression where dependencies would only be started in
+        order and would start the dependent service if its dependency had been
+        started at some point in the past, regardless of the running condition.
+
+        This makes the behavior more consistent with docker compose where the
+        [dependency needs to be
+        running or healthy](https://github.com/docker/compose/blob/69a83d1303a103d82b05d512baf273244b4dbd94/pkg/compose/convergence.go#L441) for the service to be started.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.10.2
+  title: ""
+  date: 2024-12-18T18:48:52.008Z
+- commits:
     - subject: Specify `/tmp/balena|resin` directories as necessary
       hash: dc740a159b9b299b85885bc8ab65e97cc4d356a3
       body: ""
