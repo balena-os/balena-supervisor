@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update systeminformation to v5.23.8 [SECURITY]
+      hash: 92b26c7ae2d8d329be18806abe24ab312e92db68
+      body: |
+        Update systeminformation from 5.22.7 to 5.23.8
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 16.10.3
+  title: ""
+  date: 2024-12-20T20:43:23.372Z
+- commits:
     - subject: Wait for service dependencies to be running
       hash: 8e6c0fcad729b56e386ac27754c48c97517e293a
       body: |
