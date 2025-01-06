@@ -12,6 +12,7 @@ import {
 	DeltaStillProcessingError,
 	ImageAuthenticationError,
 	InvalidNetGatewayError,
+	DeltaServerError,
 } from './errors';
 import * as request from './request';
 import type { EnvVarObject } from '../types';
@@ -113,11 +114,7 @@ export async function fetchDeltaWithProgress(
 	onProgress: ProgressCallback,
 	serviceName: string,
 ): Promise<string> {
-	const deltaSourceId =
-		deltaOpts.deltaSourceId != null
-			? deltaOpts.deltaSourceId
-			: deltaOpts.deltaSource;
-
+	const deltaSourceId = deltaOpts.deltaSourceId ?? deltaOpts.deltaSource;
 	const timeout = deltaOpts.deltaApplyTimeout;
 
 	const logFn = (str: string) =>
@@ -210,6 +207,10 @@ export async function fetchDeltaWithProgress(
 				}
 				break;
 			case 3:
+				// If 400s status code, throw a more specific error & revert immediately to a regular pull
+				if (res.statusCode >= 400 && res.statusCode < 500) {
+					throw new DeltaServerError(res.statusCode, res.statusMessage);
+				}
 				if (res.statusCode !== 200) {
 					throw new Error(
 						`Got ${res.statusCode} when requesting v3 delta from delta server.`,
@@ -234,6 +235,11 @@ export async function fetchDeltaWithProgress(
 	} catch (e) {
 		if (e instanceof OutOfSyncError) {
 			logFn('Falling back to regular pull due to delta out of sync error');
+			return await fetchImageWithProgress(imgDest, deltaOpts, onProgress);
+		} else if (e instanceof DeltaServerError) {
+			logFn(
+				`Falling back to regular pull due to delta server error (${e.statusCode})${e.statusMessage ? `: ${e.statusMessage}` : ''}`,
+			);
 			return await fetchImageWithProgress(imgDest, deltaOpts, onProgress);
 		} else {
 			logFn(`Delta failed with ${e}`);
