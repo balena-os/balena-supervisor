@@ -1,23 +1,23 @@
-import type { ProgressCallback } from 'docker-progress';
 import { DockerProgress } from 'docker-progress';
+import type { ProgressCallback } from 'docker-progress';
 import Dockerode from 'dockerode';
 import _ from 'lodash';
 import memoizee from 'memoizee';
-
 import { applyDelta, OutOfSyncError } from 'docker-delta';
 
-import type { SchemaReturn } from '../config/schema-type';
+import log from './supervisor-console';
 import { envArrayToObject } from './conversions';
+import * as request from './request';
 import {
 	DeltaStillProcessingError,
 	ImageAuthenticationError,
 	InvalidNetGatewayError,
 	DeltaServerError,
+	DeltaApplyError,
+	isStatusError,
 } from './errors';
-import * as request from './request';
 import type { EnvVarObject } from '../types';
-
-import log from './supervisor-console';
+import type { SchemaReturn } from '../config/schema-type';
 
 export type FetchOptions = SchemaReturn<'fetchOptions'>;
 export type DeltaFetchOptions = FetchOptions & {
@@ -41,6 +41,18 @@ type ImageNameParts = {
 // How long do we keep a delta token before invalidating it
 // (10 mins)
 const DELTA_TOKEN_TIMEOUT = 10 * 60 * 1000;
+
+// How many times to retry a v3 delta apply before falling back to a regular pull.
+// A delta is applied to the base image when pulling, so a failure could be due to
+// "layers from manifest don't match image configuration", which can occur before
+// or after downloading delta image layers.
+//
+// Other causes of failure have not been documented as clearly as "layers from manifest"
+// but could manifest as well, though unclear if they occur before, after, or during
+// downloading delta image layers.
+//
+// See: https://github.com/balena-os/balena-engine/blob/master/distribution/pull_v2.go#L43
+const DELTA_APPLY_RETRY_COUNT = 3;
 
 export const docker = new Dockerode();
 export const dockerProgress = new DockerProgress({
@@ -140,7 +152,7 @@ export async function fetchDeltaWithProgress(
 	}
 
 	// Since the supevisor never calls this function with a source anymore,
-	// this should never happen, but w ehandle it anyway
+	// this should never happen, but we handle it anyway
 	if (deltaOpts.deltaSource == null) {
 		logFn('Falling back to regular pull due to lack of a delta source');
 		return fetchImageWithProgress(imgDest, deltaOpts, onProgress);
@@ -226,29 +238,62 @@ export async function fetchDeltaWithProgress(
 							`Got an error when parsing delta server response for v3 delta: ${e}`,
 						);
 					}
-					id = await applyBalenaDelta(name, token, onProgress, logFn);
+					// Try to apply delta DELTA_APPLY_RETRY_COUNT times, then throw DeltaApplyError
+					let lastError: Error | undefined = undefined;
+					for (
+						let tryCount = 0;
+						tryCount < DELTA_APPLY_RETRY_COUNT;
+						tryCount++
+					) {
+						try {
+							id = await applyBalenaDelta(name, token, onProgress, logFn);
+							break;
+						} catch (e) {
+							if (isStatusError(e)) {
+								// A status error during delta pull indicates network issues,
+								// so we should throw an error to the handler that indicates that
+								// the delta pull should be retried until network issues are resolved,
+								// rather than falling back to a regular pull.
+								throw e;
+							}
+							lastError = e as Error;
+							logFn(
+								`Delta apply failed, retrying (${tryCount + 1}/${DELTA_APPLY_RETRY_COUNT})...`,
+							);
+						}
+					}
+					if (lastError) {
+						throw new DeltaApplyError(lastError.message);
+					}
 				}
 				break;
 			default:
 				throw new Error(`Unsupported delta version: ${deltaOpts.deltaVersion}`);
 		}
 	} catch (e) {
+		// Log appropriate message based on error type
 		if (e instanceof OutOfSyncError) {
 			logFn('Falling back to regular pull due to delta out of sync error');
-			return await fetchImageWithProgress(imgDest, deltaOpts, onProgress);
 		} else if (e instanceof DeltaServerError) {
 			logFn(
 				`Falling back to regular pull due to delta server error (${e.statusCode})${e.statusMessage ? `: ${e.statusMessage}` : ''}`,
 			);
-			return await fetchImageWithProgress(imgDest, deltaOpts, onProgress);
+		} else if (e instanceof DeltaApplyError) {
+			// A delta apply error is raised from the Engine and doesn't have a status code
+			logFn(
+				`Falling back to regular pull due to delta apply error ${e.message ? `: ${e.message}` : ''}`,
+			);
 		} else {
 			logFn(`Delta failed with ${e}`);
 			throw e;
 		}
+
+		// For handled errors, fall back to regular pull
+		return fetchImageWithProgress(imgDest, deltaOpts, onProgress);
 	}
 
 	logFn(`Delta applied successfully`);
-	return id;
+	return id!;
 }
 
 export async function fetchImageWithProgress(
