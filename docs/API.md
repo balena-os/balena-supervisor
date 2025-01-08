@@ -1298,3 +1298,33 @@ Show journal logs until the given `until` timestamp, formats are described here:
 
 An example project using this endpoint can be found
 [in this repository](https://github.com/balena-io-playground/device-cloud-logging).
+
+#### Device metrics
+
+> **Introduced in supervisor v16.11.0**
+
+Get current device metrics.
+
+From an app container:
+
+```bash
+$ curl "$BALENA_SUPERVISOR_ADDRESS/v2/device/metrics?apikey=$BALENA_SUPERVISOR_API_KEY"
+```
+
+Response:
+```json
+{
+	"status": "success",
+	"metrics": {
+		"cpu_usage": 0.5,
+		"memory_usage": 1024,
+		"memory_total": 2048,
+		"storage_usage": 1024,
+		"storage_total": 2048,
+		"storage_block_device": "sda",
+		"cpu_temp": 50,
+		"cpu_id": "1234567890",
+		"is_undervolted": false
+	}
+}
+```

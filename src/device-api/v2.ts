@@ -575,3 +575,15 @@ router.post('/v2/journal-logs', (req, res) => {
 		res.end();
 	});
 });
+
+router.get('/v2/device/metrics', async (_req, res, next) => {
+	try {
+		const metrics = await actions.getMetrics();
+		return res.json({
+			status: 'success',
+			metrics,
+		});
+	} catch (e) {
+		next(e);
+	}
+});

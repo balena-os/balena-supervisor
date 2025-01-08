@@ -639,4 +639,47 @@ describe('device-api/v2', () => {
 				.expect(503);
 		});
 	});
+
+	describe('GET /v2/device/metrics', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let getMetricsStub: SinonStub;
+		beforeEach(() => {
+			getMetricsStub = stub(actions, 'getMetrics').resolves();
+		});
+		afterEach(async () => {
+			getMetricsStub.restore();
+			// Remove all scoped API keys between tests
+			await db.models('apiSecret').whereNot({ appId: 0 }).del();
+		});
+
+		it('responds with 200 if metrics are returned', async () => {
+			const metrics = {
+				cpu_usage: 0.5,
+				memory_usage: 1024,
+				memory_total: 2048,
+				storage_usage: 1024,
+				storage_total: 2048,
+				storage_block_device: 'sda',
+				cpu_temp: 50,
+				cpu_id: '1234567890',
+				is_undervolted: false,
+			};
+			getMetricsStub.resolves(metrics);
+			await request(api)
+				.get('/v2/device/metrics')
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
+				.expect(200, {
+					status: 'success',
+					metrics,
+				});
+		});
+
+		it('responds with 503 if there is an error getting metrics', async () => {
+			getMetricsStub.throws(new Error());
+			await request(api)
+				.get('/v2/device/metrics')
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
 });

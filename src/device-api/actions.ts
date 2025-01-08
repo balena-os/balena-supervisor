@@ -27,6 +27,7 @@ import {
 	BadRequestError,
 } from '../lib/errors';
 import { withLock } from '../lib/update-lock';
+import * as systemInfo from '../lib/system-info';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -444,4 +445,16 @@ export const patchHostConfig = async (conf: unknown, force: boolean) => {
 		throw new BadRequestError((e as Error).message);
 	}
 	await hostConfig.patch(parsedConf, force);
+};
+
+/**
+ * Get device metrics and checks
+ * Used by:
+ * 	- GET /v2/device/metrics
+ */
+export const getMetrics = async () => {
+	return {
+		...(await systemInfo.getSystemMetrics()),
+		...(await systemInfo.getSystemChecks()),
+	};
 };
