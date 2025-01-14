@@ -1,33 +1,23 @@
 import _ from 'lodash';
 import { inspect } from 'util';
-import { promises as fs } from 'fs';
 
-import * as config from './config';
-import * as db from './db';
-import * as logger from './logging';
-import * as dbus from './lib/dbus';
-import type { EnvVarObject } from './types';
-import { UnitNotLoadedError } from './lib/errors';
-import { checkInt, checkTruthy } from './lib/validation';
-import log from './lib/supervisor-console';
-import * as configUtils from './config/utils';
-import type { SchemaTypeKey } from './config/schema-type';
-import { matchesAnyBootConfig } from './config/backends';
-import type { ConfigBackend } from './config/backends/backend';
-import { Odmdata } from './config/backends/odmdata';
-import * as fsUtils from './lib/fs-utils';
-import { pathOnRoot } from './lib/host-utils';
+import * as config from '../config';
+import * as db from '../db';
+import * as logger from '../logging';
+import * as dbus from '../lib/dbus';
+import type { EnvVarObject } from '../types';
+import { UnitNotLoadedError } from '../lib/errors';
+import { checkInt, checkTruthy } from '../lib/validation';
+import log from '../lib/supervisor-console';
+import { setRebootBreadcrumb } from '../lib/reboot';
+
+import * as configUtils from '../config/utils';
+import type { SchemaTypeKey } from '../config/schema-type';
+import { matchesAnyBootConfig } from '../config/backends';
+import type { ConfigBackend } from '../config/backends/backend';
+import { Odmdata } from '../config/backends/odmdata';
 
 const vpnServiceName = 'openvpn';
-
-// This indicates the file on the host /tmp directory that
-// marks the need for a reboot. Since reboot is only triggered for now
-// by some config changes, we leave this here for now. There is planned
-// functionality to allow image installs to require reboots, at that moment
-// this constant can be moved somewhere else
-const REBOOT_BREADCRUMB = pathOnRoot(
-	'/tmp/balena-supervisor/reboot-after-apply',
-);
 
 interface ConfigOption {
 	envVarName: string;
@@ -39,10 +29,7 @@ interface ConfigOption {
 // FIXME: Bring this and the deviceState and
 // applicationState steps together
 export interface ConfigStep {
-	// TODO: This is a bit of a mess, the DeviceConfig class shouldn't
-	// know that the reboot action exists as it is implemented by
-	// DeviceState. Fix this weird circular dependency
-	action: keyof DeviceActionExecutors | 'reboot' | 'noop';
+	action: keyof DeviceActionExecutors | 'noop';
 	humanReadableTarget?: Dictionary<string>;
 	target?: string | Dictionary<string>;
 }
@@ -117,10 +104,12 @@ const actionExecutors: DeviceActionExecutors = {
 			await setBootConfig(backend, step.target as Dictionary<string>);
 		}
 	},
-	setRebootBreadcrumb: async () => {
-		// Just create the file. The last step in the target state calculation will check
-		// the file and create a reboot step
-		await fsUtils.touch(REBOOT_BREADCRUMB);
+	setRebootBreadcrumb: async (step) => {
+		const changes =
+			step != null && step.target != null && typeof step.target === 'object'
+				? step.target
+				: {};
+		return setRebootBreadcrumb(changes);
 	},
 };
 
@@ -210,7 +199,7 @@ const configKeys: Dictionary<ConfigOption> = {
 	},
 };
 
-export const validKeys = [
+const validKeys = [
 	'SUPERVISOR_VPN_CONTROL',
 	'OVERRIDE_LOCK',
 	..._.map(configKeys, 'envVarName'),
@@ -413,6 +402,7 @@ function getConfigSteps(
 	target: Dictionary<string>,
 ) {
 	const configChanges: Dictionary<string> = {};
+	const rebootingChanges: Dictionary<string> = {};
 	const humanReadableConfigChanges: Dictionary<string> = {};
 	let reboot = false;
 	const steps: ConfigStep[] = [];
@@ -448,6 +438,9 @@ function getConfigSteps(
 				}
 				if (changingValue != null) {
 					configChanges[key] = changingValue;
+					if ($rebootRequired) {
+						rebootingChanges[key] = changingValue;
+					}
 					humanReadableConfigChanges[envVarName] = changingValue;
 					reboot = $rebootRequired || reboot;
 				}
@@ -457,7 +450,7 @@ function getConfigSteps(
 
 	if (!_.isEmpty(configChanges)) {
 		if (reboot) {
-			steps.push({ action: 'setRebootBreadcrumb' });
+			steps.push({ action: 'setRebootBreadcrumb', target: rebootingChanges });
 		}
 
 		steps.push({
@@ -544,22 +537,14 @@ async function getBackendSteps(
 	return [
 		// All backend steps require a reboot except fan control
 		...(steps.length > 0 && rebootRequired
-			? [{ action: 'setRebootBreadcrumb' } as ConfigStep]
+			? [
+					{
+						action: 'setRebootBreadcrumb',
+					} as ConfigStep,
+				]
 			: []),
 		...steps,
 	];
-}
-
-async function isRebootRequired() {
-	const hasBreadcrumb = await fsUtils.exists(REBOOT_BREADCRUMB);
-	if (hasBreadcrumb) {
-		const stats = await fs.stat(REBOOT_BREADCRUMB);
-
-		// If the breadcrumb exists and the last modified time is greater than the
-		// boot time, that means we need to reboot
-		return stats.mtime.getTime() > fsUtils.getBootTime().getTime();
-	}
-	return false;
 }
 
 export async function getRequiredSteps(
@@ -583,19 +568,6 @@ export async function getRequiredSteps(
 				[{ action: 'noop' } as ConfigStep]
 			: await getBackendSteps(current, target)),
 	];
-
-	// Check if there is either no steps, or they are all
-	// noops, and we need to reboot. We want to do this
-	// because in a preloaded setting with no internet
-	// connection, the device will try to start containers
-	// before any boot config has been applied, which can
-	// cause problems
-	const rebootRequired = await isRebootRequired();
-	if (_.every(steps, { action: 'noop' }) && rebootRequired) {
-		steps.push({
-			action: 'reboot',
-		});
-	}
 
 	return steps;
 }
@@ -642,7 +614,7 @@ export function executeStepAction(
 	step: ConfigStep,
 	opts: DeviceActionExecutorOpts,
 ) {
-	if (step.action !== 'reboot' && step.action !== 'noop') {
+	if (step.action !== 'noop') {
 		return actionExecutors[step.action](step, opts);
 	}
 }
