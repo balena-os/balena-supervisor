@@ -35,7 +35,7 @@
     "sqlite3": "^5.1.6"
   },
   "engines": {
-    "node": ">=20 <21",
+    "node": ">=20 <23",
     "npm": ">=10"
   },
   "devDependencies": {
@@ -57,7 +57,7 @@
     "@types/memoizee": "^0.4.11",
     "@types/mocha": "^10.0.6",
     "@types/morgan": "^1.9.9",
-    "@types/node": "^20.12.7",
+    "@types/node": "^22.10.6",
     "@types/request": "^2.48.12",
     "@types/rewire": "^2.5.30",
     "@types/rwlock": "^5.0.6",
