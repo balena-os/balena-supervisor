@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@balena/compose": "^3.2.1",
-    "@balena/contrato": "^0.9.4",
+    "@balena/contrato": "^0.12.0",
     "@balena/es-version": "^1.0.3",
     "@balena/lint": "^8.0.2",
     "@types/bluebird": "^3.5.42",

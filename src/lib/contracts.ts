@@ -128,7 +128,7 @@ export function containerContractsFulfilled(
 		].map((c) => new Contract(c)),
 	);
 
-	const solution = blueprint.reproduce(universe);
+	const solution = [...blueprint.reproduce(universe)];
 
 	if (solution.length > 1) {
 		throw new InternalInconsistencyError(
