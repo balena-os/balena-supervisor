@@ -70,6 +70,10 @@ export class InvalidNetGatewayError extends TypedError {}
 
 export class DeltaStillProcessingError extends TypedError {}
 
+export class DeltaServerError extends StatusError {}
+
+export class DeltaApplyError extends StatusError {}
+
 export class UpdatesLockedError extends TypedError {}
 
 export function isHttpConflictError(err: { statusCode: number }): boolean {
