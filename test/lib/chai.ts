@@ -1,5 +1,4 @@
 import chai from 'chai';
-import chaiAsPromised from 'chai-as-promised';
 import sinonChai from 'sinon-chai';
 import chaiThings from 'chai-things';
 import chaiLike from 'chai-like';
@@ -14,8 +13,10 @@ import chaiLike from 'chai-like';
  * If unsure whether to add to global fixtures, refer to the chart above.
  * Also, avoid setting global mutable variables here.
  */
-export const mochaGlobalSetup = function () {
+export const mochaGlobalSetup = async function () {
 	console.log('Setting up global fixtures for tests...');
+
+	const { default: chaiAsPromised } = await import('chai-as-promised');
 
 	/* Setup chai assertion plugins */
 	chai.use(chaiAsPromised);
