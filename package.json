@@ -39,7 +39,7 @@
     "npm": ">=10"
   },
   "devDependencies": {
-    "@balena/compose": "^3.2.1",
+    "@balena/compose": "^6.0.0",
     "@balena/contrato": "^0.12.0",
     "@balena/es-version": "^1.0.3",
     "@balena/lint": "^8.0.2",
