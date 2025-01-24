@@ -105,7 +105,7 @@
     "mocha": "^10.4.0",
     "mocha-pod": "^2.0.5",
     "morgan": "^1.10.0",
-    "network-checker": "^0.1.1",
+    "network-checker": "^1.0.2",
     "nock": "^13.5.6",
     "node-loader": "^2.1.0",
     "nodemon": "^3.1.9",
