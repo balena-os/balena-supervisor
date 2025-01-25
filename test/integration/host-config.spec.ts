@@ -112,7 +112,7 @@ describe('host-config', () => {
 		}
 	});
 
-	it('patches if update locks are present but force is specified', async () => {
+	it('patches proxy if update locks are present but force is specified', async () => {
 		(applicationManager.getCurrentApps as SinonStub).resolves(currentApps);
 
 		try {
@@ -129,17 +129,21 @@ describe('host-config', () => {
 		expect(await config.get('hostname')).to.equal(defaultConf.hostname);
 	});
 
-	it('patches hostname regardless of update locks', async () => {
+	it('prevents hostname patch if there are update locks', async () => {
 		(applicationManager.getCurrentApps as SinonStub).resolves(currentApps);
 
-		try {
-			await patch({ network: { hostname: 'test' } });
-			// /etc/hostname isn't changed until the balena-hostname service
-			// is restarted by the OS.
-			expect(await config.get('hostname')).to.equal('test');
-		} catch (e: unknown) {
-			expect.fail(`Expected hostConfig.patch to not throw, but got ${e}`);
-		}
+		await expect(patch({ network: { hostname: 'test' } }, true)).to.not.be
+			.rejected;
+		// /etc/hostname isn't changed until the balena-hostname service
+		// is restarted by the OS.
+		expect(await config.get('hostname')).to.equal('test');
+	});
+
+	it('patches hostname if update locks are present but force is specified', async () => {
+		(applicationManager.getCurrentApps as SinonStub).resolves(currentApps);
+
+		await expect(patch({ network: { hostname: 'test' } })).to.be.rejected;
+		expect(await config.get('hostname')).to.equal(defaultConf.hostname);
 	});
 
 	it('patches hostname without modifying other fields', async () => {

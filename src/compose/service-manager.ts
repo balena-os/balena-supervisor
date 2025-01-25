@@ -8,7 +8,7 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
 import { docker } from '../lib/docker-utils';
-import * as logger from '../logger';
+import * as logger from '../logging';
 
 import { PermissiveNumber } from '../config/types';
 import * as constants from '../lib/constants';
@@ -19,7 +19,7 @@ import {
 	isStatusError,
 } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
-import { checkInt, isValidDeviceName } from '../lib/validation';
+import { checkInt, isValidDeviceName, checkTruthy } from '../lib/validation';
 import { Service } from './service';
 import type { ServiceStatus } from './types';
 import { serviceNetworksToDockerNetworks } from './utils';
@@ -27,6 +27,7 @@ import { serviceNetworksToDockerNetworks } from './utils';
 import log from '../lib/supervisor-console';
 import logMonitor from '../logging/monitor';
 import { setTimeout } from 'timers/promises';
+import { getBootTime } from '../lib/fs-utils';
 
 interface ServiceManagerEvents {
 	change: void;
@@ -233,7 +234,7 @@ export async function remove(service: Service) {
 	}
 }
 
-async function create(service: Service) {
+async function create(service: Service): Promise<Service> {
 	const mockContainerId = config.newUniqueKey();
 	try {
 		const existing = await get(service);
@@ -242,7 +243,7 @@ async function create(service: Service) {
 				`No containerId provided for service ${service.serviceName} in ServiceManager.updateMetadata. Service: ${service}`,
 			);
 		}
-		return docker.getContainer(existing.containerId);
+		return existing;
 	} catch (e: unknown) {
 		if (!isNotFoundError(e)) {
 			logger.logSystemEvent(LogTypes.installServiceError, {
@@ -287,7 +288,9 @@ async function create(service: Service) {
 		reportNewStatus(mockContainerId, service, 'Installing');
 
 		const container = await docker.createContainer(conf);
-		service.containerId = container.id;
+		const inspectInfo = await container.inspect();
+
+		service = Service.fromDockerContainer(inspectInfo);
 
 		await Promise.all(
 			_.map((nets || {}).EndpointsConfig, (endpointConfig, name) =>
@@ -299,7 +302,7 @@ async function create(service: Service) {
 		);
 
 		logger.logSystemEvent(LogTypes.installServiceSuccess, { service });
-		return container;
+		return service;
 	} finally {
 		reportChange(mockContainerId);
 	}
@@ -310,13 +313,25 @@ export async function start(service: Service) {
 	let containerId: string | null = null;
 
 	try {
-		const container = await create(service);
+		const svc = await create(service);
+		const container = docker.getContainer(svc.containerId!);
+
+		const requiresReboot =
+			checkTruthy(
+				service.config.labels?.['io.balena.update.requires-reboot'],
+			) &&
+			svc.createdAt != null &&
+			svc.createdAt > getBootTime();
+
+		if (requiresReboot) {
+			log.warn(`Skipping start of service ${svc.serviceName} until reboot`);
+		}
 
 		// Exit here if the target state of the service
-		// is set to running: false
+		// is set to running: false or we are waiting for a reboot
 		// QUESTION: should we split the service steps into
 		// 'install' and 'start' instead of doing this?
-		if (service.config.running === false) {
+		if (service.config.running === false || requiresReboot) {
 			return container;
 		}
 

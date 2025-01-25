@@ -6,10 +6,10 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 import prettyMs from 'pretty-ms';
 
 import * as config from '../config';
-import * as logger from '../logger';
+import * as logger from '../logging';
 
 import * as network from '../network';
-import * as deviceConfig from '../device-config';
+import * as deviceConfig from './device-config';
 
 import * as constants from '../lib/constants';
 import * as dbus from '../lib/dbus';
@@ -19,12 +19,19 @@ import * as updateLock from '../lib/update-lock';
 import { getGlobalApiKey } from '../lib/api-keys';
 import * as sysInfo from '../lib/system-info';
 import { log } from '../lib/supervisor-console';
+import { isRebootRequired } from '../lib/reboot';
 import { loadTargetFromFile } from './preload';
 import * as applicationManager from '../compose/application-manager';
 import * as commitStore from '../compose/commit';
 import type { InstancedDeviceState } from './target-state';
 import * as TargetState from './target-state';
 export { getTarget, setTarget } from './target-state';
+
+export {
+	formatConfigKeys,
+	getCurrent as getCurrentConfig,
+	getDefaults as getDefaultConfig,
+} from './device-config';
 
 import type { DeviceLegacyState, DeviceState, DeviceReport } from '../types';
 import type {
@@ -455,23 +462,28 @@ export async function shutdown({
 	// Get current apps to create locks for
 	const apps = await applicationManager.getCurrentApps();
 	const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
+	const lockOverride = await config.get('lockOverride');
 	// Try to create a lock for all the services before shutting down
-	return updateLock.lock(appIds, { force }, async () => {
-		let dbusAction;
-		switch (reboot) {
-			case true:
-				logger.logSystemMessage('Rebooting', {}, 'Reboot');
-				dbusAction = await dbus.reboot();
-				break;
-			case false:
-				logger.logSystemMessage('Shutting down', {}, 'Shutdown');
-				dbusAction = await dbus.shutdown();
-				break;
-		}
-		shuttingDown = true;
-		emitAsync('shutdown', undefined);
-		return dbusAction;
-	});
+	return updateLock.withLock(
+		appIds,
+		async () => {
+			let dbusAction;
+			switch (reboot) {
+				case true:
+					logger.logSystemMessage('Rebooting', {}, 'Reboot');
+					dbusAction = await dbus.reboot();
+					break;
+				case false:
+					logger.logSystemMessage('Shutting down', {}, 'Shutdown');
+					dbusAction = await dbus.shutdown();
+					break;
+			}
+			shuttingDown = true;
+			emitAsync('shutdown', undefined);
+			return dbusAction;
+		},
+		{ force: force || lockOverride },
+	);
 }
 
 // FIXME: this method should not be exported, all target state changes
@@ -507,7 +519,7 @@ export async function executeStepAction(
 	}
 }
 
-export async function applyStep(
+async function applyStep(
 	step: DeviceStateStep<PossibleStepTargets>,
 	{
 		force,
@@ -604,11 +616,12 @@ export const applyTarget = async ({
 			({ action }) => action === 'noop',
 		);
 
-		let backoff: boolean;
+		const rebootRequired = await isRebootRequired();
+
+		let backoff = false;
 		let steps: Array<DeviceStateStep<PossibleStepTargets>>;
 
 		if (!noConfigSteps) {
-			backoff = false;
 			steps = deviceConfigSteps;
 		} else {
 			const appSteps = await applicationManager.getRequiredSteps(
@@ -633,6 +646,21 @@ export const applyTarget = async ({
 				backoff = false;
 				steps = appSteps;
 			}
+		}
+
+		// Check if there is either no steps, or they are all
+		// noops, and we need to reboot. We want to do this
+		// because in a preloaded setting with no internet
+		// connection, the device will try to start containers
+		// before any boot config has been applied, which can
+		// cause problems
+		// For application manager, the reboot breadcrumb should
+		// be set after all downloads are ready and target containers
+		// have been installed
+		if (steps.every(({ action }) => action === 'noop') && rebootRequired) {
+			steps.push({
+				action: 'reboot',
+			});
 		}
 
 		if (_.isEmpty(steps)) {

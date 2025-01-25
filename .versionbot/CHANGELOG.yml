@@ -1,4 +1,388 @@
 - commits:
+    - subject: Update contrato to v0.12.0
+      hash: 85fc5784bcd187d086bffbd0c2167ce9eb34650f
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Update alpine base image to 3.21
+      hash: 55f22dbc0f4792033b6253af89c6adde6a727ab0
+      body: |
+        This allows to update Node to v22 on production supervisor images
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Update Node support to v22
+      hash: ea594b18abb6b82f498071e50f71422dedb5b280
+      body: |
+        Updates @types/node and expands module support to v22.
+        Support for v20 will be removed on a future version.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 16.12.0
+  title: ""
+  date: 2025-01-20T22:14:35.646Z
+- commits:
+    - subject: Add support for `io.balena.update.requires-reboot`
+      hash: e416ad0daf61fba14cd8c2012c5b2f66d8fb5f4a
+      body: >
+        This label can be used by user services to indicate that a reboot is
+
+        required after the install of a service in order to fully apply an
+        update.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+    - subject: Move reboot breadcrumb check to device-state
+      hash: 75127c6074531fd20199ed07d6860687b4105cfb
+      body: |
+        This was on device-config before, but we'll need to set the reboot
+        breadcrumb from the application-manager as well when we introduce
+        `requires-reboot` as a label.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Refactor device-config as part of device-state
+      hash: 51f1fb0f30e04ece6a00d2d8b9420b49703a2fde
+      body: |
+        Move the device-config module to the device-state folder and export only
+        those functions that are needed elsewhere in the codebase
+
+        This moves us closer to making the device-state module the only way to
+        modify application and configuration.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.11.0
+  title: ""
+  date: 2025-01-14T18:15:55.879Z
+- commits:
+    - subject: Update systeminformation to v5.23.8 [SECURITY]
+      hash: 92b26c7ae2d8d329be18806abe24ab312e92db68
+      body: |
+        Update systeminformation from 5.22.7 to 5.23.8
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 16.10.3
+  title: ""
+  date: 2024-12-20T20:43:23.372Z
+- commits:
+    - subject: Wait for service dependencies to be running
+      hash: 8e6c0fcad729b56e386ac27754c48c97517e293a
+      body: |
+        This fixes a regression where dependencies would only be started in
+        order and would start the dependent service if its dependency had been
+        started at some point in the past, regardless of the running condition.
+
+        This makes the behavior more consistent with docker compose where the
+        [dependency needs to be
+        running or healthy](https://github.com/docker/compose/blob/69a83d1303a103d82b05d512baf273244b4dbd94/pkg/compose/convergence.go#L441) for the service to be started.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.10.2
+  title: ""
+  date: 2024-12-18T18:48:52.008Z
+- commits:
+    - subject: Specify `/tmp/balena|resin` directories as necessary
+      hash: dc740a159b9b299b85885bc8ab65e97cc4d356a3
+      body: ""
+      footer:
+        See: https://forums.balena.io/t/rm-cant-remove-tmp-balena-resource-busy/367888/5
+        see: https://forums.balena.io/t/rm-cant-remove-tmp-balena-resource-busy/367888/5
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.10.1
+  title: ""
+  date: 2024-12-11T00:28:17.295Z
+- commits:
+    - subject: Add PowerFanConfig config backend
+      hash: 828bd22ba053aa08ca2bde8e72b3aa7ed82aae02
+      body: >
+        This config backend uses ConfigJsonConfigBackend to update
+
+        os.power and os.fan subfields under the "os" key, in order
+
+        to set power and fan configs. The expected format for os.power
+
+        and os.fan settings is:
+
+        ```
+
+        {
+          os: {
+            power: {
+              mode: string
+            },
+            fan: {
+              profile: string
+            }
+          }
+        }
+
+        ```
+
+
+        There may be other keys in os which are not managed by the Supervisor,
+
+        so PowerFanConfig backend doesn't read or write to them. Extra keys in
+        os.power
+
+        and os.fan are ignored when getting boot config and removed when setting
+
+        boot config.
+
+
+        After this backend writes to config.json, host services os-power-mode
+
+        and os-fan-profile pick up the changes, on reboot in the former's case
+
+        and at runtime in the latter's case. The changes are applied by the host
+
+        services, which the Supervisor does not manage aside from streaming
+
+        their service logs to the dashboard.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.10.0
+  title: ""
+  date: 2024-12-10T23:28:15.038Z
+- commits:
+    - subject: Add ability to stream logs from host services to cloud
+      hash: fb6fa9b16caa33eabeb44414d4681cea52d11784
+      body: >
+        Add `os-power-mode.service`, `nvpmodel.service`, and
+        `os-fan-profile.service`
+
+        which report status from applying power mode and fan profile configs as
+        read
+
+        from config.json. The Supervisor sets these configs in config.json for
+        these
+
+        host services to pick up and apply.
+
+
+        Also add host log streaming from `jetson-qspi-manager.service` as it
+
+        will very soon be needed for Jetson Orins.
+      footer:
+        Relates-to: "#2379"
+        relates-to: "#2379"
+        See: balena-os/balena-jetson-orin#513
+        see: balena-os/balena-jetson-orin#513
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.9.0
+  title: ""
+  date: 2024-12-06T17:52:55.615Z
+- commits:
+    - subject: Take update locks for host-config changes
+      hash: a2d4b31b231d7e7981d2032b0bb76d301088ca95
+      body: |
+        This adds update-lock support to hostname changes via the host-config
+        endpoint, in addition to proxy changes as changing the hostname may
+        cause an engine restart from the OS.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 16.8.0
+  title: ""
+  date: 2024-12-05T17:06:07.578Z
+- commits:
+    - subject: Clean up remaining locks on state settle
+      hash: 9c09329b86f08523501d4fbc54511cb2051b4bea
+      body: |
+        Locks could remain from a previous supervisor run that didn't get to
+        settle the state. This ensures that cleanup will happen for remaining
+        locks every time the state is settled.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Refactor update-locks implementation
+      hash: 3c6e9dd209a259211ed3fd2e7bbe00f3235f87aa
+      body: |
+        The refactor simplifies the implementation and ensures that locks per
+        app can only be held by one supervisor task at the time.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Refactor lockfile module
+      hash: d8f54c05e7536096576ada4db3294785bef6b0ff
+      body: |
+        Updated interfaces for clarity
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.7.8
+  title: ""
+  date: 2024-11-28T21:23:24.352Z
+- commits:
+    - subject: "Firewall: allow DNS requests from custom Docker bridge networks"
+      hash: 7e1cafa866d7ce04d983a990aa219dbd23de26c7
+      body: |
+        We only allow DNS requests through `balena0` interface, but this
+        is the default Docker bridge which is used for containers that
+        don't have a custom bridge. However, the Supervisor creates a
+        custom bridge for all containers unless another network mode is
+        specified.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.7.7
+  title: ""
+  date: 2024-11-11T19:02:34.485Z
+- commits:
+    - subject: Update firewall documentation
+      hash: 1b747f6d65372632a5491a0630e7de00f92c773f
+      body: |
+        Removes experimental warning and updates issues
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.7.6
+  title: ""
+  date: 2024-11-07T21:02:38.875Z
+- commits:
+    - subject: Delete apps not in target from db by appUuid instead of appId
+      hash: 3d3f659f1616cc291824d1f46da08583c138f39c
+      body: >
+        Resolve an issue in balenaMachine instances that were installed at
+        <v14.1.0,
+
+        in which a Supervisor app with random UUID is kept in the target db due
+        to its appId
+
+        being the same, even after the BM instance has upgraded to v14.1.0 which
+        patches
+
+        the correct reserved Supervisor app UUIDs in. This results in two
+        Supervisors running
+
+        on devices under the BM instance which persists after BM upgrade.
+      footer:
+        See: https://balena.fibery.io/search/T7ozi#Inputs/Pattern/Two-supervisors-are-running-on-device-3370
+        see: https://balena.fibery.io/search/T7ozi#Inputs/Pattern/Two-supervisors-are-running-on-device-3370
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.7.5
+  title: ""
+  date: 2024-11-07T13:34:05.062Z
+- commits:
+    - subject: Update express to v4.20.0 [SECURITY]
+      hash: f2aaf7372d0716e3b62118ed3102a7eac0f169a5
+      body: |
+        Update express from 4.19.2 to 4.20.0
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 16.7.4
+  title: ""
+  date: 2024-10-28T14:40:42.702Z
+- commits:
+    - subject: Add NXP support to balenaOS secure boot
+      hash: 619f64429931975a6f33f1ef444928962d82e200
+      body: |
+        On NXP iMX devices the partitions are not encrypted with LUKS but with
+        the lower level dm-crypt subsystem.
+
+        Adapt the partition mount script to use dmsetup which works for both
+        LUKS and dm-crypt encrypted partitions.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+      nested: []
+  version: 16.7.3
+  title: ""
+  date: 2024-10-28T14:04:22.141Z
+- commits:
+    - subject: Use bookworm image to source journalctl binaries
+      hash: 57a17ea2075d7aadd440b7c2be78f52136988ad9
+      body: |
+        Debian no longer publishes linux/arm/v5 images for bullseye, breaking
+        support for raspberry pi zero.
+
+        This change might not solve the issue indefinitely
+        as we don't know how long debian will continue publishing armv5 images.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.7.2
+  title: ""
+  date: 2024-10-18T15:20:52.555Z
+- commits:
+    - subject: Add support for init field from compose
+      hash: ed1c18e3691e60bc22652e930be49e428d2ef1fe
+      body: |
+        Init supports boolean values, and is not included in the config when
+        not defined.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.7.1
+  title: ""
+  date: 2024-09-26T14:28:03.356Z
+- commits:
     - subject: Store rejected apps in the database
       hash: e9a52e6786e94f6be5e23c9410fc7b59df4726b5
       body: |
@@ -1593,14 +1977,9 @@
 - commits:
     - subject: Remove dependency on @balena/happy-eyeballs
       hash: 08727ed2b5f67c55b2469d3ee5c5e2857119521b
-      body: >
+      body: |
         Node 20 now implements the happy eyeballs algorithm as part of its core
-
-        `net` module, with the
-        [autoSelectFamily](https://nodejs.org/docs/latest-v20.x/api/net.html#netgetdefaultautoselectfamily)
-        option of `socket.connect`. This option defaults to `true`, meaning that
-        a separate
-
+        `net` module, with the [autoSelectFamily](https://nodejs.org/docs/latest-v20.x/api/net.html#netgetdefaultautoselectfamily) option of `socket.connect`. This option defaults to `true`, meaning that a separate
         implementation of happy eyeballs is no longer needed.
       footer:
         Change-type: patch
@@ -1691,15 +2070,10 @@
 - commits:
     - subject: Fix support for rsync deltas
       hash: 24e222045ac511cd4fbb3be66e57eb678a29d854
-      body: >
-        Rsync (v2) deltas have been broken since [Supervisor
-        v14](https://github.com/balena-os/balena-supervisor/commit/460c3ba0aab31d18a02e3f5dda1838691768c494).
-        While considered legacy,
-
+      body: |
+        Rsync (v2) deltas have been broken since [Supervisor v14](https://github.com/balena-os/balena-supervisor/commit/460c3ba0aab31d18a02e3f5dda1838691768c494). While considered legacy,
         they are still used by a few customers with devices running OS < 2.47.1.
-
         This should fix v2 delta support for those devices until we can
-
         completely remove rsync deltas from the supervisor
       footer:
         Change-type: patch
@@ -1762,32 +2136,19 @@
 - commits:
     - subject: Add special case for base DTO params on RPI config
       hash: 6e6a796da5ecc846248eae4c8495bc626964c038
-      body: >
-        While ordering is important in the RPI firmware configuration file
-        (config.txt),
-
+      body: |
+        While ordering is important in the RPI firmware configuration file (config.txt),
         some dt params are by default considered part of the base dt overlay
-
         if they are not used by other overlays.
-
-        Unfortunately the [list of
-        dtparams](https://github.com/raspberrypi/firmware/blob/master/boot/overlays/README#L133)
-
+        Unfortunately the [list of dtparams](https://github.com/raspberrypi/firmware/blob/master/boot/overlays/README#L133)
         is too long to add all of them as exceptions, but we can add the params
-
         used in the default config.txt provided in OS images, to avoid reboots
-
         when updating to this new supervisor and correctly parsing the
-
         provisioning config.txt as variables.
 
-
         While this addition handles most common scenarios, there is still a
-
         chance a user may have use other base overlay dt params in the initial
-
         config, in which case those will be interpreted according to the
-
         relative ordering
       footer:
         Change-type: patch
@@ -3208,21 +3569,13 @@
 - commits:
     - subject: Log uncaught promise exceptions on the app entry
       hash: 676464142690da2e36a810cb35e4ea4d0d751636
-      body: >
-        Node 15 [changed the way it treats unhandled promise
-        rejections](https://github.com/nodejs/node/blob/main/doc/changelogs/CHANGELOG_V15.md#throw-on-unhandled-rejections---33021)
-        from a warning to a throw.
-
-        For this reason errors like a corrupt migration directory, that happens
-        when trying to
-
+      body: |
+        Node 15 [changed the way it treats unhandled promise rejections](https://github.com/nodejs/node/blob/main/doc/changelogs/CHANGELOG_V15.md#throw-on-unhandled-rejections---33021) from a warning to a throw.
+        For this reason errors like a corrupt migration directory, that happens when trying to
         roll back to a previous supervisor version were no longer showing a
-
         message but dumping the full minimized code into the journal logs.
 
-
         This PR adds a catchall on app.ts to log the exception and throw an exit
-
         code of 1.
       footer:
         Change-type: patch
@@ -3235,13 +3588,9 @@
 - commits:
     - subject: Fix assertion error in restart-service
       hash: b9e1464d96824f5332c71324d753d94ddbdecf90
-      body: >
-        From:
-        https://github.com/balena-os/balena-supervisor/pull/2153/commits/c0b4fafe842115933b1da9b4d68e601a19c3e4eb
-
-        Restart-service checks that both services have restarted in its test
-        assertion, which is
-
+      body: |
+        From: https://github.com/balena-os/balena-supervisor/pull/2153/commits/c0b4fafe842115933b1da9b4d68e601a19c3e4eb
+        Restart-service checks that both services have restarted in its test assertion, which is
         incorrect as restart-service should only restart one service.
       footer:
         Change-type: patch
@@ -3540,33 +3889,21 @@
       nested: []
     - subject: Reference networks by Id instead of by name
       hash: 180c4ff31ad719fb2b00217548514d42a4b5c4cf
-      body: >
+      body: |
         We have seen a few times devices with duplicated network names for some
-
         reason. While we don't know the cause the networks get duplicates,
-
         this is disruptive of updates, as the supervisor usually queries
-
         resource by name, resulting in a 400 error from the engine because of
-
         the ambiguity.
 
-
         This replaces those queries by name to queries by id. This includes
-
         network removal. If a `removeNetwork` step is generated, the supervisor
-
         opts to remove all instances of the network with the same name as it
-
         cannot easily resolve the ambiguity.
 
-
         This doesn't solve the problem of ambiguous networks, because even if
-
         networks are referenced by id when creating a container, the engine will
-
-        throw an error (see
-        https://github.com/balena-os/balena-supervisor/issues/590#issuecomment-1423557871)
+        throw an error (see https://github.com/balena-os/balena-supervisor/issues/590#issuecomment-1423557871)
       footer:
         Change-type: patch
         change-type: patch
@@ -3640,37 +3977,22 @@
 - commits:
     - subject: Add SIGTERM listener on application start
       hash: 6683bca07da0e6b8f822dfcb22211b24a182dc16
-      body: >
+      body: |
         As reported by issue #2100, the supervisor was not correctly reacting to
-
         `SIGTERM` sent by the engine when terminating the process (for instance
-
         before a reboot). This would lead to the supervisor requiring an
-
         additional 10 seconds to terminate (after which the engine will send a
-
         `SIGKILL`).
-
 
         The reason for this is explained by the following info coming from Node
 
-
-        > Node.js was not designed to run as PID 1 which leads to unexpected
-        behaviour when running inside of Docker. For example, a Node.js process
-        running as PID 1 will not respond to `SIGINT` (`CTRL-C`) and similar
-        signals.
-        [reference](https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals)
-
+        > Node.js was not designed to run as PID 1 which leads to unexpected behaviour when running inside of Docker. For example, a Node.js process running as PID 1 will not respond to `SIGINT` (`CTRL-C`) and similar signals. [reference](https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals)
 
         On internal testing, it was discovered that simply adding a listener for
-
         the signal on the Node process was enough to handle the signal, even
-
         when the process runs as PID 1.
 
-
         This adds a listener for `SIGTERM` before starting the supervisor main
-
         loop.
       footer:
         Closes: "#2100"
@@ -4074,35 +4396,21 @@
 - commits:
     - subject: Migrate all device config tests to integration.
       hash: 827f892c138dd05f9402d91e43125aa3a4dc35ac
-      body: >
+      body: |
         This means that configuration backend tests no longer use stubs and
-
         (mostly) avoid internal dependencies in the tests. Instead of stubs and
-
-        mock-fs, the tests use
-        [testfs](https://github.com/balena-io-modules/mocha-pod#working-with-the-filesystem)
-
+        mock-fs, the tests use [testfs](https://github.com/balena-io-modules/mocha-pod#working-with-the-filesystem)
         which allows working with a real filesystem and ensuring everything is
-
         re-set between tests.
 
-
-        This is the last change needed in order to be able to merge #1971. Here
-        is the list of changes
-
+        This is the last change needed in order to be able to merge #1971. Here is the list of changes
 
         - [x] Migrate splash image backend tests
-
         - [x] Migrate extlinux backend tests
-
         - [x] Migrate config.txt backend tests
-
         - [x] Migrate extra-uenv config tests
-
         - [x] Migrate odmdata config tests
-
         - [x] Migrate config utils tests
-
         - [x] Migrate device-config tests
       footer:
         Change-type: patch
@@ -5665,19 +5973,12 @@
 - commits:
     - subject: Ignore selinux security opts when comparing services
       hash: 1b54ce8bfd5dd3d1f14f573a0bfe17ee1dd81630
-      body: >
-        The moby engine v20.x.y adds some selinux [security
-        configurations](https://docs.docker.com/engine/reference/run/#security-configuration)
-
-        depending on the [container
-        configuration](https://github.com/moby/moby/blob/master/daemon/create.go#L214).
-
+      body: |
+        The moby engine v20.x.y adds some selinux [security configurations](https://docs.docker.com/engine/reference/run/#security-configuration)
+        depending on the [container configuration](https://github.com/moby/moby/blob/master/daemon/create.go#L214).
         This would cause the supervisor to enter a service restart loop as the
-
         current and target service configurations will never match. The
-
         supervisor now ignores selinux specific security options since those are
-
         not supported by balenaOS.
       footer:
         Closes: "#1890"
@@ -5915,19 +6216,12 @@
 - commits:
     - subject: Fix `.local` dns resolution when returning multiple addresses
       hash: 39c667803d93182c595870352a597b9c07e1c9d1
-      body: >
+      body: |
         The supervisor performs its own local resolution for `.local`
-
-        addresses due to a limitation in
-        [musl](https://wiki.musl-libc.org/future-ideas.html).
-
+        addresses due to a limitation in [musl](https://wiki.musl-libc.org/future-ideas.html).
         The resolution function was not following exactly the nodejs [dns.lookup
-
         specification](https://nodejs.org/api/dns.html#dnslookuphostname-options-callback)
-
-        which could cause certain clients to fail (in this case happy-eyeballs).
-        This
-
+        which could cause certain clients to fail (in this case happy-eyeballs). This
         updates the function to follow the specification.
       footer:
         Change-type: patch
@@ -6516,40 +6810,25 @@
 - commits:
     - subject: Fix regression with local mode push
       hash: 6f5f3bc2f3aea1bf5e5772533be80c3bfbb4e3a9
-      body: >
+      body: |
         PR #1749 introduced a bug when pushing local target state. An update to
-
-        the [image name
-        normalization](https://github.com/balena-os/balena-supervisor/blob/f1bd4b8d9bcef29e326cbf97eaddd837c2704d19/src/lib/docker-utils.ts#L81)
-
+        the [image name normalization](https://github.com/balena-os/balena-supervisor/blob/f1bd4b8d9bcef29e326cbf97eaddd837c2704d19/src/lib/docker-utils.ts#L81)
         failed to consider the local image name format. This results in mangling
-
         of image names in the database, i.e. the image `ubuntu:latest` is stored
-
         as `/ubuntu:latest`. This causes an exception to be returned by the
-
         dockerode `getImage('/ubuntu:latest').inspect()` call.
 
-
-        This sends the supervisor into a crash loop and is shown on the
-        supervisor
-
+        This sends the supervisor into a crash loop and is shown on the supervisor
         journal logs as
 
-
         ```
-
         getaddrinfo ENOTFOUND images
             at GetAddrInfoReqWrap.onlookup [as oncomplete] (dns.js:64:26)
         ```
 
-
         Unfortunately if this happens on a user device, since the mangled image
-
         name is already on the database, the easiest way to fix is to remove the
-
         supervisor database and let the supervisor recreate it. Deleting the
-
         database should be side effect free.
       footer:
         Change-type: patch
@@ -6787,22 +7066,14 @@
 - commits:
     - subject: Bump color-string from 1.5.3 to 1.5.5
       hash: 4518c93fcaf77727663e4f91ed922b51a5d2f94f
-      body: >
-        Bumps [color-string](https://github.com/Qix-/color-string) from 1.5.3 to
-        1.5.5.
-
+      body: |
+        Bumps [color-string](https://github.com/Qix-/color-string) from 1.5.3 to 1.5.5.
         - [Release notes](https://github.com/Qix-/color-string/releases)
-
-        -
-        [Changelog](https://github.com/Qix-/color-string/blob/master/CHANGELOG.md)
-
+        - [Changelog](https://github.com/Qix-/color-string/blob/master/CHANGELOG.md)
         - [Commits](https://github.com/Qix-/color-string/commits/1.5.5)
 
-
         ---
-
         updated-dependencies:
-
         - dependency-name: color-string
           dependency-type: indirect
         ...
@@ -7907,16 +8178,10 @@
 - commits:
     - subject: "patch: bump @types/yargs from 15.0.5 to 15.0.12"
       hash: 2c61a961c1ac2e7467ef84ac1c0896ef8c60d4be
-      body: >
-        Bumps
-        [@types/yargs](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/HEAD/types/yargs)
-        from 15.0.5 to 15.0.12.
-
-        - [Release
-        notes](https://github.com/DefinitelyTyped/DefinitelyTyped/releases)
-
-        -
-        [Commits](https://github.com/DefinitelyTyped/DefinitelyTyped/commits/HEAD/types/yargs)
+      body: |
+        Bumps [@types/yargs](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/HEAD/types/yargs) from 15.0.5 to 15.0.12.
+        - [Release notes](https://github.com/DefinitelyTyped/DefinitelyTyped/releases)
+        - [Commits](https://github.com/DefinitelyTyped/DefinitelyTyped/commits/HEAD/types/yargs)
       footer:
         Change-type: patch
         change-type: patch
@@ -7929,14 +8194,10 @@
 - commits:
     - subject: "patch: bump pretty-ms from 7.0.0 to 7.0.1"
       hash: 8a4369f8dfb5d8e77a022b82f25cbeb18edbf77e
-      body: >
-        Bumps [pretty-ms](https://github.com/sindresorhus/pretty-ms) from 7.0.0
-        to 7.0.1.
-
+      body: |
+        Bumps [pretty-ms](https://github.com/sindresorhus/pretty-ms) from 7.0.0 to 7.0.1.
         - [Release notes](https://github.com/sindresorhus/pretty-ms/releases)
-
-        -
-        [Commits](https://github.com/sindresorhus/pretty-ms/compare/v7.0.0...v7.0.1)
+        - [Commits](https://github.com/sindresorhus/pretty-ms/compare/v7.0.0...v7.0.1)
       footer:
         Change-type: patch
         change-type: patch
@@ -7970,17 +8231,10 @@
 - commits:
     - subject: Bump systeminformation from 4.30.5 to 4.31.1
       hash: 7ccbde985ee72296b189ba338bfa7ff49c3e6866
-      body: >
-        Bumps
-        [systeminformation](https://github.com/sebhildebrandt/systeminformation)
-        from 4.30.5 to 4.31.1.
-
-        - [Release
-        notes](https://github.com/sebhildebrandt/systeminformation/releases)
-
-        -
-        [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
-
+      body: |
+        Bumps [systeminformation](https://github.com/sebhildebrandt/systeminformation) from 4.30.5 to 4.31.1.
+        - [Release notes](https://github.com/sebhildebrandt/systeminformation/releases)
+        - [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
         - [Commits](https://github.com/sebhildebrandt/systeminformation/commits)
       footer:
         Change-type: patch
@@ -8156,19 +8410,11 @@
 - commits:
     - subject: Bump systeminformation from 4.27.11 to 4.30.5
       hash: 8036d5147950a3dfb976aaceee46a75e0025c732
-      body: >
-        Bumps
-        [systeminformation](https://github.com/sebhildebrandt/systeminformation)
-        from 4.27.11 to 4.30.5.
-
-        - [Release
-        notes](https://github.com/sebhildebrandt/systeminformation/releases)
-
-        -
-        [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
-
-        -
-        [Commits](https://github.com/sebhildebrandt/systeminformation/compare/v4.27.11...v4.30.5)
+      body: |
+        Bumps [systeminformation](https://github.com/sebhildebrandt/systeminformation) from 4.27.11 to 4.30.5.
+        - [Release notes](https://github.com/sebhildebrandt/systeminformation/releases)
+        - [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
+        - [Commits](https://github.com/sebhildebrandt/systeminformation/compare/v4.27.11...v4.30.5)
       footer:
         Change-type: patch
         change-type: patch
@@ -8208,17 +8454,10 @@
 - commits:
     - subject: Bump systeminformation from 4.27.3 to 4.27.11
       hash: 00b1bf8a7a66d4370cf1c7128184cfc0e2808178
-      body: >
-        Bumps
-        [systeminformation](https://github.com/sebhildebrandt/systeminformation)
-        from 4.27.3 to 4.27.11.
-
-        - [Release
-        notes](https://github.com/sebhildebrandt/systeminformation/releases)
-
-        -
-        [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
-
+      body: |
+        Bumps [systeminformation](https://github.com/sebhildebrandt/systeminformation) from 4.27.3 to 4.27.11.
+        - [Release notes](https://github.com/sebhildebrandt/systeminformation/releases)
+        - [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
         - [Commits](https://github.com/sebhildebrandt/systeminformation/commits)
       footer:
         Change-type: patch
@@ -10875,26 +11114,17 @@
 - commits:
     - subject: Add label to expose gpu to container
       hash: ae646a07ec6a6c96f7cb91f1d37898a94dbab47a
-      body: >
-        In the absence of an upstream implementation of the DeviceRequest API
-        introduced
-
+      body: |
+        In the absence of an upstream implementation of the DeviceRequest API introduced
         as part of Docker API v1.40 we roll our own using a feature label.
 
-
         As per my comment in the code, we fall back to the default behavior of
-
         docker cli's `--gpu` and request single device with the `gpu` capabilty.
-
         The only implementation at the moment is the NVIDIA driver; here:
-
         https://github.com/balena-os/balena-engine/blob/master/daemon/nvidia_linux.go
 
-
         Background on the composefile implementation:
-
         https://github.com/compose-spec/compose-spec/issues/74
-
         https://github.com/docker/compose/issues/6691
       footer:
         Change-type: patch
@@ -12914,14 +13144,10 @@
       author: Cameron Diver
     - subject: Bump mixin-deep from 1.3.1 to 1.3.2
       hash: d0f35359b3f32a87804f760c1d5303c380ea730f
-      body: >
-        Bumps [mixin-deep](https://github.com/jonschlinkert/mixin-deep) from
-        1.3.1 to 1.3.2.
-
+      body: |
+        Bumps [mixin-deep](https://github.com/jonschlinkert/mixin-deep) from 1.3.1 to 1.3.2.
         - [Release notes](https://github.com/jonschlinkert/mixin-deep/releases)
-
-        -
-        [Commits](https://github.com/jonschlinkert/mixin-deep/compare/1.3.1...1.3.2)
+        - [Commits](https://github.com/jonschlinkert/mixin-deep/compare/1.3.1...1.3.2)
       footer:
         Change-type: patch
         change-type: patch

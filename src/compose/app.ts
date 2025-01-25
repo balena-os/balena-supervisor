@@ -170,7 +170,7 @@ class AppImpl implements App {
 			if (services.size > 0) {
 				steps.push(
 					generateStep('takeLock', {
-						appId: parseInt(appId, 10),
+						appId,
 						services: Array.from(services),
 						force: state.force,
 					}),
@@ -200,19 +200,13 @@ class AppImpl implements App {
 					}),
 				);
 			}
-			// Current & target should be the same appId, but one of either current
-			// or target may not have any services, so we need to check both
-			const allServices = this.services.concat(target.services);
-			if (
-				allServices.length > 0 &&
-				allServices.some((s) =>
-					state.locksTaken.isLocked(s.appId, s.serviceName),
-				)
-			) {
-				// Release locks for all services before settling state
+
+			// Release locks (if any) for all services before settling state
+			if (state.lock || state.hasLeftoverLocks) {
 				steps.push(
 					generateStep('releaseLock', {
 						appId: target.appId,
+						lock: state.lock,
 					}),
 				);
 			}
@@ -225,11 +219,7 @@ class AppImpl implements App {
 	): CompositionStep[] {
 		if (Object.keys(this.services).length > 0) {
 			// Take all locks before killing
-			if (
-				this.services.some(
-					(svc) => !state.locksTaken.isLocked(svc.appId, svc.serviceName),
-				)
-			) {
+			if (state.lock == null) {
 				return [
 					generateStep('takeLock', {
 						appId: this.appId,
@@ -628,9 +618,7 @@ class AppImpl implements App {
 			appsToLock: AppsToLockMap;
 		} & UpdateState,
 	): CompositionStep[] {
-		const servicesLocked = this.services
-			.concat(context.targetApp.services)
-			.every((svc) => context.locksTaken.isLocked(svc.appId, svc.serviceName));
+		const servicesLocked = context.lock != null;
 		if (current?.status === 'Stopping') {
 			// There's a kill step happening already, emit a noop to ensure
 			// we stay alive while this happens
@@ -666,6 +654,7 @@ class AppImpl implements App {
 				context.targetApp,
 				needsDownload,
 				servicesLocked,
+				context.rebootBreadcrumbSet,
 				context.appsToLock,
 				context.availableImages,
 				context.networkPairs,
@@ -694,6 +683,8 @@ class AppImpl implements App {
 					context.appsToLock,
 					context.targetApp.services,
 					servicesLocked,
+					context.rebootBreadcrumbSet,
+					context.bootTime,
 				);
 			}
 
@@ -773,6 +764,8 @@ class AppImpl implements App {
 		appsToLock: AppsToLockMap,
 		targetServices: Service[],
 		servicesLocked: boolean,
+		rebootBreadcrumbSet: boolean,
+		bootTime: Date,
 	): CompositionStep[] {
 		// Update container metadata if service release has changed
 		if (current.commit !== target.commit) {
@@ -786,16 +779,38 @@ class AppImpl implements App {
 				return [];
 			}
 		} else if (target.config.running !== current.config.running) {
-			// Take lock for all services before starting/stopping container
-			if (!servicesLocked) {
-				this.services.concat(targetServices).forEach((s) => {
-					appsToLock[target.appId].add(s.serviceName);
-				});
-				return [];
-			}
 			if (target.config.running) {
+				// if the container has a reboot
+				// required label and the boot time is before the creation time, then
+				// return a 'noop' to ensure a reboot happens before starting the container
+				const requiresReboot =
+					checkTruthy(
+						target.config.labels?.['io.balena.update.requires-reboot'],
+					) &&
+					current.createdAt != null &&
+					current.createdAt > bootTime;
+
+				if (requiresReboot && rebootBreadcrumbSet) {
+					// Do not return a noop to allow locks to be released by the
+					// app module
+					return [];
+				} else if (requiresReboot) {
+					return [
+						generateStep('requireReboot', {
+							serviceName: target.serviceName,
+						}),
+					];
+				}
+
 				return [generateStep('start', { target })];
 			} else {
+				// Take lock for all services before stopping container
+				if (!servicesLocked) {
+					this.services.concat(targetServices).forEach((s) => {
+						appsToLock[target.appId].add(s.serviceName);
+					});
+					return [];
+				}
 				return [generateStep('stop', { current })];
 			}
 		} else {
@@ -808,6 +823,7 @@ class AppImpl implements App {
 		targetApp: App,
 		needsDownload: boolean,
 		servicesLocked: boolean,
+		rebootBreadcrumbSet: boolean,
 		appsToLock: AppsToLockMap,
 		availableImages: UpdateState['availableImages'],
 		networkPairs: Array<ChangingPair<Network>>,
@@ -825,24 +841,30 @@ class AppImpl implements App {
 					serviceName: target.serviceName,
 				}),
 			];
-		} else if (
-			target != null &&
-			this.dependenciesMetForServiceStart(
-				target,
-				targetApp,
-				availableImages,
-				networkPairs,
-				volumePairs,
-				servicePairs,
-			)
-		) {
-			if (!servicesLocked) {
-				this.services
-					.concat(targetApp.services)
-					.forEach((svc) => appsToLock[target.appId].add(svc.serviceName));
-				return [];
+		} else if (target != null) {
+			if (
+				this.dependenciesMetForServiceStart(
+					target,
+					targetApp,
+					availableImages,
+					networkPairs,
+					volumePairs,
+					servicePairs,
+				)
+			) {
+				if (!servicesLocked) {
+					this.services
+						.concat(targetApp.services)
+						.forEach((svc) => appsToLock[target.appId].add(svc.serviceName));
+					return [];
+				}
+				return [generateStep('start', { target })];
+			} else {
+				// Wait for dependencies to be started unless there is a
+				// reboot breadcrumb set, in which case we need to allow the state
+				// to settle for the reboot to happen
+				return rebootBreadcrumbSet ? [] : [generateStep('noop', {})];
 			}
-			return [generateStep('start', { target })];
 		} else {
 			return [];
 		}
@@ -893,7 +915,7 @@ class AppImpl implements App {
 		// different to a dependency which is in the servicePairs below, as these
 		// are services which are changing). We could have a dependency which is
 		// starting up, but is not yet running.
-		const depInstallingButNotRunning = _.some(targetApp.services, (svc) => {
+		const depInstallingButNotRunning = _.some(this.services, (svc) => {
 			if (target.dependsOn?.includes(svc.serviceName)) {
 				if (!svc.config.running) {
 					return true;
@@ -905,11 +927,11 @@ class AppImpl implements App {
 			return false;
 		}
 
-		const depedencyUnmet = _.some(target.dependsOn, (dep) =>
+		const dependencyUnmet = _.some(target.dependsOn, (dep) =>
 			_.some(servicePairs, (pair) => pair.target?.serviceName === dep),
 		);
 
-		if (depedencyUnmet) {
+		if (dependencyUnmet) {
 			return false;
 		}
 

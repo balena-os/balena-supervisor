@@ -4,7 +4,7 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
 import type { Transaction } from '../db';
-import * as logger from '../logger';
+import * as logger from '../logging';
 import LocalModeManager from '../local-mode';
 
 import * as dbFormat from '../device-state/db-format';
@@ -12,7 +12,8 @@ import * as contracts from '../lib/contracts';
 import * as constants from '../lib/constants';
 import log from '../lib/supervisor-console';
 import { InternalInconsistencyError } from '../lib/errors';
-import { getServicesLockedByAppId, LocksTakenMap } from '../lib/update-lock';
+import type { Lock } from '../lib/update-lock';
+import { hasLeftoverLocks } from '../lib/update-lock';
 import { checkTruthy } from '../lib/validation';
 
 import { App } from './app';
@@ -39,6 +40,8 @@ import type {
 	Image,
 	InstancedAppState,
 } from './types';
+import { isRebootBreadcrumbSet } from '../lib/reboot';
+import { getBootTime } from '../lib/fs-utils';
 
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
@@ -61,6 +64,13 @@ export function resetTimeSpentFetching(value: number = 0) {
 	timeSpentFetching = value;
 }
 
+interface LockRegistry {
+	[appId: string | number]: Lock;
+}
+
+// In memory registry of all app locks
+const lockRegistry: LockRegistry = {};
+
 const actionExecutors = getExecutors({
 	callbacks: {
 		fetchStart: () => {
@@ -76,6 +86,12 @@ const actionExecutors = getExecutors({
 			reportCurrentState(state);
 		},
 		bestDeltaSource,
+		registerLock: (appId: string | number, lock: Lock) => {
+			lockRegistry[appId.toString()] = lock;
+		},
+		unregisterLock: (appId: string | number) => {
+			delete lockRegistry[appId.toString()];
+		},
 	},
 });
 
@@ -113,6 +129,7 @@ export async function getRequiredSteps(
 			config.getMany(['localMode', 'delta']),
 		]);
 	const containerIdsByAppId = getAppContainerIds(currentApps);
+	const rebootBreadcrumbSet = await isRebootBreadcrumbSet();
 
 	// Local mode sets the image and volume retention only
 	// if not explicitely set by the caller
@@ -134,8 +151,21 @@ export async function getRequiredSteps(
 		downloading,
 		availableImages,
 		containerIdsByAppId,
-		locksTaken: await getServicesLockedByAppId(),
+		appLocks: lockRegistry,
+		rebootBreadcrumbSet,
 	});
+}
+
+interface InferNextOpts {
+	keepImages: boolean;
+	keepVolumes: boolean;
+	delta: boolean;
+	force: boolean;
+	downloading: UpdateState['downloading'];
+	availableImages: UpdateState['availableImages'];
+	containerIdsByAppId: { [appId: number]: UpdateState['containerIds'] };
+	appLocks: LockRegistry;
+	rebootBreadcrumbSet: boolean;
 }
 
 // Calculate the required steps from the current to the target state
@@ -147,16 +177,20 @@ export async function inferNextSteps(
 		keepVolumes = false,
 		delta = true,
 		force = false,
-		downloading = [] as UpdateState['downloading'],
-		availableImages = [] as UpdateState['availableImages'],
-		containerIdsByAppId = {} as {
-			[appId: number]: UpdateState['containerIds'];
-		},
-		locksTaken = new LocksTakenMap(),
-	} = {},
+		downloading = [],
+		availableImages = [],
+		containerIdsByAppId = {},
+		appLocks = {},
+		rebootBreadcrumbSet = false,
+	}: Partial<InferNextOpts>,
 ) {
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
 	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
+
+	const withLeftoverLocks = await Promise.all(
+		currentAppIds.map((id) => hasLeftoverLocks(id)),
+	);
+	const bootTime = getBootTime();
 
 	let steps: CompositionStep[] = [];
 
@@ -215,8 +249,11 @@ export async function inferNextSteps(
 							availableImages,
 							containerIds: containerIdsByAppId[id],
 							downloading,
-							locksTaken,
 							force,
+							lock: appLocks[id],
+							hasLeftoverLocks: withLeftoverLocks[id],
+							rebootBreadcrumbSet,
+							bootTime,
 						},
 						targetApps[id],
 					),
@@ -230,8 +267,11 @@ export async function inferNextSteps(
 						keepVolumes,
 						downloading,
 						containerIds: containerIdsByAppId[id],
-						locksTaken,
 						force,
+						lock: appLocks[id],
+						hasLeftoverLocks: withLeftoverLocks[id],
+						rebootBreadcrumbSet,
+						bootTime,
 					}),
 				);
 			}
@@ -255,8 +295,11 @@ export async function inferNextSteps(
 							availableImages,
 							containerIds: containerIdsByAppId[id] ?? {},
 							downloading,
-							locksTaken,
 							force,
+							lock: appLocks[id],
+							hasLeftoverLocks: false,
+							rebootBreadcrumbSet,
+							bootTime,
 						},
 						targetApps[id],
 					),
@@ -521,9 +564,9 @@ export async function setTarget(
 		await $trx('app')
 			.where({ source })
 			.whereNotIn(
-				'appId',
-				// Delete every appId not in the target list
-				Object.values($apps).map(({ id: appId }) => appId),
+				'uuid',
+				// Delete every appUuid not in the target list
+				Object.keys($apps),
 			)
 			.del();
 	};

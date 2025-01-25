@@ -8,7 +8,6 @@ import { Network } from '~/src/compose/network';
 import * as networkManager from '~/src/compose/network-manager';
 import { Volume } from '~/src/compose/volume';
 import * as config from '~/src/config';
-import { LocksTakenMap } from '~/lib/update-lock';
 import { createDockerImage } from '~/test-lib/docker-helper';
 import {
 	createService,
@@ -113,7 +112,13 @@ describe('compose/application-manager', () => {
 				availableImages,
 				containerIdsByAppId,
 				// Mock lock taken to avoid takeLock step
-				locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				appLocks: {
+					'1': {
+						async unlock() {
+							/* noop */
+						},
+					},
+				},
 			},
 		);
 
@@ -225,7 +230,13 @@ describe('compose/application-manager', () => {
 				availableImages,
 				containerIdsByAppId,
 				// Mock lock taken to avoid takeLock step
-				locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				appLocks: {
+					'1': {
+						async unlock() {
+							/* noop */
+						},
+					},
+				},
 			},
 		);
 
@@ -277,7 +288,13 @@ describe('compose/application-manager', () => {
 				availableImages,
 				containerIdsByAppId,
 				// Mock lock taken to avoid takeLock step
-				locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				appLocks: {
+					'1': {
+						async unlock() {
+							/* noop */
+						},
+					},
+				},
 			},
 		);
 
@@ -410,7 +427,13 @@ describe('compose/application-manager', () => {
 					availableImages: c1.availableImages,
 					containerIdsByAppId: c1.containerIdsByAppId,
 					// Mock lock taken for `main` service which just needs metadata updated
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			// There should be two noop steps, one for target service which is still downloading,
@@ -457,10 +480,13 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
-					// Mock locks taken for all services in either current or target state
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['old', 'main', 'new'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			// Service `old` is safe to kill after download for `new` has completed
@@ -506,11 +532,14 @@ describe('compose/application-manager', () => {
 					// to avoid removeImage steps
 					availableImages: [],
 					containerIdsByAppId: c1.containerIdsByAppId,
-					// Mock locks for service to be updated via updateMetadata
-					// or kill to avoid takeLock step
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['old', 'main', 'new'] },
-					]),
+					// Mock locks  to avoid takeLock step
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			// Service `new` should be fetched
@@ -583,10 +612,13 @@ describe('compose/application-manager', () => {
 						}),
 					],
 					containerIdsByAppId: c1.containerIdsByAppId,
-					// Mock lock taken for all services in target state
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['old', 'main', 'new'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			// Service `new` should be started
@@ -629,9 +661,13 @@ describe('compose/application-manager', () => {
 					containerIdsByAppId: c1.containerIdsByAppId,
 					// Mock locks for service to be updated via updateMetadata
 					// or kill to avoid takeLock step
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['old', 'main', 'new'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			// Service `new` should be fetched
@@ -705,9 +741,13 @@ describe('compose/application-manager', () => {
 					],
 					containerIdsByAppId: c1.containerIdsByAppId,
 					// Mock lock taken for all services in target state
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['main', 'new'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			// Service `new` should be started
@@ -781,9 +821,9 @@ describe('compose/application-manager', () => {
 					containerIdsByAppId,
 				},
 			);
-			expectSteps('noop', steps2, 1);
+
 			// No other steps
-			expect(steps2).to.have.length(1);
+			expect(steps2.every((s) => s.action === 'noop'));
 
 			/**
 			 * Only start target services after both images downloaded
@@ -805,9 +845,13 @@ describe('compose/application-manager', () => {
 					],
 					containerIdsByAppId,
 					// Mock locks taken for all services in target state
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('start', steps3, 2);
@@ -877,12 +921,18 @@ describe('compose/application-manager', () => {
 				availableImages,
 				containerIdsByAppId,
 				// Mock lock taken to avoid takeLock step
-				locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				appLocks: {
+					'1': {
+						async unlock() {
+							/* noop */
+						},
+					},
+				},
 			},
 		);
 
 		// Only noop steps should be seen at this point
-		expect(steps.filter((s) => s.action !== 'noop')).to.have.lengthOf(0);
+		expect(steps.every((s) => s.action === 'noop'));
 	});
 
 	it('infers to kill several services as long as there is no unmet dependency', async () => {
@@ -959,9 +1009,13 @@ describe('compose/application-manager', () => {
 				availableImages,
 				containerIdsByAppId,
 				// Mock locks taken to avoid takeLock step
-				locksTaken: new LocksTakenMap([
-					{ appId: 1, services: ['main', 'dep'] },
-				]),
+				appLocks: {
+					'1': {
+						async unlock() {
+							/* noop */
+						},
+					},
+				},
 			},
 		);
 
@@ -1028,9 +1082,13 @@ describe('compose/application-manager', () => {
 				availableImages,
 				containerIdsByAppId,
 				// Mock locks taken to avoid takeLock step
-				locksTaken: new LocksTakenMap([
-					{ appId: 1, services: ['main', 'dep'] },
-				]),
+				appLocks: {
+					'1': {
+						async unlock() {
+							/* noop */
+						},
+					},
+				},
 			},
 		);
 
@@ -1041,7 +1099,7 @@ describe('compose/application-manager', () => {
 			.that.deep.includes({ serviceName: 'dep' });
 
 		// No more steps until the first container has been started
-		expect(nextSteps).to.have.lengthOf(0);
+		expect(nextSteps.every((s) => s.action === 'noop'));
 	});
 
 	it('infers to start a service once its dependency has been met', async () => {
@@ -1100,9 +1158,13 @@ describe('compose/application-manager', () => {
 				availableImages,
 				containerIdsByAppId,
 				// Mock locks taken to avoid takeLock step
-				locksTaken: new LocksTakenMap([
-					{ appId: 1, services: ['main', 'dep'] },
-				]),
+				appLocks: {
+					'1': {
+						async unlock() {
+							/* noop */
+						},
+					},
+				},
 			},
 		);
 
@@ -1146,10 +1208,18 @@ describe('compose/application-manager', () => {
 				availableImages,
 				containerIdsByAppId,
 				// Mock lock already taken for the new and leftover services
-				locksTaken: new LocksTakenMap([
-					{ appId: 5, services: ['old-service'] },
-					{ appId: 1, services: ['main'] },
-				]),
+				appLocks: {
+					'1': {
+						async unlock() {
+							/* noop */
+						},
+					},
+					'5': {
+						async unlock() {
+							/* noop */
+						},
+					},
+				},
 			},
 		);
 
@@ -1665,7 +1735,13 @@ describe('compose/application-manager', () => {
 				availableImages,
 				containerIdsByAppId,
 				// Mock locks taken to avoid takeLock step
-				locksTaken: new LocksTakenMap([{ appId: 2, services: ['main'] }]),
+				appLocks: {
+					'2': {
+						async unlock() {
+							/* noop */
+						},
+					},
+				},
 			},
 		);
 
@@ -1747,10 +1823,18 @@ describe('compose/application-manager', () => {
 				availableImages,
 				containerIdsByAppId,
 				// Mock locks taken to avoid takeLock step
-				locksTaken: new LocksTakenMap([
-					{ appId: 1, services: ['main'] },
-					{ appId: 2, services: ['main'] },
-				]),
+				appLocks: {
+					'1': {
+						async unlock() {
+							/* noop */
+						},
+					},
+					'2': {
+						async unlock() {
+							/* noop */
+						},
+					},
+				},
 			},
 		);
 
@@ -1816,9 +1900,13 @@ describe('compose/application-manager', () => {
 					availableImages,
 					containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('kill', steps2, 2);
@@ -1875,9 +1963,13 @@ describe('compose/application-manager', () => {
 					availableImages,
 					containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('stop', steps2, 2);
@@ -1934,9 +2026,13 @@ describe('compose/application-manager', () => {
 					availableImages,
 					containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('start', steps2, 2);
@@ -2100,9 +2196,13 @@ describe('compose/application-manager', () => {
 					availableImages,
 					containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('kill', steps4, 2);
@@ -2172,9 +2272,13 @@ describe('compose/application-manager', () => {
 					availableImages,
 					containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('kill', steps2, 2);
@@ -2231,7 +2335,13 @@ describe('compose/application-manager', () => {
 					availableImages,
 					containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('kill', steps2);
@@ -2254,7 +2364,13 @@ describe('compose/application-manager', () => {
 					availableImages: intermediateCurrent.availableImages,
 					containerIdsByAppId: intermediateCurrent.containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('removeNetwork', steps3);
@@ -2320,7 +2436,13 @@ describe('compose/application-manager', () => {
 					availableImages,
 					containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('kill', steps2, 1);
@@ -2343,7 +2465,13 @@ describe('compose/application-manager', () => {
 					availableImages: intermediateCurrent.availableImages,
 					containerIdsByAppId: intermediateCurrent.containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('removeNetwork', steps3);
@@ -2405,7 +2533,13 @@ describe('compose/application-manager', () => {
 					availableImages,
 					containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('kill', steps2, 1);
@@ -2424,7 +2558,13 @@ describe('compose/application-manager', () => {
 					availableImages: intermediateCurrent.availableImages,
 					containerIdsByAppId: intermediateCurrent.containerIdsByAppId,
 					// Mock locks taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			expectSteps('removeVolume', steps3);
@@ -2456,9 +2596,13 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				},
 			);
 			const [releaseLockStep] = expectSteps('releaseLock', steps, 1, 1);
@@ -2950,9 +3094,13 @@ describe('compose/application-manager', () => {
 					availableImages,
 					containerIdsByAppId,
 					// Mock locks taken for all services in target state
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two', 'three', 'four'] },
-					]),
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
 				});
 
 			[startStep1, startStep2, startStep3, startStep4].forEach((step) => {

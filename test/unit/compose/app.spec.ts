@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import type { Image } from '~/src/compose/images';
 import { Network } from '~/src/compose/network';
 import { Volume } from '~/src/compose/volume';
-import { LocksTakenMap } from '~/lib/update-lock';
+import { type Lock } from '~/lib/update-lock';
 
 import {
 	createService,
@@ -19,7 +19,16 @@ const defaultContext = {
 	availableImages: [] as Image[],
 	containerIds: {},
 	downloading: [] as string[],
-	locksTaken: new LocksTakenMap(),
+	lock: null,
+	hasLeftoverLocks: false,
+	rebootBreadcrumbSet: false,
+	bootTime: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+};
+
+const mockLock: Lock = {
+	async unlock() {
+		/* noop */
+	},
 };
 
 describe('compose/app', () => {
@@ -190,7 +199,7 @@ describe('compose/app', () => {
 					...defaultContext,
 					availableImages,
 					// Mock lock already taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -287,7 +296,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks already taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				intermediateTarget,
 			);
@@ -299,7 +308,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks already taken
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				intermediateTarget,
 			);
@@ -312,6 +321,7 @@ describe('compose/app', () => {
 				networks: [DEFAULT_NETWORK],
 				volumes: [volume],
 			});
+
 			expect(
 				currentWithServiceRemoved.nextStepsForAppUpdate(
 					contextWithImages,
@@ -340,7 +350,6 @@ describe('compose/app', () => {
 					target,
 				);
 
-			expect(recreateVolumeSteps).to.have.length(1);
 			expectSteps('createVolume', recreateVolumeSteps);
 
 			// Step 5: takeLock
@@ -362,7 +371,7 @@ describe('compose/app', () => {
 					{
 						...contextWithImages,
 						// Mock locks already taken
-						locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+						lock: mockLock,
 					},
 					target,
 				);
@@ -525,7 +534,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -553,7 +562,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -678,7 +687,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -806,7 +815,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -879,9 +888,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -958,9 +965,7 @@ describe('compose/app', () => {
 				{
 					...defaultContext,
 					availableImages,
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1108,9 +1113,7 @@ describe('compose/app', () => {
 					...defaultContext,
 					availableImages: [createImage({ serviceName: 'main' })],
 					// Mock locks already taken
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['main', 'aux'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1247,7 +1250,7 @@ describe('compose/app', () => {
 			const steps2 = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1282,7 +1285,7 @@ describe('compose/app', () => {
 			const steps2 = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1292,22 +1295,23 @@ describe('compose/app', () => {
 				.to.deep.include({ serviceName: 'main' });
 		});
 
-		it('should not try to start a container which has exited and has restart policy of no', async () => {
+		it('should not try to start a container which has exited', async () => {
 			// Container is a "run once" type of service so it has exitted.
 			const current = createApp({
 				services: [
 					await createService(
-						{ composition: { restart: 'no' }, running: false },
+						{ composition: { restart: 'yes' }, running: false },
 						{ state: { containerId: 'run_once' } },
 					),
 				],
+				networks: [DEFAULT_NETWORK],
 			});
 
 			// Now test that another start step is not added on this service
 			const target = createApp({
 				services: [
 					await createService(
-						{ composition: { restart: 'no' }, running: false },
+						{ composition: { restart: 'always' }, running: false },
 						{ state: { containerId: 'run_once' } },
 					),
 				],
@@ -1315,6 +1319,7 @@ describe('compose/app', () => {
 			});
 
 			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			expect(steps.length).to.equal(0);
 			expectNoStep('start', steps);
 		});
 
@@ -1356,7 +1361,7 @@ describe('compose/app', () => {
 			const stepsToIntermediate = current.nextStepsForAppUpdate(
 				{
 					...contextWithImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1376,7 +1381,7 @@ describe('compose/app', () => {
 			const stepsToTarget = intermediate.nextStepsForAppUpdate(
 				{
 					...contextWithImages,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1435,9 +1440,7 @@ describe('compose/app', () => {
 			const contextWithImages = {
 				...defaultContext,
 				...{ availableImages },
-				locksTaken: new LocksTakenMap([
-					{ appId: 1, services: ['main', 'dep'] },
-				]),
+				lock: mockLock,
 			};
 
 			// Only one start step and it should be that of the 'dep' service
@@ -1449,6 +1452,83 @@ describe('compose/app', () => {
 			expect(startStep)
 				.to.have.property('target')
 				.that.deep.includes({ serviceName: 'dep' });
+
+			// we now make our current state have the 'dep' service as started...
+			const intermediate = createApp({
+				services: [
+					await createService(
+						{ appId: 1, serviceName: 'dep' },
+						{ state: { containerId: 'dep-id' } },
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+
+			// we should now see a start for the 'main' service...
+			const stepsToTarget = intermediate.nextStepsForAppUpdate(
+				{ ...contextWithImages, ...{ containerIds: { dep: 'dep-id' } } },
+				target,
+			);
+			const [startMainStep] = expectSteps('start', stepsToTarget);
+			expect(startMainStep)
+				.to.have.property('target')
+				.that.deep.includes({ serviceName: 'main' });
+		});
+
+		it('should not start a container when it depends on a service that is not running', async () => {
+			const current = createApp({
+				services: [
+					await createService(
+						{
+							running: false,
+							appId: 1,
+							serviceName: 'dep',
+						},
+						{
+							state: {
+								containerId: 'dep-id',
+							},
+						},
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services: [
+					await createService({
+						appId: 1,
+						serviceName: 'main',
+						composition: {
+							depends_on: ['dep'],
+						},
+					}),
+					await createService({
+						appId: 1,
+						serviceName: 'dep',
+					}),
+				],
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+
+			const availableImages = [
+				createImage({ appId: 1, serviceName: 'main', name: 'main-image' }),
+				createImage({ appId: 1, serviceName: 'dep', name: 'dep-image' }),
+			];
+			// As service is already being installed, lock for target should have been taken
+			const contextWithImages = {
+				...defaultContext,
+				...{ availableImages },
+				lock: mockLock,
+			};
+
+			// Only one start step and it should be that of the 'dep' service
+			const stepsToIntermediate = current.nextStepsForAppUpdate(
+				contextWithImages,
+				target,
+			);
+			expectNoStep('start', stepsToIntermediate);
+			expectSteps('noop', stepsToIntermediate);
 
 			// we now make our current state have the 'dep' service as started...
 			const intermediate = createApp({
@@ -1555,7 +1635,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks taken before kill
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1575,7 +1655,7 @@ describe('compose/app', () => {
 					...contextWithImages,
 					// Mock locks still taken after kill (releaseLock not
 					// yet inferred as state is not yet settled)
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1703,7 +1783,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks taken from previous step
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1719,7 +1799,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks taken from previous step
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1762,7 +1842,7 @@ describe('compose/app', () => {
 			const steps2 = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1849,9 +1929,7 @@ describe('compose/app', () => {
 				{
 					...contextWithImages,
 					// Mock locks already taken
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['one', 'two', 'three'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -1995,7 +2073,7 @@ describe('compose/app', () => {
 				target,
 			);
 			expectNoStep('start', steps);
-			expectSteps('noop', steps, 1);
+			expectSteps('noop', steps, 1, Infinity);
 
 			// Take lock before starting once downloads complete
 			const steps2 = current.nextStepsForAppUpdate(
@@ -2029,13 +2107,133 @@ describe('compose/app', () => {
 							serviceName: 'other',
 						}),
 					],
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['main', 'other'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
 			expectSteps('start', steps3, 2);
+		});
+
+		it('should set the reboot breadcrumb after a service with `requires-reboot` has been installed', async () => {
+			// Container is a "run once" type of service so it has exitted.
+			const current = createApp({
+				services: [
+					await createService(
+						{
+							labels: { 'io.balena.update.requires-reboot': 'true' },
+							running: false,
+						},
+						{ state: { createdAt: new Date(), status: 'Installed' } },
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+
+			// Now test that another start step is not added on this service
+			const target = createApp({
+				services: [
+					await createService({
+						labels: { 'io.balena.update.requires-reboot': 'true' },
+						running: true,
+					}),
+				],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					rebootBreadcrumbSet: false,
+					// 30 minutes ago
+					bootTime: new Date(Date.now() - 30 * 60 * 1000),
+				},
+				target,
+			);
+			expect(steps.length).to.equal(1);
+			expectSteps('requireReboot', steps);
+		});
+
+		it('should not try to start a container with `requires-reboot` if the reboot has not taken place yet', async () => {
+			// Container is a "run once" type of service so it has exitted.
+			const current = createApp({
+				services: [
+					await createService(
+						{
+							labels: { 'io.balena.update.requires-reboot': 'true' },
+							running: false,
+						},
+						{ state: { createdAt: new Date(), status: 'Installed' } },
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+
+			// Now test that another start step is not added on this service
+			const target = createApp({
+				services: [
+					await createService({
+						labels: { 'io.balena.update.requires-reboot': 'true' },
+						running: true,
+					}),
+				],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					rebootBreadcrumbSet: true,
+					bootTime: new Date(Date.now() - 30 * 60 * 1000),
+				},
+				target,
+			);
+			expect(steps.length).to.equal(0);
+			expectNoStep('start', steps);
+		});
+
+		it('should start a container with `requires-reboot` after reboot has taken place', async () => {
+			// Container is a "run once" type of service so it has exitted.
+			const current = createApp({
+				services: [
+					await createService(
+						{
+							labels: { 'io.balena.update.requires-reboot': 'true' },
+							running: false,
+						},
+						// Container was created 5 minutes ago
+						{
+							state: {
+								createdAt: new Date(Date.now() - 5 * 60 * 1000),
+								status: 'Installed',
+							},
+						},
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+
+			// Now test that another start step is not added on this service
+			const target = createApp({
+				services: [
+					await createService({
+						labels: { 'io.balena.update.requires-reboot': 'true' },
+						running: true,
+					}),
+				],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					rebootBreadcrumbSet: true,
+					// Reboot just happened
+					bootTime: new Date(),
+				},
+				target,
+			);
+			expect(steps.length).to.equal(1);
+			expectSteps('start', steps);
 		});
 	});
 
@@ -2097,7 +2295,7 @@ describe('compose/app', () => {
 	});
 
 	describe('update lock state behavior', () => {
-		it('should infer a releaseLock step if there are locks to be released before settling target state', async () => {
+		it('should not infer a releaseLock step if there are locks to be released before settling target state', async () => {
 			const services = [
 				await createService({ serviceName: 'server' }),
 				await createService({ serviceName: 'client' }),
@@ -2115,9 +2313,7 @@ describe('compose/app', () => {
 			const steps = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['server', 'client'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);
@@ -2128,12 +2324,35 @@ describe('compose/app', () => {
 			const steps2 = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([{ appId: 1, services: ['server'] }]),
+					lock: mockLock,
 				},
 				target,
 			);
 			const [releaseLockStep2] = expectSteps('releaseLock', steps2, 1);
 			expect(releaseLockStep2).to.have.property('appId').that.equals(1);
+		});
+
+		it('should infer a releaseLock step if there are leftover locks', async () => {
+			const services = [
+				await createService({ serviceName: 'server' }),
+				await createService({ serviceName: 'client' }),
+			];
+			const current = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, hasLeftoverLocks: true },
+				target,
+			);
+			expect(steps).to.have.length(1);
+			expectSteps('releaseLock', steps);
 		});
 
 		it('should not infer a releaseLock step if there are no locks to be released', async () => {
@@ -2173,10 +2392,7 @@ describe('compose/app', () => {
 			const steps = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
-					locksTaken: new LocksTakenMap([
-						{ appId: 1, services: ['server', 'client'] },
-						{ appId: 2, services: ['main'] },
-					]),
+					lock: mockLock,
 				},
 				target,
 			);

@@ -28,6 +28,7 @@ describe('lib/journald', () => {
 			unit: 'nginx.service',
 			containerId: 'abc123',
 			format: 'json-pretty',
+			filter: ['_SYSTEMD_UNIT=test.service', '_SYSTEMD_UNIT=test2.service'],
 			since: '2014-03-25 03:59:56.654563',
 			until: '2014-03-25 03:59:59.654563',
 		});
@@ -48,6 +49,8 @@ describe('lib/journald', () => {
 			'2014-03-25 03:59:56.654563',
 			'-U',
 			'2014-03-25 03:59:59.654563',
+			'_SYSTEMD_UNIT=test.service',
+			'_SYSTEMD_UNIT=test2.service',
 		];
 
 		const actualCommand = spawn.firstCall.args[0];

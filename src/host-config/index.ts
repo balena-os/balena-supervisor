@@ -92,18 +92,15 @@ export async function patch(
 	conf: HostConfiguration | LegacyHostConfiguration,
 	force: boolean = false,
 ): Promise<void> {
-	const apps = await applicationManager.getCurrentApps();
-	const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
-
+	const ops: Array<() => Promise<void>> = [];
 	if (conf.network.hostname != null) {
-		await setHostname(conf.network.hostname);
+		const hostname = conf.network.hostname;
+		ops.push(async () => await setHostname(hostname));
 	}
 
 	if (conf.network.proxy != null) {
 		const { noProxy, ...targetConf } = conf.network.proxy;
-		// It's possible for appIds to be an empty array, but patch shouldn't fail
-		// as it's not dependent on there being any running user applications.
-		return updateLock.lock(appIds, { force }, async () => {
+		ops.push(async () => {
 			const proxyConf = await readProxy();
 			let currentConf: ProxyConfig | undefined = undefined;
 			if (proxyConf) {
@@ -122,6 +119,21 @@ export async function patch(
 			);
 			await setProxy(patchedConf, noProxy);
 		});
+	}
+
+	if (ops.length > 0) {
+		// It's possible for appIds to be an empty array, but patch shouldn't fail
+		// as it's not dependent on there being any running user applications.
+		const apps = await applicationManager.getCurrentApps();
+		const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
+		const lockOverride = await config.get('lockOverride');
+		await updateLock.withLock(
+			appIds,
+			() => Promise.all(ops.map((fn) => fn())),
+			{
+				force: force || lockOverride,
+			},
+		);
 	}
 }
 

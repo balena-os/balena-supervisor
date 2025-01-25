@@ -30,14 +30,58 @@ dbus_get_mount() {
     fi
 }
 
+# Identify an encrypted partition using dmsetup
+# Works for both dm-crypt and LUKS encrypted partitions
+# Arguments:
+# 1: Partition device - will be converted to a DM device
+# Returns:
+# 0: The partition device is encrypted
+# 1: The partition device is not encrypted
+is_part_encrypted() {
+	_part="${1#/dev/}"
+	_dm_part="${_part}"
+	if command -v dmsetup > /dev/null; then
+		if [ "${_part#dm-}" = "${_part}" ]; then
+			# Does not start with dm-
+			if [ "${_part#mapper/}" = "${_part}" ]; then
+				# Does not start with mapper/
+				# Find the corresponding DM device to the partition
+				_dm_part=$(lsblk -nlo kname "/dev/${_dm_part}" | grep dm)
+				if [ -z "${_dm_part}" ]; then
+					# No corresponding DM device, no dm-crypt in use
+					return 1
+				fi
+			fi
+		fi
+		# _dm_part is a DM device, either dm* or mapper/*
+		_name=$(lsblk -nlo name "/dev/${_dm_part}")
+		if dmsetup ls --target crypt | grep -q "${_name}"; then
+			return 0
+		fi
+	fi
+	return 1
+}
+
+# Make sure dm-crypt devices are active in the container
+dmsetup_part() {
+    _label="${1}"
+    if _dmname=$(dmsetup ls --target crypt | grep "${_label}" | awk '{print $1}'); then
+        # LUKS DM devices are not named after the partition label
+        # so no need to check for LUKS explicitely
+        if [ -n "${_dmname}" ]; then
+            dmsetup resume "${_dmname}"
+        fi
+    fi
+}
+
 # Get the current boot block device in case there are duplicate partition labels
 # for `(balena|resin)-(boot|state|data)` found.
-secure_boot_partitions='efi rpi'
+secure_boot_partitions='efi rpi imx'
 current_boot_block_device=""
 if [ "${TEST}" != 1 ]; then
-    mnt_boot_mount=$(dbus_get_mount "boot")
-    mnt_boot_type=$(lsblk -no type "${mnt_boot_mount}")
-    if [ "${mnt_boot_type}" = "crypt" ]; then
+    mnt_boot_dev=$(dbus_get_mount "boot")
+    dmsetup_part "boot"
+    if is_part_encrypted "${mnt_boot_dev}"; then
         echo "INFO: Encrypted boot partition detected."
         for part in $secure_boot_partitions; do
             echo "INFO: Trying ${part} as boot partition."
@@ -50,7 +94,7 @@ if [ "${TEST}" != 1 ]; then
             fi
         done
     else
-        boot_part="${mnt_boot_mount}"
+        boot_part="${mnt_boot_dev}"
     fi
 
     if [ -z "${boot_part}" ]; then
@@ -95,6 +139,8 @@ setup_then_mount() {
 
     partition_label=$1
     target_path=$2
+
+    dmsetup_part "${partition_label}"
 
     # Try FS label first and partition label as a fallback
     for arg in label partlabel; do

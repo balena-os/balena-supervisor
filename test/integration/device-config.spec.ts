@@ -5,9 +5,9 @@ import type { SinonStub, SinonSpy } from 'sinon';
 import { stub, spy } from 'sinon';
 import { expect } from 'chai';
 
-import * as deviceConfig from '~/src/device-config';
+import * as deviceConfig from '~/src/device-state/device-config';
 import * as fsUtils from '~/lib/fs-utils';
-import * as logger from '~/src/logger';
+import * as logger from '~/src/logging';
 import { Extlinux } from '~/src/config/backends/extlinux';
 import { ConfigTxt } from '~/src/config/backends/config-txt';
 import { Odmdata } from '~/src/config/backends/odmdata';

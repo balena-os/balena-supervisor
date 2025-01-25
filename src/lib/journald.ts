@@ -21,7 +21,7 @@ export interface SpawnJournalctlOpts {
 	unit?: string;
 	containerId?: string;
 	format: string;
-	filterString?: string;
+	filter?: string | string[];
 	since?: string;
 	until?: string;
 }
@@ -57,8 +57,16 @@ export function spawnJournalctl(opts: SpawnJournalctlOpts): ChildProcess {
 	args.push('-o');
 	args.push(opts.format);
 
-	if (opts.filterString) {
-		args.push(opts.filterString);
+	if (opts.filter != null) {
+		// A single filter argument without spaces can be passed as a string
+		if (typeof opts.filter === 'string') {
+			args.push(opts.filter);
+		} else {
+			// Multiple filter arguments need to be passed as an array of strings
+			// instead of a single string with spaces, as `spawn` will interpret
+			// the single string as a single argument to journalctl, which is invalid.
+			args.push(...opts.filter);
+		}
 	}
 
 	log.debug('Spawning journalctl', args.join(' '));

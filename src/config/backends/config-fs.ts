@@ -7,7 +7,7 @@ import { ConfigBackend } from './backend';
 import { exec, exists } from '../../lib/fs-utils';
 import * as hostUtils from '../../lib/host-utils';
 import * as constants from '../../lib/constants';
-import * as logger from '../../logger';
+import * as logger from '../../logging';
 import log from '../../lib/supervisor-console';
 
 /**
