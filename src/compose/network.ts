@@ -160,6 +160,15 @@ class NetworkImpl implements Network {
 			configOnly: network.config_only || false,
 		};
 
+		// Add label if there's non-default ipam config
+		// e.g. explicitly defined subnet or gateway.
+		// When updating between a release where the ipam config
+		// changes, this label informs the Supervisor that
+		// there's an ipam diff that requires recreating the network.
+		if (net.config.ipam.config.length > 0) {
+			net.config.labels['io.balena.private.ipam.config'] = 'true';
+		}
+
 		return net;
 	}
 
