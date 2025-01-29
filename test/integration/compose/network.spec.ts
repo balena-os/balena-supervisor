@@ -67,6 +67,8 @@ describe('compose/network: integration tests', () => {
 				Labels: {
 					'io.balena.supervised': 'true',
 					'io.balena.app-id': '12345',
+					// This label should be present as we've defined a custom ipam config
+					'io.balena.private.ipam.config': 'true',
 				},
 				Options: {},
 				ConfigOnly: false,
