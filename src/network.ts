@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { promises as fs, watch } from 'fs';
-import networkCheck from 'network-checker';
+import { checkHost as checkNetHost, monitor } from 'network-checker';
+import type { ConnectOptions, MonitorChangeFunction } from 'network-checker';
 import os from 'os';
 import url from 'url';
 
@@ -20,21 +21,16 @@ const networkPattern = {
 let isConnectivityCheckPaused = false;
 let isConnectivityCheckEnabled = true;
 
-function checkHost(
-	opts: networkCheck.ConnectOptions,
-): boolean | PromiseLike<boolean> {
+async function checkHost(opts: ConnectOptions): Promise<boolean> {
 	return (
 		!isConnectivityCheckEnabled ||
 		isConnectivityCheckPaused ||
-		networkCheck.checkHost(opts)
+		(await checkNetHost(opts))
 	);
 }
 
-function customMonitor(
-	options: networkCheck.ConnectOptions,
-	fn: networkCheck.MonitorChangeFunction,
-) {
-	return networkCheck.monitor(checkHost, options, fn);
+function customMonitor(options: ConnectOptions, fn: MonitorChangeFunction) {
+	return monitor(checkHost, options, fn);
 }
 
 export function enableCheck(enable: boolean) {
@@ -60,7 +56,7 @@ export const startConnectivityCheck = _.once(
 	async (
 		apiEndpoint: string,
 		enable: boolean,
-		onChangeCallback?: networkCheck.MonitorChangeFunction,
+		onChangeCallback?: MonitorChangeFunction,
 	) => {
 		enableConnectivityCheck(enable);
 		if (!apiEndpoint) {
