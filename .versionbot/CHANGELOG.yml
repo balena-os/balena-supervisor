@@ -1,4 +1,55 @@
 - commits:
+    - subject: Pin io-ts version to v2.2.20
+      hash: 88e821ed8e36e10d6429dc31950b5aeed968aa3f
+      body: |
+        gcanti/io-ts#705 fixes an issue with io-ts and non-enumerable
+        properties, but that results in objects with invalid properties to get
+        removed during `decode`, which breaks our validation tests.
+
+        Need to figure out what is the right behavior for us
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Update network-manager to v1
+      hash: f71f98777cbf7198745f1dcb8467b8cc62719d85
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Update balena-request and balena-register-device
+      hash: 52081ba15e84be794a906d5cbccc343b24748bba
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Update pinejs-client-request to v8
+      hash: 342a2d4dac737274ab13a8b05eac0f1f036a5075
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Update chai utility modules
+      hash: 3a3889546d8546793914bc2b5da10e202ebb14b1
+      body: |
+        Updating chai will be done in a future PR as it requires overhauling all
+        tests since chai is now ESM
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.12.1
+  title: ""
+  date: 2025-02-10T22:51:51.632Z
+- commits:
     - subject: Update contrato to v0.12.0
       hash: 85fc5784bcd187d086bffbd0c2167ce9eb34650f
       body: ""
