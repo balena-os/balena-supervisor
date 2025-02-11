@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action action to v2.0.92
+      hash: c57622e2264e41078e907d6ba8de9d5206bb6293
+      body: |
+        Update balena-io/deploy-to-balena-action from 2.0.74 to 2.0.92
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 16.12.2
+  title: ""
+  date: 2025-02-11T01:04:22.736Z
+- commits:
     - subject: Pin io-ts version to v2.2.20
       hash: 88e821ed8e36e10d6429dc31950b5aeed968aa3f
       body: |
