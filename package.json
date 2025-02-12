@@ -84,7 +84,7 @@
     "copy-webpack-plugin": "^12.0.0",
     "deep-object-diff": "1.1.0",
     "docker-delta": "^4.1.0",
-    "docker-progress": "^5.2.3",
+    "docker-progress": "^5.2.4",
     "dockerode": "^4.0.2",
     "duration-js": "^4.0.0",
     "express": "^4.21.2",
