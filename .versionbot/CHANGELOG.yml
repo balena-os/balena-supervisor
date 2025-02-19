@@ -1,4 +1,60 @@
 - commits:
+    - subject: Retry DELTA_APPLY_RETRY_COUNT (3) times during delta apply fail before
+        reverting to regular pull
+      hash: 341111f1f94cd9f17fd7be9b6f21e3bc22c9ad3a
+      body: >
+        This prevents an image download error loop where the delta image on the
+        delta server is present,
+
+        but some aspect of the delta image or the base image on the device does
+        not match up, causing
+
+        the delta to fail to be applied to the base image.
+
+
+        Delta apply errors don't raise status codes as they are thrown from the
+        Engine (although they should),
+
+        so if an error with a status code is raised during this time, throw an
+        error to the handler
+
+        indicating that the delta should be retried until success. Errors with
+        status codes raised during
+
+        this time are largely network related, so falling back to a regular pull
+        won't improve anything.
+
+
+        Upon delta apply errors exceeding DELTA_APPLY_RETRY_COUNT, revert to a
+        regular pull.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Revert to regular pull immediately on delta server failure (code 400s)
+      hash: 1fc242200f78e4219aafc5bb91de8cf0916236af
+      body: >
+        If the delta server responds immediately with HTTP 4xx upon requesting a
+        delta image,
+
+        this means the server is not able to supply the resource, so fall back
+        to a regular pull
+
+        immediately.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.12.3
+  title: ""
+  date: 2025-02-19T20:51:53.085Z
+- commits:
     - subject: Update balena-io/deploy-to-balena-action action to v2.0.92
       hash: c57622e2264e41078e907d6ba8de9d5206bb6293
       body: |
