@@ -188,7 +188,10 @@ const poll = async (
 		// Reset fetchErrors because we successfuly updated
 		fetchErrors = 0;
 		lastSuccessfulFetch = process.hrtime();
-	} catch {
+	} catch (e) {
+		if (!(e instanceof ApiResponseError)) {
+			log.error('Target state poll failed', e);
+		}
 		// Exponential back off if request fails
 		pollInterval = Math.min(appUpdatePollInterval, 15000 * 2 ** fetchErrors);
 		++fetchErrors;
