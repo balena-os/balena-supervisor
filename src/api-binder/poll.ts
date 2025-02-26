@@ -154,8 +154,6 @@ export const update = async (
 
 		// Emit the target state and update the cache
 		cache.emitted = emitTargetState(cache, force, isFromApi);
-	}).finally(() => {
-		lastFetch = process.hrtime();
 	});
 };
 
@@ -188,6 +186,7 @@ const poll = async (
 		await update();
 		// Reset fetchErrors because we successfuly updated
 		fetchErrors = 0;
+		lastFetch = process.hrtime();
 	} catch {
 		// Exponential back off if request fails
 		pollInterval = Math.min(appUpdatePollInterval, 15000 * 2 ** fetchErrors);
