@@ -111,10 +111,10 @@ export const exchangeKeyAndGetDevice = async (
 	opts: Partial<KeyExchangeOpts>,
 ): Promise<Device> => {
 	const uuid = opts.uuid;
-	const apiTimeout = opts.apiTimeout;
-	if (!(uuid && apiTimeout)) {
+	const apiRequestTimeout = opts.apiRequestTimeout;
+	if (!(uuid && apiRequestTimeout)) {
 		throw new InternalInconsistencyError(
-			'UUID and apiTimeout should be defined in exchangeKeyAndGetDevice',
+			'UUID and apiRequestTimeout should be defined in exchangeKeyAndGetDevice',
 		);
 	}
 
@@ -122,7 +122,12 @@ export const exchangeKeyAndGetDevice = async (
 	// valid, because if it is then we can just use that
 	if (opts.deviceApiKey != null) {
 		try {
-			return await fetchDevice(balenaApi, uuid, opts.deviceApiKey, apiTimeout);
+			return await fetchDevice(
+				balenaApi,
+				uuid,
+				opts.deviceApiKey,
+				apiRequestTimeout,
+			);
 		} catch (e) {
 			if (e instanceof DeviceNotFoundError) {
 				// do nothing...
@@ -146,7 +151,7 @@ export const exchangeKeyAndGetDevice = async (
 			balenaApi,
 			uuid,
 			opts.provisioningApiKey,
-			apiTimeout,
+			apiRequestTimeout,
 		);
 	} catch {
 		throw new ExchangeKeyError(`Couldn't fetch device with provisioning key`);
@@ -165,7 +170,7 @@ export const exchangeKeyAndGetDevice = async (
 				Authorization: `Bearer ${opts.provisioningApiKey}`,
 			},
 		})
-		.timeout(apiTimeout);
+		.timeout(apiRequestTimeout);
 
 	if (res.statusCode !== 200) {
 		throw new ExchangeKeyError(
@@ -220,7 +225,7 @@ export const provision = async (
 						osVariant: opts.osVariant,
 						macAddress: opts.macAddress,
 					}),
-				).timeout(opts.apiTimeout);
+				).timeout(opts.apiRequestTimeout);
 			} catch (err) {
 				if (
 					err instanceof deviceRegister.ApiError &&
