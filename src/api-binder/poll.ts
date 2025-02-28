@@ -101,13 +101,12 @@ export const update = async (
 ): Promise<void> => {
 	await config.initialized();
 	return Bluebird.using(lockGetTarget(), async () => {
-		const { uuid, apiEndpoint, apiTimeout, deviceApiKey } =
-			await config.getMany([
-				'uuid',
-				'apiEndpoint',
-				'apiTimeout',
-				'deviceApiKey',
-			]);
+		const { uuid, apiEndpoint, deviceApiKey } = await config.getMany([
+			'uuid',
+			'apiEndpoint',
+			'apiTimeout',
+			'deviceApiKey',
+		]);
 
 		if (typeof apiEndpoint !== 'string') {
 			throw new InternalInconsistencyError(
@@ -123,16 +122,9 @@ export const update = async (
 				Authorization: `Bearer ${deviceApiKey}`,
 				'If-None-Match': cache?.etag,
 			},
-			timeout: {
-				// TODO: We use the same default timeout for all of these in order to have a timeout generally
-				// but it would probably make sense to tune them individually
-				lookup: apiTimeout,
-				connect: apiTimeout,
-				secureConnect: apiTimeout,
-				socket: apiTimeout,
-				send: apiTimeout,
-				response: apiTimeout,
-			},
+			// Use default timeouts in request.ts
+			// TODO: this should use the (user configurable?) global request
+			// timeout that will be set here https://github.com/balena-os/balena-supervisor/pull/2405
 		});
 
 		if (statusCode === 304 && cache?.etag != null) {
@@ -154,8 +146,6 @@ export const update = async (
 
 		// Emit the target state and update the cache
 		cache.emitted = emitTargetState(cache, force, isFromApi);
-	}).finally(() => {
-		lastFetch = process.hrtime();
 	});
 };
 
@@ -188,7 +178,11 @@ const poll = async (
 		await update();
 		// Reset fetchErrors because we successfuly updated
 		fetchErrors = 0;
-	} catch {
+		lastFetch = process.hrtime();
+	} catch (e) {
+		if (!(e instanceof ApiResponseError)) {
+			log.error('Target state poll failed', e);
+		}
 		// Exponential back off if request fails
 		pollInterval = Math.min(appUpdatePollInterval, 15000 * 2 ** fetchErrors);
 		++fetchErrors;
