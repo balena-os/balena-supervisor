@@ -41,14 +41,17 @@ export let stateReportErrors = 0;
 type StateReportOpts = {
 	[key in keyof Pick<
 		config.ConfigMap<SchemaTypeKey>,
-		'apiEndpoint' | 'apiTimeout' | 'deviceApiKey' | 'appUpdatePollInterval'
+		| 'apiEndpoint'
+		| 'apiRequestTimeout'
+		| 'deviceApiKey'
+		| 'appUpdatePollInterval'
 	>]: SchemaReturn<key>;
 };
 
 type StateReport = { body: Partial<DeviceState>; opts: StateReportOpts };
 
 async function report({ body, opts }: StateReport) {
-	const { apiEndpoint, apiTimeout, deviceApiKey } = opts;
+	const { apiEndpoint, apiRequestTimeout, deviceApiKey } = opts;
 
 	if (!apiEndpoint) {
 		throw new InternalInconsistencyError(
@@ -69,7 +72,7 @@ async function report({ body, opts }: StateReport) {
 
 	const [{ statusCode, body: statusMessage, headers }] = await request
 		.patchAsync(endpoint, params)
-		.timeout(apiTimeout);
+		.timeout(apiRequestTimeout);
 
 	if (statusCode < 200 || statusCode >= 300) {
 		throw new StatusError(
@@ -203,7 +206,7 @@ export async function startReporting() {
 	// Get configs needed to make a report
 	const reportConfigs = (await config.getMany([
 		'apiEndpoint',
-		'apiTimeout',
+		'apiRequestTimeout',
 		'deviceApiKey',
 		'appUpdatePollInterval',
 	])) as StateReportOpts;
