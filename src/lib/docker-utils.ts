@@ -219,9 +219,17 @@ export async function fetchDeltaWithProgress(
 				}
 				break;
 			case 3:
-				// If 400s status code, throw a more specific error & revert immediately to a regular pull
+				// If 400s status code, throw a more specific error & revert immediately to a regular pull,
+				// unless the code is 401 Unauthorized, in which case we should surface the error by retrying
+				// the delta server request, instead of falling back to a regular pull immediately.
 				if (res.statusCode >= 400 && res.statusCode < 500) {
-					throw new DeltaServerError(res.statusCode, res.statusMessage);
+					if (res.statusCode === 401) {
+						throw new Error(
+							`Got ${res.statusCode} when requesting an image from delta server: ${res.statusMessage}`,
+						);
+					} else {
+						throw new DeltaServerError(res.statusCode, res.statusMessage);
+					}
 				}
 				if (res.statusCode !== 200) {
 					throw new Error(
