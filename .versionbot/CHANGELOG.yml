@@ -1,4 +1,23 @@
 - commits:
+    - subject: Don't revert to regular pull if delta server 401
+      hash: 2dc9d275b15a0802264bcd49e2f0dddbbadd2225
+      body: |
+        If the Supervisor receives a 401 Unauthorized from the delta server
+        when requesting a delta image location, we should surface the error
+        instead of falling back to a regular pull immediately, as there could
+        be an issue with the delta auth token, which refreshes after
+        DELTA_TOKEN_TIMEOUT (10min), or some other edge case.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.12.4
+  title: ""
+  date: 2025-03-03T13:42:18.045Z
+- commits:
     - subject: Retry DELTA_APPLY_RETRY_COUNT (3) times during delta apply fail before
         reverting to regular pull
       hash: 341111f1f94cd9f17fd7be9b6f21e3bc22c9ad3a
