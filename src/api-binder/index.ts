@@ -63,7 +63,7 @@ export async function healthcheck() {
 	}
 
 	// Check last time target state has been polled
-	const timeSinceLastFetch = process.hrtime(TargetState.lastFetch);
+	const timeSinceLastFetch = process.hrtime(TargetState.lastSuccessfulFetch);
 	const timeSinceLastFetchMs =
 		timeSinceLastFetch[0] * 1000 + timeSinceLastFetch[1] / 1e6;
 

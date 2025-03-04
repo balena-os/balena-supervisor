@@ -335,7 +335,7 @@ describe('ApiBinder', () => {
 
 		before(async () => {
 			await initModels(components, '/config-apibinder.json');
-			previousLastFetch = TargetState.lastFetch;
+			previousLastFetch = TargetState.lastSuccessfulFetch;
 		});
 
 		after(async () => {

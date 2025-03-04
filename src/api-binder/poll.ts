@@ -87,7 +87,8 @@ const emitTargetState = (
  * We set a value rather then being undeclared because having it undefined
  * adds more overhead to dealing with this value without any benefits.
  */
-export let lastFetch: ReturnType<typeof process.hrtime> = process.hrtime();
+export let lastSuccessfulFetch: ReturnType<typeof process.hrtime> =
+	process.hrtime();
 
 /**
  * Attempts to update the target state
@@ -154,8 +155,6 @@ export const update = async (
 
 		// Emit the target state and update the cache
 		cache.emitted = emitTargetState(cache, force, isFromApi);
-	}).finally(() => {
-		lastFetch = process.hrtime();
 	});
 };
 
@@ -188,7 +187,11 @@ const poll = async (
 		await update();
 		// Reset fetchErrors because we successfuly updated
 		fetchErrors = 0;
-	} catch {
+		lastSuccessfulFetch = process.hrtime();
+	} catch (e) {
+		if (!(e instanceof ApiResponseError)) {
+			log.error('Target state poll failed', e);
+		}
 		// Exponential back off if request fails
 		pollInterval = Math.min(appUpdatePollInterval, 15000 * 2 ** fetchErrors);
 		++fetchErrors;
