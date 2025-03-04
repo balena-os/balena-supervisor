@@ -101,11 +101,11 @@ export const update = async (
 ): Promise<void> => {
 	await config.initialized();
 	return Bluebird.using(lockGetTarget(), async () => {
-		const { uuid, apiEndpoint, apiTimeout, deviceApiKey } =
+		const { uuid, apiEndpoint, apiRequestTimeout, deviceApiKey } =
 			await config.getMany([
 				'uuid',
 				'apiEndpoint',
-				'apiTimeout',
+				'apiRequestTimeout',
 				'deviceApiKey',
 			]);
 
@@ -126,12 +126,12 @@ export const update = async (
 			timeout: {
 				// TODO: We use the same default timeout for all of these in order to have a timeout generally
 				// but it would probably make sense to tune them individually
-				lookup: apiTimeout,
-				connect: apiTimeout,
-				secureConnect: apiTimeout,
-				socket: apiTimeout,
-				send: apiTimeout,
-				response: apiTimeout,
+				lookup: apiRequestTimeout,
+				connect: apiRequestTimeout,
+				secureConnect: apiRequestTimeout,
+				socket: apiRequestTimeout,
+				send: apiRequestTimeout,
+				response: apiRequestTimeout,
 			},
 		});
 

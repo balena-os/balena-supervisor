@@ -141,6 +141,11 @@ const configKeys: Dictionary<ConfigOption> = {
 		varType: 'bool',
 		defaultValue: 'true',
 	},
+	apiRequestTimeout: {
+		envVarName: 'SUPERVISOR_API_REQUEST_TIMEOUT',
+		varType: 'int',
+		defaultValue: '59000',
+	},
 	delta: {
 		envVarName: 'SUPERVISOR_DELTA',
 		varType: 'bool',

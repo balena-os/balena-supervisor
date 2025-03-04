@@ -4,6 +4,9 @@ export const schema = {
 		mutable: false,
 		removeIfNull: false,
 	},
+	/**
+	 * The timeout for the supervisor's api
+	 */
 	apiTimeout: {
 		source: 'config.json',
 		mutable: false,
@@ -116,6 +119,11 @@ export const schema = {
 		removeIfNull: false,
 	},
 	connectivityCheckEnabled: {
+		source: 'db',
+		mutable: true,
+		removeIfNull: false,
+	},
+	apiRequestTimeout: {
 		source: 'db',
 		mutable: true,
 		removeIfNull: false,

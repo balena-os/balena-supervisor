@@ -12,6 +12,9 @@ export const schemaTypes = {
 		type: t.string,
 		default: '',
 	},
+	/**
+	 * The timeout for the supervisor's api
+	 */
 	apiTimeout: {
 		type: PermissiveNumber,
 		default: 15 * 60 * 1000,
@@ -118,6 +121,13 @@ export const schemaTypes = {
 		type: PermissiveBoolean,
 		default: false,
 	},
+	/**
+	 * The timeout for requests to the balenaCloud api
+	 */
+	apiRequestTimeout: {
+		type: PermissiveNumber,
+		default: 59000,
+	},
 	deltaRequestTimeout: {
 		type: PermissiveNumber,
 		default: 59000,
@@ -218,7 +228,7 @@ export const schemaTypes = {
 			provisioningApiKey: t.union([t.string, NullOrUndefined]),
 			deviceApiKey: t.string,
 			apiEndpoint: t.string,
-			apiTimeout: PermissiveNumber,
+			apiRequestTimeout: PermissiveNumber,
 			registered_at: t.union([PermissiveNumber, NullOrUndefined]),
 			deviceId: t.union([PermissiveNumber, NullOrUndefined]),
 			supervisorVersion: t.union([t.string, t.undefined]),
