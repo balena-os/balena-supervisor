@@ -1,4 +1,21 @@
 - commits:
+    - subject: Decrease balenaCloud api request timeout from 15m to 59s
+      hash: 49163e92a013250f72ca7231e11945b465c4dd45
+      body: |
+        This was mistakenly increased due to confusion between the timeout for
+        requests to the supervisor's api vs the timeout for requests from the
+        supervisor to the balenaCloud api. This separates the two configs and
+        documents the difference between the timeouts whilst also decreasing
+        the timeout for balenaCloud api requests to the correct/expected value
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 16.12.5
+  title: ""
+  date: 2025-03-04T13:35:26.801Z
+- commits:
     - subject: Don't revert to regular pull if delta server 401
       hash: 2dc9d275b15a0802264bcd49e2f0dddbbadd2225
       body: |
