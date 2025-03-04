@@ -1,4 +1,31 @@
 - commits:
+    - subject: Log non-API errors during state poll
+      hash: 6d00be20930398699da1006176dac1e81b2dbbd6
+      body: >
+        The supervisor was failing silently if an error happened while
+        establishing the
+
+        connection (e.g. requesting the socket).
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Fix target poll healthcheck
+      hash: f8bdb1433508dcaeff12a78d746256041ba1c414
+      body: |
+        The Target.lastFetch time compared when performing the healthcheck
+        resets any time a poll is attempted no matter the outcome. This changes
+        the behavior so the time is reset only on a successful poll
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.12.6
+  title: ""
+  date: 2025-03-04T14:25:06.565Z
+- commits:
     - subject: Decrease balenaCloud api request timeout from 15m to 59s
       hash: 49163e92a013250f72ca7231e11945b465c4dd45
       body: |
