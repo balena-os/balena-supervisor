@@ -1,4 +1,18 @@
 - commits:
+    - subject: Release locks when removing apps
+      hash: 026dc0aed29ce7d66cfdd8616d80d1f5daf3ad46
+      body: |
+        This prevents leftover locks that can prevent other operations from
+        taking place.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.12.7
+  title: ""
+  date: 2025-03-06T19:11:18.704Z
+- commits:
     - subject: Log non-API errors during state poll
       hash: 6d00be20930398699da1006176dac1e81b2dbbd6
       body: >
