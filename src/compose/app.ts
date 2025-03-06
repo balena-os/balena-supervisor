@@ -247,6 +247,16 @@ class AppImpl implements App {
 			}
 		}
 
+		// Release locks (if any) for all services before settling state
+		if (state.lock || state.hasLeftoverLocks) {
+			return [
+				generateStep('releaseLock', {
+					appId: this.appId,
+					lock: state.lock,
+				}),
+			];
+		}
+
 		return [];
 	}
 
