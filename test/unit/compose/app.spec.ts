@@ -2399,5 +2399,19 @@ describe('compose/app', () => {
 			const [releaseLockStep] = expectSteps('releaseLock', steps, 1);
 			expect(releaseLockStep).to.have.property('appId').that.equals(1);
 		});
+
+		it('should infer a releaseLock step when removing an app', async () => {
+			const current = createApp({
+				services: [],
+				networks: [],
+			});
+
+			const steps = current.stepsToRemoveApp({
+				...defaultContext,
+				lock: mockLock,
+			});
+			const [releaseLockStep] = expectSteps('releaseLock', steps, 1);
+			expect(releaseLockStep).to.have.property('appId').that.equals(1);
+		});
 	});
 });
