@@ -2,6 +2,7 @@ import systeminformation from 'systeminformation';
 import _ from 'lodash';
 import memoizee from 'memoizee';
 import { promises as fs } from 'fs';
+import secureboot from '/var/run/supervisor/secureboot.json';
 
 import { exec } from './fs-utils';
 
@@ -192,6 +193,7 @@ export async function getSystemChecks() {
 	const undervoltage = await undervoltageDetected();
 
 	return {
+		...secureboot,
 		is_undervolted: undervoltage,
 	};
 }

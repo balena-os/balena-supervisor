@@ -195,6 +195,8 @@ const DeviceReport = t.partial({
 	cpu_usage: t.number,
 	cpu_id: t.string,
 	is_undervolted: t.boolean,
+	secureboot: t.boolean,
+	fulldiskencryption: t.boolean,
 	// These are for internal reporting only, they are not sent
 	// to the API
 	update_failed: t.boolean,
