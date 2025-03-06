@@ -182,6 +182,25 @@ export async function undervoltageDetected(): Promise<boolean> {
 	}
 }
 
+interface HostSecurity {
+	fullDiskEncryption: boolean;
+	secureboot: boolean;
+	secureboot_keys_metadata: string | undefined;
+}
+
+async function getHostSecurityInfos(): Promise<HostSecurity | undefined> {
+	try {
+		const rawHostSecurity = await fs.readFile(
+			'/var/run/supervisor/security.json',
+			'utf-8',
+		);
+		const hostSecurity = JSON.parse(rawHostSecurity);
+		return hostSecurity;
+	} catch {
+		return undefined;
+	}
+}
+
 /**
  * System metrics that are always reported in current state
  * due to their importance, regardless of HARDWARE_METRICS
@@ -191,7 +210,12 @@ export async function getSystemChecks() {
 	// such as fs corruption checks, network issues, etc.
 	const undervoltage = await undervoltageDetected();
 
+	const hostSecurity = await getHostSecurityInfos();
+
 	return {
+		is_storage_encrypted: hostSecurity?.fullDiskEncryption || false,
+		is_secureboot_enabled: hostSecurity?.secureboot || false,
+		secureboot_keys_metadata: hostSecurity?.secureboot_keys_metadata || null,
 		is_undervolted: undervoltage,
 	};
 }
