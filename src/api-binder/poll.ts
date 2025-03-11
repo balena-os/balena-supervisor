@@ -121,6 +121,7 @@ export const update = async (
 		const got = await getGotInstance();
 
 		const { statusCode, headers, body } = await got(endpoint, {
+			retry: { limit: 0 },
 			agent: {
 				https: new Agent({
 					keepAlive: true,
