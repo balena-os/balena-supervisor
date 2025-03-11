@@ -3,8 +3,8 @@ import { set } from '@balena/es-version';
 set('es2022');
 
 import { setDefaultAutoSelectFamilyAttemptTimeout } from 'net';
-// Increase the timeout for the happy eyeballs algorithm to 5000ms to avoid issues on slower networks
-setDefaultAutoSelectFamilyAttemptTimeout(5000);
+// Increase the timeout for the happy eyeballs algorithm to 4500ms to avoid issues on slower networks
+setDefaultAutoSelectFamilyAttemptTimeout(4500);
 
 // Setup MDNS resolution
 import './mdns';
