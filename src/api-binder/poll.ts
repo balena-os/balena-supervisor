@@ -3,6 +3,7 @@ import url from 'url';
 import { setTimeout } from 'timers/promises';
 import Bluebird from 'bluebird';
 import type StrictEventEmitter from 'strict-event-emitter-types';
+import { Agent } from 'https';
 
 import type { TargetState } from '../types/state';
 import { InternalInconsistencyError } from '../lib/errors';
@@ -120,6 +121,13 @@ export const update = async (
 		const got = await getGotInstance();
 
 		const { statusCode, headers, body } = await got(endpoint, {
+			retry: { limit: 0 },
+			agent: {
+				https: new Agent({
+					keepAlive: true,
+					timeout: apiRequestTimeout,
+				}),
+			},
 			headers: {
 				Authorization: `Bearer ${deviceApiKey}`,
 				'If-None-Match': cache?.etag,
