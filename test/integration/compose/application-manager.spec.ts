@@ -1128,11 +1128,20 @@ describe('compose/application-manager', () => {
 		const { currentApps, availableImages, downloading, containerIdsByAppId } =
 			createCurrentState({
 				services: [
-					await createService({
-						image: 'dep-image',
-						serviceName: 'dep',
-						commit: 'new-release',
-					}),
+					await createService(
+						{
+							image: 'dep-image',
+							serviceName: 'dep',
+							commit: 'new-release',
+						},
+						{
+							state: {
+								createdAt: new Date(Date.now() - 5 * 1000),
+								// Container was started 5 after creation
+								startedAt: new Date(),
+							},
+						},
+					),
 				],
 				networks: [DEFAULT_NETWORK],
 				images: [

@@ -921,19 +921,24 @@ class AppImpl implements App {
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
 	): boolean {
-		// Firstly we check if a dependency is not already running (this is
+		// Firstly we check if a dependency has already been started (this is
 		// different to a dependency which is in the servicePairs below, as these
 		// are services which are changing). We could have a dependency which is
 		// starting up, but is not yet running.
-		const depInstallingButNotRunning = _.some(this.services, (svc) => {
+		const depCreatedButNotStarted = _.some(this.services, (svc) => {
 			if (target.dependsOn?.includes(svc.serviceName)) {
-				if (!svc.config.running) {
+				if (
+					svc.status === 'Installing' ||
+					svc.startedAt == null ||
+					svc.createdAt == null ||
+					svc.startedAt < svc.createdAt
+				) {
 					return true;
 				}
 			}
 		});
 
-		if (depInstallingButNotRunning) {
+		if (depCreatedButNotStarted) {
 			return false;
 		}
 
