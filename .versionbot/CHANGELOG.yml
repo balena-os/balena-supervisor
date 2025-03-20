@@ -1,4 +1,26 @@
 - commits:
+    - subject: Start a dependent if all dependencies are started
+      hash: 7764f98c9d357a1942628e57951266767555f67b
+      body: |
+        The previous behavior required that dependencies were running beefore
+        starting the dependent service. This made it that services dependent on
+        a one-shot service would not get started and goes against the default
+        docker behavior.
+
+        Depending on a service to be running will require the implementation of
+        [long syntax depends_on](https://docs.docker.com/reference/compose-file/services/#long-syntax-1) and the condition
+        `service_healthy`.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#2409"
+        closes: "#2409"
+      author: Felipe Lalanne
+      nested: []
+  version: 16.12.9
+  title: ""
+  date: 2025-03-20T18:43:06.085Z
+- commits:
     - subject: Remove GOT retries on state poll
       hash: ae337a1dd7743b0ee0a05c32a5ce01965c5bafef
       body: |
