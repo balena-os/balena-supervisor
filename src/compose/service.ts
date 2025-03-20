@@ -61,6 +61,7 @@ class ServiceImpl implements Service {
 	public dockerImageId: string | null;
 	public status: ServiceStatus;
 	public createdAt: Date | null;
+	public startedAt: Date | null;
 
 	private static configArrayFields: ServiceConfigArrayField[] = [
 		'volumes',
@@ -476,6 +477,7 @@ class ServiceImpl implements Service {
 		}
 
 		svc.createdAt = new Date(container.Created);
+		svc.startedAt = new Date(container.State.StartedAt);
 		svc.containerId = container.Id;
 		svc.exitErrorMessage = container.State.Error;
 

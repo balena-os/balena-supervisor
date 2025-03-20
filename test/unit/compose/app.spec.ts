@@ -1458,7 +1458,14 @@ describe('compose/app', () => {
 				services: [
 					await createService(
 						{ appId: 1, serviceName: 'dep' },
-						{ state: { containerId: 'dep-id' } },
+						{
+							state: {
+								containerId: 'dep-id',
+								createdAt: new Date(Date.now() - 5 * 1000),
+								// Container was started 5 after creation
+								startedAt: new Date(),
+							},
+						},
 					),
 				],
 				networks: [DEFAULT_NETWORK],
@@ -1475,7 +1482,7 @@ describe('compose/app', () => {
 				.that.deep.includes({ serviceName: 'main' });
 		});
 
-		it('should not start a container when it depends on a service that is not running', async () => {
+		it('should not start a container when it depends on a service that has not been started yet', async () => {
 			const current = createApp({
 				services: [
 					await createService(
@@ -1535,7 +1542,14 @@ describe('compose/app', () => {
 				services: [
 					await createService(
 						{ appId: 1, serviceName: 'dep' },
-						{ state: { containerId: 'dep-id' } },
+						{
+							state: {
+								containerId: 'dep-id',
+								createdAt: new Date(Date.now() - 5 * 1000),
+								// Container was started 5 after creation
+								startedAt: new Date(),
+							},
+						},
 					),
 				],
 				networks: [DEFAULT_NETWORK],

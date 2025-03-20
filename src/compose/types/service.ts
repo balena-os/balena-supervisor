@@ -373,6 +373,7 @@ export interface Service {
 	// from docker
 	status: ServiceStatus;
 	createdAt: Date | null;
+	startedAt: Date | null;
 
 	hasNetwork(networkName: string): boolean;
 	hasVolume(volumeName: string): boolean;
