@@ -260,7 +260,33 @@ describe('state engine', () => {
 			});
 	});
 
-	it('updates an app with two services with a network change', async () => {
+	it('updates an app with two services with a network change where the only change is a custom ipam config addition', async () => {
+		const services = {
+			'1': {
+				image: 'alpine:latest',
+				imageId: 11,
+				serviceName: 'one',
+				restart: 'unless-stopped',
+				running: true,
+				command: 'sleep infinity',
+				stop_signal: 'SIGKILL',
+				networks: ['default'],
+				labels: {},
+				environment: {},
+			},
+			'2': {
+				image: 'alpine:latest',
+				imageId: 12,
+				serviceName: 'two',
+				restart: 'unless-stopped',
+				running: true,
+				command: 'sleep infinity',
+				stop_signal: 'SIGKILL',
+				networks: ['default'],
+				labels: {},
+				environment: {},
+			},
+		};
 		await setTargetState({
 			config: {},
 			apps: {
@@ -268,30 +294,10 @@ describe('state engine', () => {
 					name: 'test-app',
 					commit: 'deadbeef',
 					releaseId: 1,
-					services: {
-						'1': {
-							image: 'alpine:latest',
-							imageId: 11,
-							serviceName: 'one',
-							restart: 'unless-stopped',
-							running: true,
-							command: 'sleep infinity',
-							stop_signal: 'SIGKILL',
-							labels: {},
-							environment: {},
-						},
-						'2': {
-							image: 'alpine:latest',
-							imageId: 12,
-							serviceName: 'two',
-							restart: 'unless-stopped',
-							running: true,
-							command: 'sleep infinity',
-							labels: {},
-							environment: {},
-						},
+					services,
+					networks: {
+						default: {},
 					},
-					networks: {},
 					volumes: {},
 				},
 			},
@@ -311,6 +317,21 @@ describe('state engine', () => {
 		]);
 		const containerIds = containers.map(({ Id }) => Id);
 
+		// Network should not have custom ipam config
+		const defaultNet = await docker.getNetwork('123_default').inspect();
+		expect(defaultNet)
+			.to.have.property('IPAM')
+			.to.not.deep.equal({
+				Config: [{ Gateway: '192.168.91.1', Subnet: '192.168.91.0/24' }],
+				Driver: 'default',
+				Options: {},
+			});
+
+		// Network should not have custom ipam label
+		expect(defaultNet)
+			.to.have.property('Labels')
+			.to.not.have.property('io.balena.private.ipam.config');
+
 		await setTargetState({
 			config: {},
 			apps: {
@@ -318,32 +339,7 @@ describe('state engine', () => {
 					name: 'test-app',
 					commit: 'deadca1f',
 					releaseId: 2,
-					services: {
-						'1': {
-							image: 'alpine:latest',
-							imageId: 21,
-							serviceName: 'one',
-							restart: 'unless-stopped',
-							running: true,
-							command: 'sleep infinity',
-							stop_signal: 'SIGKILL',
-							networks: ['default'],
-							labels: {},
-							environment: {},
-						},
-						'2': {
-							image: 'alpine:latest',
-							imageId: 22,
-							serviceName: 'two',
-							restart: 'unless-stopped',
-							running: true,
-							command: 'sh -c "echo two && sleep infinity"',
-							stop_signal: 'SIGKILL',
-							networks: ['default'],
-							labels: {},
-							environment: {},
-						},
-					},
+					services,
 					networks: {
 						default: {
 							driver: 'bridge',
@@ -364,8 +360,8 @@ describe('state engine', () => {
 		expect(
 			updatedContainers.map(({ Names, State }) => ({ Name: Names[0], State })),
 		).to.have.deep.members([
-			{ Name: '/one_21_2_deadca1f', State: 'running' },
-			{ Name: '/two_22_2_deadca1f', State: 'running' },
+			{ Name: '/one_11_2_deadca1f', State: 'running' },
+			{ Name: '/two_12_2_deadca1f', State: 'running' },
 		]);
 
 		// Container ids must have changed
@@ -373,13 +369,145 @@ describe('state engine', () => {
 			containerIds,
 		);
 
-		expect(await docker.getNetwork('123_default').inspect())
+		// Network should have custom ipam config
+		const customNet = await docker.getNetwork('123_default').inspect();
+		expect(customNet)
 			.to.have.property('IPAM')
 			.to.deep.equal({
 				Config: [{ Gateway: '192.168.91.1', Subnet: '192.168.91.0/24' }],
 				Driver: 'default',
 				Options: {},
 			});
+
+		// Network should have custom ipam label
+		expect(customNet)
+			.to.have.property('Labels')
+			.to.have.property('io.balena.private.ipam.config');
+	});
+
+	it('updates an app with two services with a network change where the only change is a custom ipam config removal', async () => {
+		const services = {
+			'1': {
+				image: 'alpine:latest',
+				imageId: 11,
+				serviceName: 'one',
+				restart: 'unless-stopped',
+				running: true,
+				command: 'sleep infinity',
+				stop_signal: 'SIGKILL',
+				networks: ['default'],
+				labels: {},
+				environment: {},
+			},
+			'2': {
+				image: 'alpine:latest',
+				imageId: 12,
+				serviceName: 'two',
+				restart: 'unless-stopped',
+				running: true,
+				command: 'sleep infinity',
+				stop_signal: 'SIGKILL',
+				networks: ['default'],
+				labels: {},
+				environment: {},
+			},
+		};
+		await setTargetState({
+			config: {},
+			apps: {
+				'123': {
+					name: 'test-app',
+					commit: 'deadbeef',
+					releaseId: 1,
+					services,
+					networks: {
+						default: {
+							driver: 'bridge',
+							ipam: {
+								config: [
+									{ gateway: '192.168.91.1', subnet: '192.168.91.0/24' },
+								],
+								driver: 'default',
+							},
+						},
+					},
+					volumes: {},
+				},
+			},
+		});
+
+		const state = await getCurrentState();
+		expect(
+			state.apps['123'].services.map((s: any) => s.serviceName),
+		).to.deep.equal(['one', 'two']);
+
+		// Network should have custom ipam config
+		const customNet = await docker.getNetwork('123_default').inspect();
+		expect(customNet)
+			.to.have.property('IPAM')
+			.to.deep.equal({
+				Config: [{ Gateway: '192.168.91.1', Subnet: '192.168.91.0/24' }],
+				Driver: 'default',
+				Options: {},
+			});
+
+		// Network should have custom ipam label
+		expect(customNet)
+			.to.have.property('Labels')
+			.to.have.property('io.balena.private.ipam.config');
+
+		const containers = await docker.listContainers();
+		expect(
+			containers.map(({ Names, State }) => ({ Name: Names[0], State })),
+		).to.have.deep.members([
+			{ Name: '/one_11_1_deadbeef', State: 'running' },
+			{ Name: '/two_12_1_deadbeef', State: 'running' },
+		]);
+		const containerIds = containers.map(({ Id }) => Id);
+
+		await setTargetState({
+			config: {},
+			apps: {
+				'123': {
+					name: 'test-app',
+					commit: 'deadca1f',
+					releaseId: 2,
+					services,
+					networks: {
+						default: {},
+					},
+					volumes: {},
+				},
+			},
+		});
+
+		const updatedContainers = await docker.listContainers();
+		expect(
+			updatedContainers.map(({ Names, State }) => ({ Name: Names[0], State })),
+		).to.have.deep.members([
+			{ Name: '/one_11_2_deadca1f', State: 'running' },
+			{ Name: '/two_12_2_deadca1f', State: 'running' },
+		]);
+
+		// Container ids must have changed
+		expect(updatedContainers.map(({ Id }) => Id)).to.not.have.members(
+			containerIds,
+		);
+
+		// Network should not have custom ipam config
+		const defaultNet = await docker.getNetwork('123_default').inspect();
+		expect(defaultNet)
+			.to.have.property('IPAM')
+			.to.not.deep.equal({
+				Config: [{ Gateway: '192.168.91.1', Subnet: '192.168.91.0/24' }],
+				Driver: 'default',
+				Options: {},
+			});
+
+		// Network should not have custom ipam label
+		expect(defaultNet)
+			.to.have.property('Labels')
+			.to.not.have.property('io.balena.private.ipam.config');
 	});
 
 	it('updates an app with two services with a network removal', async () => {

@@ -183,6 +183,8 @@ describe('compose/network', () => {
 				'io.balena.supervised': 'true',
 				'io.balena.app-id': '12345',
 				'com.docker.some-label': 'yes',
+				// This label should be present as we've defined a custom ipam config
+				'io.balena.private.ipam.config': 'true',
 			});
 
 			expect(dockerConfig.Options).to.deep.equal({
@@ -344,12 +346,14 @@ describe('compose/network', () => {
 					'io.resin.features.something': '123',
 					'io.balena.features.dummy': 'abc',
 					'io.balena.supervised': 'true',
+					'io.balena.private.ipam.config': 'true',
 				} as NetworkInspectInfo['Labels'],
 			} as NetworkInspectInfo);
 
 			expect(network.config.labels).to.deep.equal({
 				'io.balena.features.something': '123',
 				'io.balena.features.dummy': 'abc',
+				'io.balena.private.ipam.config': 'true',
 			});
 		});
 	});
@@ -425,34 +429,32 @@ describe('compose/network', () => {
 	});
 
 	describe('comparing network configurations', () => {
-		it('ignores IPAM configuration', () => {
-			const network = Network.fromComposeObject('default', 12345, 'deadbeef', {
-				ipam: {
-					driver: 'default',
-					config: [
-						{
-							subnet: '172.20.0.0/16',
-							ip_range: '172.20.10.0/24',
-							gateway: '172.20.0.1',
-						},
-					],
-					options: {},
+		it('distinguishes a network with custom ipam config from a network without', () => {
+			const customIpam = Network.fromComposeObject(
+				'default',
+				12345,
+				'deadbeef',
+				{
+					ipam: {
+						driver: 'default',
+						config: [
+							{
+								subnet: '172.20.0.0/16',
+								gateway: '172.20.0.1',
+							},
+						],
+						options: {},
+					},
 				},
-			});
-			expect(
-				network.isEqualConfig(
-					Network.fromComposeObject('default', 12345, 'deadbeef', {}),
-				),
-			).to.be.true;
+			);
+			const noCustomIpam = Network.fromComposeObject(
+				'default',
+				12345,
+				'deadbeef',
+				{},
+			);
 
-			// Only ignores ipam.config, not other ipam elements
-			expect(
-				network.isEqualConfig(
-					Network.fromComposeObject('default', 12345, 'deadbeef', {
-						ipam: { driver: 'aaa' },
-					}),
-				),
-			).to.be.false;
+			expect(customIpam.isEqualConfig(noCustomIpam)).to.be.false;
 		});
 
 		it('compares configurations recursively', () => {
