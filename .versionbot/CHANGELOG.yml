@@ -1,4 +1,47 @@
 - commits:
+    - subject: Add Docker network label if custom ipam config
+      hash: b596c77ce2d229e79082cbb1f0022f93806f09ae
+      body: >
+        In a target release where the only change is the addition or removal
+
+        of a custom ipam config, the Supervisor does not recreate the network
+
+        due to ignoring ipam config differences when comparing current and
+        target
+
+        network (in network.isEqualConfig). This commit implements the addition
+        of
+
+        a network label if the target compose object includes a network with
+        custom
+
+        ipam. With the label, the Supervisor will detect a difference between a
+
+        network with a custom ipam and a network without, without needing to
+        compare
+
+        the ipam configs themselves.
+
+
+        This is a major change, as devices running networks with custom ipam
+        configs
+
+        will have their networks recreated to add the network label.
+      footer:
+        Closes: "#2251"
+        closes: "#2251"
+        Change-type: major
+        change-type: major
+        See: https://balena.fibery.io/Work/Project/Fix-Supervisor-not-recreating-network-when-passed-custom-ipam-config-1127
+        see: https://balena.fibery.io/Work/Project/Fix-Supervisor-not-recreating-network-when-passed-custom-ipam-config-1127
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.0.0
+  title: ""
+  date: 2025-03-24T22:18:08.753Z
+- commits:
     - subject: Start a dependent if all dependencies are started
       hash: 7764f98c9d357a1942628e57951266767555f67b
       body: |
