@@ -1,4 +1,18 @@
 - commits:
+    - subject: Clarify firewall docs on behavior with host network containers
+      hash: caed4dcca0043f848f6dd5a3d1a2f82a2466e8d6
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.0.1
+  title: ""
+  date: 2025-03-25T20:41:20.141Z
+- commits:
     - subject: Add Docker network label if custom ipam config
       hash: b596c77ce2d229e79082cbb1f0022f93806f09ae
       body: >
