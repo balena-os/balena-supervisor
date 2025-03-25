@@ -8,10 +8,10 @@ To switch between firewall modes, the `HOST_FIREWALL_MODE` (with `BALENA_` or le
 
 > [!NOTE] Configuration variables defined in the dashboard will not apply to devices in local mode.
 
-| Mode | Description                                                                                                                                                 |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| on   | Only traffic for core services provided by balena and containers on the host network are allowed.                                                           |
-| off  | All network traffic is allowed.                                                                                                                             |
+| Mode | Description |
+| ---- | ----------- |
+| on   | Only traffic for core services provided by balena are allowed. Any other ports, including those used by containers with host networking, are blocked unless explicitly configured. |
+| off  | All network traffic is allowed. |
 | auto | If there _are_ host network services, behaves as if `FIREWALL_MODE` = `on`. If there _aren't_ host network services, behaves as if `FIREWALL_MODE` = `off`. |
 
 ## Issues
