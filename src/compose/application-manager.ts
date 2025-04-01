@@ -187,8 +187,12 @@ export async function inferNextSteps(
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
 	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
 
-	const withLeftoverLocks = await Promise.all(
-		currentAppIds.map((id) => hasLeftoverLocks(id)),
+	const withLeftoverLocks = Object.fromEntries(
+		await Promise.all(
+			currentAppIds.map(
+				async (id) => [id, await hasLeftoverLocks(id)] as [number, boolean],
+			),
+		),
 	);
 	const bootTime = getBootTime();
 
