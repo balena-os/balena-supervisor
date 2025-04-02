@@ -1,4 +1,19 @@
 - commits:
+    - subject: Fix search for app leftover locks
+      hash: d475b1d8301c83b932ce272d3496bf4aac0ef1ad
+      body: |
+        The leftover locks search was creating an array rather than an object
+        keyed by the appId. This could affect the lock cleanup and make leftover
+        locks from one app affect the install of the app in local mode.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 17.0.2
+  title: ""
+  date: 2025-04-02T20:16:09.754Z
+- commits:
     - subject: Clarify firewall docs on behavior with host network containers
       hash: caed4dcca0043f848f6dd5a3d1a2f82a2466e8d6
       body: ""
