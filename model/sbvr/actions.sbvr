@@ -1,0 +1,90 @@
+-- ACTION: TODO
+-- Since this is theoretical, this probably shouldn't initially be included in the model.	
+-- Eventually the SV or API could specify a timestamp in the future as part of the target state for the SV to execute an action
+
+Term: action
+	Concept Type: Date Time (Type)
+
+	Fact type: device implements action
+	-- Is "implements" a valid verb?? How can we translate this into the expectation of a POST/PATCH request in ODATA here?
+		Necessity: each device implements one of each action.
+
+	Term: blink
+	-- POST /v1/blink
+
+		Synonym: identify
+		Concept Type: action
+
+	Term: ping
+	-- GET /ping
+
+		Concept type: action
+
+	Term: purge
+	-- POST /v1/purge
+
+		Concept Type: action
+
+		Fact type: purge is force 
+
+	Term: reboot
+	-- POST /v1/reboot
+		Concept Type: action
+
+		Fact type: reboot is force
+
+	Term: regenerate api key
+	-- POST /v1/regenerate-api-key
+
+		Synonym: regenerate api secret
+		-- The current name is regenerate api key but "api key" is an ambiguous term since balenaAPI also has api keys.
+		-- We should use api secret which is the database table name as well as the name for the SV's api key in the open-balena-api model
+		Concept Type: action
+
+	Term: restart
+	-- POST /v1/restart
+
+		Concept Type: action
+
+		Fact type: restart is force
+
+		Fact type: restart is of service
+			Necessity: each restart must belong to at least one service.
+
+	Term: shutdown
+	-- POST /v1/shutdown
+
+		Concept Type: action
+
+		Fact type: shutdown is force
+
+	Term: start
+	-- POST /v1/apps/:appId/start & POST /v2/applications/:appId/start-service
+
+		Concept Type: action
+
+		Fact type: start is force
+
+		Fact type: start is of service
+			Necessity: each start must belong to at least one service.
+
+	Term: stop
+	-- POST /v1/apps/:appId/stop & POST /v2/applications/:appId/stop-service
+
+		Concept Type: action
+
+		Fact type: stop is force
+
+		Fact type: stop is of service
+			Necessity: each stop must belong to at least one service.
+
+	Term: update
+	-- POST /v1/update
+
+		Concept Type: action
+
+		Fact type: update is force
+
+	Fact type: update lock prevents action
+		Necessity: each action where force is false and where application or service has at least one update lock, should be rejected.
+		-- Syntax / validity?
