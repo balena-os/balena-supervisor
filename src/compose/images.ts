@@ -292,8 +292,9 @@ export function getNormalisedTags(image: Docker.ImageInfo): string[] {
 async function withImagesFromDockerAndDB<T>(
 	cb: (dockerImages: Docker.ImageInfo[], composeImages: Image[]) => T,
 ) {
+	// Podman does not support digests option for listImages.
 	const [normalisedImages, dbImages] = await Promise.all([
-		docker.listImages({ digests: true }).then(async (images) => {
+		docker.listImages().then(async (images) => {
 			return await Promise.all(
 				images.map((image) => ({
 					...image,
@@ -479,7 +480,8 @@ async function getImagesForCleanup(): Promise<Array<Docker.ImageInfo['Id']>> {
 		.select('dockerImageId')
 		.then((vals) => vals.map(({ dockerImageId }: Image) => dockerImageId));
 
-	const dockerImages = await docker.listImages({ digests: true });
+	// Podman does not support digests option for listImages.
+	const dockerImages = await docker.listImages();
 
 	const imagesToCleanup = new Set<Docker.ImageInfo['Id']>();
 	for (const image of dockerImages) {
@@ -521,9 +523,9 @@ const inspectByReference = async (imageName: string) => {
 	const repo = [registry, name].filter((s) => !!s).join('/');
 	const reference = [repo, tagName].filter((s) => !!s).join(':');
 
+	// Podman does not support digests option for listImages.
 	return await docker
 		.listImages({
-			digests: true,
 			filters: { reference: [reference] },
 		})
 		.then(([img]) =>
@@ -657,9 +659,9 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 		const repo = [registry, imageName].filter((s) => !!s).join('/');
 		const reference = [repo, tagName].filter((s) => !!s).join(':');
 
+		// Podman does not support digests option for listImages.
 		const tags = (
 			await docker.listImages({
-				digests: true,
 				filters: { reference: [reference] },
 			})
 		).flatMap((imgInfo) => imgInfo.RepoTags || []);
@@ -682,10 +684,10 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 			await docker.getImage(tag).remove();
 		}
 
+		// Podman does not support digests option for listImages.
 		// Check for any remaining digests.
 		const digests = (
 			await docker.listImages({
-				digests: true,
 				filters: { reference: [reference] },
 			})
 		).flatMap((imgInfo) => imgInfo.RepoDigests || []);
