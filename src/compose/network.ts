@@ -176,7 +176,6 @@ class NetworkImpl implements Network {
 	}
 
 	public async create(): Promise<void> {
-		log.debug(`Network create ${this.name}`);
 		logger.logSystemEvent(logTypes.createNetwork, {
 			network: { name: this.name, appUuid: this.appUuid },
 		});
