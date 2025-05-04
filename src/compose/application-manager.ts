@@ -350,6 +350,7 @@ export async function inferNextSteps(
 // do this we try to use the UUID to group the components, and if that isn't
 // available we revert to using the appIds instead
 export async function getCurrentApps(): Promise<InstancedAppState> {
+	log.debug('application-manager getCurrentApps()');
 	const componentGroups = groupComponents(
 		await serviceManager.getAll(),
 		await networkManager.getAll(),

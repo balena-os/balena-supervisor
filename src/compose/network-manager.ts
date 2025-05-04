@@ -11,6 +11,7 @@ import { Network } from './network';
 import { ResourceRecreationAttemptError } from './errors';
 
 export async function getAll(): Promise<Network[]> {
+	log.debug('network-manager getAll()');
 	const networks = await getWithBothLabels();
 	return await Promise.all(
 		networks.map(async (network: { Id: string }) => {
@@ -24,6 +25,7 @@ async function get(network: {
 	name: string;
 	appUuid: string;
 }): Promise<Network> {
+	log.debug(`Get network ${network.name}`);
 	const dockerNet = await docker
 		.getNetwork(Network.generateDockerName(network.appUuid, network.name))
 		.inspect();
@@ -70,6 +72,7 @@ const {
 
 export async function supervisorNetworkReady(): Promise<boolean> {
 	try {
+		log.debug(`Verifying ${iface} network ready`);
 		// The inspect may fail even if the interface exist due to docker corruption
 		const network = await docker.getNetwork(iface).inspect();
 		const result =
@@ -88,6 +91,7 @@ export async function supervisorNetworkReady(): Promise<boolean> {
 
 export async function ensureSupervisorNetwork(): Promise<void> {
 	try {
+		log.debug(`Ensuring ${iface} network`);
 		const net = await docker.getNetwork(iface).inspect();
 		if (
 			net.Options['com.docker.network.bridge.name'] !== iface ||

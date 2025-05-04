@@ -344,6 +344,7 @@ export async function getNetworkGateway(networkName: string): Promise<string> {
 		return '127.0.0.1';
 	}
 
+	log.debug(`getNetworkGateway for ${networkName}`);
 	const network = await docker.getNetwork(networkName).inspect();
 	const config = _.get(network, ['IPAM', 'Config', '0']);
 	if (config != null) {

@@ -285,6 +285,7 @@ export async function getTarget({
 }
 
 export async function getCurrent(): Promise<Dictionary<string>> {
+	log.debug('device-config getCurrent()');
 	// Build a Dictionary of currently set config values
 	const currentConf: Dictionary<string> = {};
 	// Get environment variables

@@ -532,6 +532,7 @@ async function applyStep(
 	if (shuttingDown) {
 		return;
 	}
+	log.debug(`About to apply step: ${JSON.stringify(step)}`);
 	try {
 		await executeStepAction(step, {
 			force,
@@ -623,7 +624,10 @@ export const applyTarget = async ({
 
 		if (!noConfigSteps) {
 			steps = deviceConfigSteps;
+			log.debug(`Found ${steps.length} config steps:`);
+			log.debug(`${steps.forEach((s) => JSON.stringify(s))}`);
 		} else {
+			log.debug('Found 0 config steps');
 			const appSteps = await applicationManager.getRequiredSteps(
 				currentState.local.apps,
 				targetState.local.apps,
@@ -642,9 +646,12 @@ export const applyTarget = async ({
 				// application manager
 				backoff = true;
 				steps = deviceConfigSteps;
+				log.debug('Found 0 app steps');
 			} else {
 				backoff = false;
 				steps = appSteps;
+				log.debug(`Found ${steps.length} app steps:`);
+				log.debug(`${steps.forEach((s) => JSON.stringify(s))}`);
 			}
 		}
 

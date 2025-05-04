@@ -176,6 +176,7 @@ class NetworkImpl implements Network {
 	}
 
 	public async create(): Promise<void> {
+		log.debug(`Network create ${this.name}`);
 		logger.logSystemEvent(logTypes.createNetwork, {
 			network: { name: this.name, appUuid: this.appUuid },
 		});
@@ -217,6 +218,7 @@ class NetworkImpl implements Network {
 	}
 
 	public async remove() {
+		log.debug(`Network remove ${this.name}`);
 		logger.logSystemEvent(logTypes.removeNetwork, {
 			network: { name: this.name, appUuid: this.appUuid },
 		});
@@ -279,7 +281,14 @@ class NetworkImpl implements Network {
 			configToCompare.driver = network.config.driver;
 		}
 
-		return _.isEqual(configToCompare, network.config);
+		const isEqual = _.isEqual(configToCompare, network.config);
+		log.debug(`Network configs (name: ${this.name}) equal? ${isEqual}`);
+		if (!isEqual) {
+			log.debug(
+				`This config (appUuid: ${this.appUuid}): ${JSON.stringify(configToCompare)}\nTarget config (appUuid: ${network.appUuid}): ${JSON.stringify(network.config)}`,
+			);
+		}
+		return isEqual;
 	}
 
 	private static validateComposeConfig(

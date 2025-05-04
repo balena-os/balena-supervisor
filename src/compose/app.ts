@@ -27,6 +27,7 @@ import type {
 	CompositionStep,
 	CompositionStepAction,
 } from './types';
+import log from '../lib/supervisor-console';
 
 // Re export the type
 export type App = AppIface;
@@ -300,6 +301,9 @@ class AppImpl implements App {
 				(item) => item.name === tgt.name && !item.isEqualConfig(tgt),
 			);
 			if (curr) {
+				log.debug(
+					`compare -- Components not equal: curr ${curr.name}, tgt ${tgt.name}`,
+				);
 				outputs.push({ current: curr, target: tgt });
 				toBeUpdated.push(curr.name);
 			}
@@ -310,6 +314,7 @@ class AppImpl implements App {
 			// Find those components that are not part of the target state
 			current.forEach((curr) => {
 				if (!target.find((tgt) => tgt.name === curr.name)) {
+					log.debug(`compare -- Component to be removed: curr ${curr.name}`);
 					outputs.push({ current: curr });
 					toBeRemoved.push(curr.name);
 				}
@@ -327,6 +332,7 @@ class AppImpl implements App {
 					// Avoid adding the component again if it has already been marked for removal
 					!toBeRemoved.includes(item.name)
 				) {
+					log.debug(`compare -- Dup to be removed: item ${item.name}`);
 					outputs.push({ current: item });
 					toBeRemoved.push(item.name);
 				}
@@ -336,6 +342,7 @@ class AppImpl implements App {
 		// Find newly created components
 		target.forEach((tgt) => {
 			if (!current.find((curr) => tgt.name === curr.name)) {
+				log.debug(`compare -- New component: tgt ${tgt.name}`);
 				outputs.push({ target: tgt });
 			}
 		});

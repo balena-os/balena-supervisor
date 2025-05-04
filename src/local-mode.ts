@@ -119,6 +119,7 @@ export class LocalModeManager {
 
 	// Query the engine to get currently running containers and installed images.
 	public async collectEngineSnapshot(): Promise<EngineSnapshotRecord> {
+		log.debug('Local mode collect engine snapshot');
 		const containersPromise = docker
 			.listContainers()
 			.then((resp) => _.map(resp, 'Id'));
