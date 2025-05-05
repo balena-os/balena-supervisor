@@ -269,6 +269,8 @@ class NetworkImpl implements Network {
 		if (network.config.ipam.config.length === 0) {
 			configToCompare = structuredClone(this.config);
 			configToCompare.ipam.config = [];
+			// Podman includes 'host-local' as driver; so elide that as well
+			configToCompare.ipam.options = network.config.ipam.options;
 		}
 
 		// If configOnly is true, driver will always be null even if
@@ -276,8 +278,10 @@ class NetworkImpl implements Network {
 		// Any ipam config will be included in the network, but not applied
 		// in the host's networking layer.
 		if (network.config.configOnly) {
-			configToCompare = structuredClone(this.config);
+			configToCompare = structuredClone(configToCompare);
 			configToCompare.driver = network.config.driver;
+			// Podman does not have configOnly networks; so force it
+			configToCompare.configOnly = true;
 		}
 
 		const isEqual = _.isEqual(configToCompare, network.config);
