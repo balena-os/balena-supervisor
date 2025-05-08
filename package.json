@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@balena/compose": "^6.0.0",
-    "@balena/contrato": "^0.12.0",
+    "@balena/contrato": "^0.13.0",
     "@balena/es-version": "^1.0.3",
     "@balena/lint": "^8.0.2",
     "@balena/sbvr-types": "^9.1.0",

@@ -1,15 +1,13 @@
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import Reporter from 'io-ts-reporters';
-import _ from 'lodash';
 import { TypedError } from 'typed-error';
 
 import type { ContractObject } from '@balena/contrato';
-import { Blueprint, Contract } from '@balena/contrato';
+import { Contract, Universe } from '@balena/contrato';
 
-import { InternalInconsistencyError } from './errors';
 import { checkTruthy } from './validation';
-import type { TargetApps } from '../types';
+import { withDefault, type TargetApps } from '../types';
 
 /**
  * This error is thrown when a container contract does not
@@ -64,16 +62,13 @@ interface ServiceWithContract extends ServiceCtx {
 	optional: boolean;
 }
 
-type PotentialContractRequirements =
-	| 'sw.supervisor'
-	| 'sw.l4t'
-	| 'hw.device-type'
-	| 'arch.sw';
-type ContractRequirements = {
-	[key in PotentialContractRequirements]?: string;
-};
-
-const contractRequirementVersions: ContractRequirements = {};
+const validRequirementTypes = [
+	'sw.supervisor',
+	'sw.l4t',
+	'hw.device-type',
+	'arch.sw',
+];
+const deviceContract: Universe = new Universe();
 
 export function initializeContractRequirements(opts: {
 	supervisorVersion: string;
@@ -81,165 +76,108 @@ export function initializeContractRequirements(opts: {
 	deviceArch: string;
 	l4tVersion?: string;
 }) {
-	contractRequirementVersions['sw.supervisor'] = opts.supervisorVersion;
-	contractRequirementVersions['sw.l4t'] = opts.l4tVersion;
-	contractRequirementVersions['hw.device-type'] = opts.deviceType;
-	contractRequirementVersions['arch.sw'] = opts.deviceArch;
+	deviceContract.addChildren([
+		new Contract({
+			type: 'sw.supervisor',
+			version: opts.supervisorVersion,
+		}),
+		new Contract({
+			type: 'sw.application',
+			slug: 'balena-supervisor',
+			version: opts.supervisorVersion,
+		}),
+		new Contract({
+			type: 'hw.device-type',
+			slug: opts.deviceType,
+		}),
+		new Contract({
+			type: 'arch.sw',
+			slug: opts.deviceArch,
+		}),
+	]);
+
+	if (opts.l4tVersion) {
+		deviceContract.addChild(
+			new Contract({
+				type: 'sw.l4t',
+				version: opts.l4tVersion,
+			}),
+		);
+	}
 }
 
-function isValidRequirementType(
-	requirementVersions: ContractRequirements,
-	requirement: string,
-) {
-	return requirement in requirementVersions;
+function isValidRequirementType(requirement: string) {
+	return validRequirementTypes.includes(requirement);
 }
 
+// this is only exported for tests
 export function containerContractsFulfilled(
 	servicesWithContract: ServiceWithContract[],
 ): AppContractResult {
-	const containers = servicesWithContract
-		.map(({ contract }) => contract)
-		.filter((c) => c != null) satisfies ContractObject[];
-	const contractTypes = Object.keys(contractRequirementVersions);
-
-	const blueprintMembership: Dictionary<number> = {};
-	for (const component of contractTypes) {
-		blueprintMembership[component] = 1;
-	}
-	const blueprint = new Blueprint(
-		{
-			...blueprintMembership,
-			'sw.container': '1+',
-		},
-		{
-			type: 'sw.runnable.configuration',
-			slug: '{{children.sw.container.slug}}',
-		},
-	);
-
-	const universe = new Contract({
-		type: 'meta.universe',
-	});
-
-	universe.addChildren(
-		[
-			...getContractsFromVersions(contractRequirementVersions),
-			...containers,
-		].map((c) => new Contract(c)),
-	);
-
-	const solution = [...blueprint.reproduce(universe)];
-
-	if (solution.length > 1) {
-		throw new InternalInconsistencyError(
-			'More than one solution available for container contracts when only one is expected!',
-		);
-	}
-
-	if (solution.length === 0) {
-		return {
-			valid: false,
-			unmetServices: servicesWithContract,
-			fulfilledServices: [],
-			unmetAndOptional: [],
-		};
-	}
-
-	// Detect how many containers are present in the resulting
-	// solution
-	const children = solution[0].getChildren({
-		types: new Set(['sw.container']),
-	});
-
-	if (children.length === containers.length) {
-		return {
-			valid: true,
-			unmetServices: [],
-			fulfilledServices: servicesWithContract,
-			unmetAndOptional: [],
-		};
-	} else {
-		// If we got here, it means that at least one of the
-		// container contracts was not fulfilled. If *all* of
-		// those containers whose contract was not met are
-		// marked as optional, the target state is still valid,
-		// but we ignore the optional containers
-		const [fulfilledServices, unfulfilledServices] = _.partition(
-			servicesWithContract,
-			({ contract }) => {
-				if (!contract) {
-					return true;
-				}
-				// Did we find the contract in the generated state?
-				return children.some((child) =>
-					_.isEqual((child as any).raw, contract),
-				);
-			},
-		);
-
-		const [unmetAndRequired, unmetAndOptional] = _.partition(
-			unfulfilledServices,
-			({ optional }) => !optional,
-		);
-
-		return {
-			valid: unmetAndRequired.length === 0,
-			unmetServices: unfulfilledServices,
-			fulfilledServices,
-			unmetAndOptional,
-		};
-	}
-}
-
-const contractObjectValidator = t.type({
-	slug: t.string,
-	requires: t.union([
-		t.null,
-		t.undefined,
-		t.array(
-			t.type({
-				type: t.string,
-				version: t.union([t.null, t.undefined, t.string]),
-			}),
-		),
-	]),
-});
-
-function getContractsFromVersions(components: ContractRequirements) {
-	return _.map(components, (value, component) => {
-		if (component === 'hw.device-type' || component === 'arch.sw') {
-			return {
-				type: component,
-				slug: value,
-				name: value,
-			};
+	const unmetServices: ServiceCtx[] = [];
+	const unmetAndOptional: ServiceCtx[] = [];
+	const fulfilledServices: ServiceCtx[] = [];
+	for (const svc of servicesWithContract) {
+		if (
+			svc.contract != null &&
+			!deviceContract.satisfiesChildContract(new Contract(svc.contract))
+		) {
+			unmetServices.push(svc);
+			if (svc.optional) {
+				unmetAndOptional.push(svc);
+			}
 		} else {
-			return {
-				type: component,
-				slug: component,
-				name: component,
-				version: value,
-			};
+			fulfilledServices.push(svc);
 		}
-	});
+	}
+
+	return {
+		valid: unmetServices.length - unmetAndOptional.length === 0,
+		unmetServices,
+		fulfilledServices,
+		unmetAndOptional,
+	};
 }
 
-export function validateContract(contract: unknown): boolean {
-	const result = contractObjectValidator.decode(contract);
+const ContainerContract = t.intersection([
+	t.type({
+		type: withDefault(t.string, 'sw.container'),
+	}),
+	t.partial({
+		slug: t.union([t.null, t.undefined, t.string]),
+		requires: t.union([
+			t.null,
+			t.undefined,
+			t.array(
+				t.intersection([
+					t.type({
+						type: t.string,
+					}),
+					t.partial({
+						slug: t.union([t.null, t.undefined, t.string]),
+						version: t.union([t.null, t.undefined, t.string]),
+					}),
+				]),
+			),
+		]),
+	}),
+]);
+
+// Exported for tests only
+export function parseContract(contract: unknown): ContractObject {
+	const result = ContainerContract.decode(contract);
 
 	if (isLeft(result)) {
 		throw new Error(Reporter.report(result).join('\n'));
 	}
 
-	const requirementVersions = contractRequirementVersions;
-
 	for (const { type } of result.right.requires || []) {
-		if (!isValidRequirementType(requirementVersions, type)) {
+		if (!isValidRequirementType(type)) {
 			throw new Error(`${type} is not a valid contract requirement type`);
 		}
 	}
 
-	return true;
+	return result.right;
 }
 
 export function validateTargetContracts(
@@ -261,7 +199,7 @@ export function validateTargetContracts(
 			([serviceName, { contract, labels = {} }]) => {
 				if (contract) {
 					try {
-						validateContract(contract);
+						contract = parseContract(contract);
 					} catch (e: any) {
 						throw new ContractValidationError(serviceName, e.message);
 					}
