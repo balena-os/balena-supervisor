@@ -1,4 +1,18 @@
 - commits:
+    - subject: Simplify contract validation module
+      hash: 7c83eaef8024cec9052eb0051a1a1f47e238c690
+      body: |
+        Use `satisfiesChildContract` instead of Blueprints as the previous
+        implementation did.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 17.0.3
+  title: ""
+  date: 2025-05-13T14:50:13.303Z
+- commits:
     - subject: Fix search for app leftover locks
       hash: d475b1d8301c83b932ce272d3496bf4aac0ef1ad
       body: |
