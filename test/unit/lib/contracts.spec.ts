@@ -22,31 +22,35 @@ describe('lib/contracts', () => {
 	describe('Contract validation', () => {
 		it('should correctly validate a contract with no requirements', () =>
 			expect(() =>
-				contracts.validateContract({
+				contracts.parseContract({
 					slug: 'user-container',
 				}),
 			).to.be.not.throw());
 
 		it('should correctly validate a contract with extra fields', () =>
 			expect(() =>
-				contracts.validateContract({
+				contracts.parseContract({
 					slug: 'user-container',
 					name: 'user-container',
 					version: '3.0.0',
 				}),
 			).to.be.not.throw());
 
-		it('should not validate a contract without the minimum required fields', () => {
+		it('should not validate a contract with fields of invalid type', () => {
 			return Promise.all([
-				expect(() => contracts.validateContract({})).to.throw(),
-				expect(() => contracts.validateContract({ name: 'test' })).to.throw(),
-				expect(() => contracts.validateContract({ requires: [] })).to.throw(),
+				expect(() => contracts.parseContract({ type: 1234 })).to.throw(),
+				expect(() =>
+					contracts.parseContract({ slug: true, name: 'test' }),
+				).to.throw(),
+				expect(() =>
+					contracts.parseContract({ requires: 'my-requirement' }),
+				).to.throw(),
 			]);
 		});
 
-		it('should correctly validate a contract with requirements', () =>
+		it('should correctly validate a contract with requirements', () => {
 			expect(() =>
-				contracts.validateContract({
+				contracts.parseContract({
 					slug: 'user-container',
 					requires: [
 						{
@@ -60,11 +64,12 @@ describe('lib/contracts', () => {
 						{ type: 'arch.sw', slug: 'aarch64' },
 					],
 				}),
-			).to.not.throw());
+			).to.not.throw();
+		});
 
 		it('should not validate a contract with requirements without the minimum required fields', () => {
 			return expect(() =>
-				contracts.validateContract({
+				contracts.parseContract({
 					slug: 'user-container',
 					requires: [
 						{
@@ -205,7 +210,7 @@ describe('lib/contracts', () => {
 									type: 'sw.supervisor',
 									version: `>${supervisorVersionLesser}`,
 								},
-								{ type: 'sw.arch', slug: 'amd64' },
+								{ type: 'arch.sw', slug: 'amd64' },
 							],
 						},
 						optional: false,
@@ -269,8 +274,7 @@ describe('lib/contracts', () => {
 							name: 'user-container1',
 							slug: 'user-container1',
 							requires: [
-								// sw.os is not a supported contract type, so validation
-								// ignores this requirement
+								// sw.os is not provided by the device contract so it should not be validated
 								{
 									type: 'sw.os',
 									version: '<3.0.0',
@@ -282,7 +286,7 @@ describe('lib/contracts', () => {
 				]),
 			)
 				.to.have.property('valid')
-				.that.equals(true);
+				.that.equals(false);
 		});
 
 		it('should refuse to run containers whose requirements are not satisfied', async () => {
@@ -292,7 +296,6 @@ describe('lib/contracts', () => {
 					serviceName: 'service',
 					contract: {
 						type: 'sw.container',
-						name: 'user-container',
 						slug: 'user-container',
 						requires: [
 							{
