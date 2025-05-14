@@ -251,6 +251,7 @@ describe('device-state', () => {
 		expect(applyTargetStub).to.be.calledWith({
 			force: true,
 			initial: false,
+			abortSignal: new AbortController().signal,
 		});
 		applyTargetStub.restore();
 	});

@@ -83,6 +83,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -119,6 +120,7 @@ describe('compose/application-manager', () => {
 						},
 					},
 				},
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -150,6 +152,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -181,6 +184,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -237,6 +241,7 @@ describe('compose/application-manager', () => {
 						},
 					},
 				},
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -295,6 +300,7 @@ describe('compose/application-manager', () => {
 						},
 					},
 				},
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -343,6 +349,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -434,6 +441,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			// There should be two noop steps, one for target service which is still downloading,
@@ -487,6 +495,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			// Service `old` is safe to kill after download for `new` has completed
@@ -540,6 +549,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			// Service `new` should be fetched
@@ -577,6 +587,7 @@ describe('compose/application-manager', () => {
 					downloading: ['image-new'],
 					availableImages: c2.availableImages,
 					containerIdsByAppId: c2.containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			// Noop while service `new` is downloading
@@ -619,6 +630,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			// Service `new` should be started
@@ -668,6 +680,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			// Service `new` should be fetched
@@ -705,6 +718,7 @@ describe('compose/application-manager', () => {
 					downloading: ['image-new'],
 					availableImages: c2.availableImages,
 					containerIdsByAppId: c2.containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			// Noop while service `new` is downloading
@@ -748,6 +762,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			// Service `new` should be started
@@ -798,6 +813,7 @@ describe('compose/application-manager', () => {
 					downloading: ['image-one', 'image-two'],
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('noop', steps, 2);
@@ -819,6 +835,7 @@ describe('compose/application-manager', () => {
 						}),
 					],
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 
@@ -852,6 +869,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('start', steps3, 2);
@@ -928,6 +946,7 @@ describe('compose/application-manager', () => {
 						},
 					},
 				},
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1016,6 +1035,7 @@ describe('compose/application-manager', () => {
 						},
 					},
 				},
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1089,6 +1109,7 @@ describe('compose/application-manager', () => {
 						},
 					},
 				},
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1174,6 +1195,7 @@ describe('compose/application-manager', () => {
 						},
 					},
 				},
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1229,6 +1251,7 @@ describe('compose/application-manager', () => {
 						},
 					},
 				},
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1264,6 +1287,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1287,6 +1311,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1311,6 +1336,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1336,6 +1362,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			});
 		expect(ensureNetworkStep).to.deep.include({
 			action: 'ensureSupervisorNetwork',
@@ -1373,6 +1400,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1420,6 +1448,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1474,6 +1503,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1529,6 +1559,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 		expect(steps.filter((s) => s.action === 'removeImage')).to.be.empty;
@@ -1576,6 +1607,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1631,6 +1663,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 		expect(steps.filter((s) => s.action === 'removeImage')).to.be.empty;
@@ -1664,6 +1697,7 @@ describe('compose/application-manager', () => {
 				downloading,
 				availableImages,
 				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1751,6 +1785,7 @@ describe('compose/application-manager', () => {
 						},
 					},
 				},
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1844,6 +1879,7 @@ describe('compose/application-manager', () => {
 						},
 					},
 				},
+				abortSignal: new AbortController().signal,
 			},
 		);
 
@@ -1893,6 +1929,7 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
@@ -1916,6 +1953,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('kill', steps2, 2);
@@ -1956,6 +1994,7 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
@@ -1979,6 +2018,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('stop', steps2, 2);
@@ -2019,6 +2059,7 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
@@ -2042,6 +2083,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('start', steps2, 2);
@@ -2100,6 +2142,7 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			// No matter the number of services, we should see a single takeLock for all services
@@ -2165,6 +2208,7 @@ describe('compose/application-manager', () => {
 					downloading: [],
 					availableImages: [],
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('fetch', steps, 2);
@@ -2177,6 +2221,7 @@ describe('compose/application-manager', () => {
 					downloading: ['one', 'two'],
 					availableImages: [],
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('noop', steps2, 2);
@@ -2189,6 +2234,7 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			const [takeLockStep] = expectSteps('takeLock', steps3, 1);
@@ -2212,6 +2258,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('kill', steps4, 2);
@@ -2265,6 +2312,7 @@ describe('compose/application-manager', () => {
 					downloading: ['one', 'two'],
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
@@ -2288,6 +2336,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('kill', steps2, 2);
@@ -2328,6 +2377,7 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
@@ -2351,6 +2401,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('kill', steps2);
@@ -2380,6 +2431,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('removeNetwork', steps3);
@@ -2429,6 +2481,7 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
@@ -2452,6 +2505,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('kill', steps2, 1);
@@ -2481,6 +2535,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('removeNetwork', steps3);
@@ -2526,6 +2581,7 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 			const [takeLockStep] = expectSteps('takeLock', steps, 1, 1);
@@ -2549,6 +2605,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('kill', steps2, 1);
@@ -2574,6 +2631,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			expectSteps('removeVolume', steps3);
@@ -2612,6 +2670,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				},
 			);
 			const [releaseLockStep] = expectSteps('releaseLock', steps, 1, 1);
@@ -3110,6 +3169,7 @@ describe('compose/application-manager', () => {
 							},
 						},
 					},
+					abortSignal: new AbortController().signal,
 				});
 
 			[startStep1, startStep2, startStep3, startStep4].forEach((step) => {
@@ -3133,6 +3193,7 @@ describe('compose/application-manager', () => {
 					downloading,
 					availableImages,
 					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
 				},
 			);
 

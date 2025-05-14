@@ -670,6 +670,7 @@ class AppImpl implements App {
 				context.networkPairs,
 				context.volumePairs,
 				context.servicePairs,
+				context.abortSignal,
 			);
 		} else {
 			// This service is in both current & target so requires an update,
@@ -730,6 +731,7 @@ class AppImpl implements App {
 				servicesLocked,
 				services: this.services.concat(context.targetApp.services),
 				appsToLock: context.appsToLock,
+				abortSignal: context.abortSignal,
 			});
 		}
 	}
@@ -839,6 +841,7 @@ class AppImpl implements App {
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
+		abortSignal: AbortSignal,
 	): CompositionStep[] {
 		if (
 			needsDownload &&
@@ -849,6 +852,7 @@ class AppImpl implements App {
 				generateStep('fetch', {
 					image: imageManager.imageFromService(target),
 					serviceName: target.serviceName,
+					abortSignal,
 				}),
 			];
 		} else if (target != null) {

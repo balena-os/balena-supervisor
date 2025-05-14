@@ -14,6 +14,7 @@ export interface UpdateState {
 	force: boolean;
 	rebootBreadcrumbSet: boolean;
 	bootTime: Date;
+	abortSignal: AbortSignal;
 }
 
 export interface App {
