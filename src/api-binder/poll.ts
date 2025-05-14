@@ -20,8 +20,13 @@ interface TargetStateEvents {
 		targetState: TargetState,
 		force: boolean,
 		isFromApi: boolean,
+		cancel: boolean,
 	) => void;
-	'target-state-apply': (force: boolean, isFromApi: boolean) => void;
+	'target-state-apply': (
+		force: boolean,
+		isFromApi: boolean,
+		cancel: boolean,
+	) => void;
 }
 export const emitter: StrictEventEmitter<EventEmitter, TargetStateEvents> =
 	new EventEmitter();
@@ -50,12 +55,14 @@ let appUpdatePollInterval: number;
  * @param cachedResponse the response to emit
  * @param force Emitted with the 'target-state-update' event update as necessary
  * @param isFromApi Emitted with the 'target-state-update' event update as necessary
+ * @param cancel Whether to cancel the current apply operation
  * @return true if the response has been emitted or false otherwise
  */
 const emitTargetState = (
 	cachedResponse: CachedResponse,
 	force = false,
 	isFromApi = false,
+	cancel = false,
 ): boolean => {
 	if (
 		!cachedResponse.emitted &&
@@ -67,6 +74,7 @@ const emitTargetState = (
 			structuredClone(cachedResponse.body),
 			force,
 			isFromApi,
+			cancel,
 		);
 		return true;
 	} else if (
@@ -75,7 +83,7 @@ const emitTargetState = (
 		emitter.listenerCount('target-state-apply') > 0
 	) {
 		// CachedResponse has been emitted but a client triggered the check so emit an apply
-		emitter.emit('target-state-apply', force, isFromApi);
+		emitter.emit('target-state-apply', force, isFromApi, cancel);
 		return true;
 	}
 	// Return the same emitted value but normalized to be a boolean
@@ -95,11 +103,13 @@ export let lastSuccessfulFetch: ReturnType<typeof process.hrtime> =
  * Attempts to update the target state
  * @param force Emitted with the 'target-state-update' event update as necessary
  * @param isFromApi Emitted with the 'target-state-update' event update as necessary
+ * @param cancel Whether to cancel the current apply operation
  */
 export const update = async (
 	// TODO: Is there a better way than passing these params here just to emit them if there is an update?
 	force = false,
 	isFromApi = false,
+	cancel = false,
 ): Promise<void> => {
 	await config.initialized();
 	return Bluebird.using(lockGetTarget(), async () => {
@@ -147,7 +157,7 @@ export const update = async (
 		if (statusCode === 304 && cache?.etag != null) {
 			// There's no change so no need to update the cache
 			// only emit the target state if it hasn't been emitted yet
-			cache.emitted = emitTargetState(cache, force, isFromApi);
+			cache.emitted = emitTargetState(cache, force, isFromApi, cancel);
 			return;
 		}
 
@@ -161,8 +171,9 @@ export const update = async (
 			body: body as any,
 		};
 
-		// Emit the target state and update the cache
-		cache.emitted = emitTargetState(cache, force, isFromApi);
+		// Emit the target state and update the cache, cancelling any
+		// apply operations that may be in progress
+		cache.emitted = emitTargetState(cache, force, isFromApi, true);
 	});
 };
 
