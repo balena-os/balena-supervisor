@@ -146,8 +146,9 @@ router.post('/v1/purge', (req: AuthorizedRequest, res, next) => {
 
 router.post('/v1/update', async (req, res, next) => {
 	const force = checkTruthy(req.body.force);
+	const cancel = checkTruthy(req.body.cancel);
 	try {
-		const result = await actions.updateTarget(force);
+		const result = await actions.updateTarget(force, cancel);
 		return res.sendStatus(result ? 204 : 202);
 	} catch (e: unknown) {
 		next(e);

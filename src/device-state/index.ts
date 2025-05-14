@@ -762,8 +762,23 @@ export function triggerApplyTarget({
 	delay = 0,
 	initial = false,
 	isFromApi = false,
+	cancel = false,
 } = {}) {
 	if (applyInProgress) {
+		// If there's an apply in progress and we get a new target state,
+		// abort the current operation if cancel is true. Cancel is true if:
+		// - The target state changed (received a non-304 response from the API)
+		// - The user called /v1/update with { "cancel": true }
+		if (abortController && cancel) {
+			log.debug('Target state changed, aborting current apply');
+			abortController.abort();
+			applyInProgress = false;
+			abortController = null;
+			// Trigger a re-apply after aborting the current apply
+			log.debug('Triggering re-apply after aborting current apply');
+			triggerApplyTarget({ force, isFromApi });
+		}
+
 		if (scheduledApply == null || (isFromApi && cancelDelay)) {
 			scheduledApply = { force, delay };
 			if (isFromApi) {
@@ -771,12 +786,6 @@ export function triggerApplyTarget({
 				// prevent waiting due to backoff (and if we've
 				// previously setup a delay)
 				cancelDelay?.();
-			}
-			// TODO: If there's an apply in progress and we get a new target state,
-			// abort the current operation
-			if (abortController) {
-				abortController.abort();
-				abortController = null;
 			}
 		} else {
 			// If a delay has been set it's because we need to hold off before applying again,
