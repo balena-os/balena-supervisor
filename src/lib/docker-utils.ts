@@ -1,5 +1,5 @@
 import { DockerProgress } from 'docker-progress';
-import type { ProgressCallback } from 'docker-progress';
+import type { ProgressCallback, PullPushOptions } from 'docker-progress';
 import Dockerode from 'dockerode';
 import _ from 'lodash';
 import memoizee from 'memoizee';
@@ -125,6 +125,7 @@ export async function fetchDeltaWithProgress(
 	deltaOpts: DeltaFetchOptions,
 	onProgress: ProgressCallback,
 	serviceName: string,
+	abortSignal: AbortSignal,
 ): Promise<string> {
 	const deltaSourceId = deltaOpts.deltaSourceId ?? deltaOpts.deltaSource;
 	const timeout = deltaOpts.deltaApplyTimeout;
@@ -136,7 +137,12 @@ export async function fetchDeltaWithProgress(
 		logFn(
 			`Unsupported delta version: ${deltaOpts.deltaVersion}. Falling back to regular pull`,
 		);
-		return await fetchImageWithProgress(imgDest, deltaOpts, onProgress);
+		return await fetchImageWithProgress(
+			imgDest,
+			deltaOpts,
+			onProgress,
+			abortSignal,
+		);
 	}
 
 	// We need to make sure that we're not trying to apply a
@@ -148,14 +154,19 @@ export async function fetchDeltaWithProgress(
 		(await isV2DeltaImage(deltaOpts.deltaSourceId))
 	) {
 		logFn(`Cannot create a delta from V2 to V3, falling back to regular pull`);
-		return await fetchImageWithProgress(imgDest, deltaOpts, onProgress);
+		return await fetchImageWithProgress(
+			imgDest,
+			deltaOpts,
+			onProgress,
+			abortSignal,
+		);
 	}
 
 	// Since the supevisor never calls this function with a source anymore,
 	// this should never happen, but we handle it anyway
 	if (deltaOpts.deltaSource == null) {
 		logFn('Falling back to regular pull due to lack of a delta source');
-		return fetchImageWithProgress(imgDest, deltaOpts, onProgress);
+		return fetchImageWithProgress(imgDest, deltaOpts, onProgress, abortSignal);
 	}
 
 	logFn(`Starting delta to ${imgDest}`);
@@ -254,7 +265,13 @@ export async function fetchDeltaWithProgress(
 						tryCount++
 					) {
 						try {
-							id = await applyBalenaDelta(name, token, onProgress, logFn);
+							id = await applyBalenaDelta(
+								name,
+								token,
+								onProgress,
+								logFn,
+								abortSignal,
+							);
 							break;
 						} catch (e) {
 							if (isStatusError(e)) {
@@ -297,7 +314,7 @@ export async function fetchDeltaWithProgress(
 		}
 
 		// For handled errors, fall back to regular pull
-		return fetchImageWithProgress(imgDest, deltaOpts, onProgress);
+		return fetchImageWithProgress(imgDest, deltaOpts, onProgress, abortSignal);
 	}
 
 	logFn(`Delta applied successfully`);
@@ -308,6 +325,7 @@ export async function fetchImageWithProgress(
 	image: string,
 	{ uuid, currentApiKey }: FetchOptions,
 	onProgress: ProgressCallback,
+	abortSignal: AbortSignal,
 ): Promise<string> {
 	const { registry } = getRegistryAndName(image);
 
@@ -321,8 +339,9 @@ export async function fetchImageWithProgress(
 						password: currentApiKey,
 						serverAddress: registry,
 					},
+					abortSignal,
 				}
-			: {};
+			: { abortSignal };
 
 	await dockerProgress.pull(image, onProgress, dockerOpts);
 	return (await docker.getImage(image).inspect()).Id;
@@ -408,10 +427,11 @@ async function applyBalenaDelta(
 	token: string | null,
 	onProgress: ProgressCallback,
 	logFn: (str: string) => void,
+	abortSignal: AbortSignal,
 ): Promise<string> {
 	logFn(`Applying balena delta: ${deltaImg}`);
 
-	let auth: Dictionary<unknown> | undefined;
+	let auth: Omit<PullPushOptions, 'abortSignal'> | undefined;
 	if (token != null) {
 		logFn('Using registry auth token');
 		auth = {
@@ -421,7 +441,7 @@ async function applyBalenaDelta(
 		};
 	}
 
-	await dockerProgress.pull(deltaImg, onProgress, auth);
+	await dockerProgress.pull(deltaImg, onProgress, { ...auth, abortSignal });
 	return (await docker.getImage(deltaImg).inspect()).Id;
 }
 

@@ -166,6 +166,7 @@ export async function triggerFetch(
 	opts: FetchOptions,
 	onFinish: (success: boolean) => void,
 	serviceName: string,
+	abortSignal: AbortSignal,
 ): Promise<void> {
 	const appUpdatePollInterval = await config.get('appUpdatePollInterval');
 
@@ -228,9 +229,15 @@ export async function triggerFetch(
 		try {
 			let id;
 			if (opts.delta && (opts as DeltaFetchOptions).deltaSource != null) {
-				id = await fetchDelta(image, opts, onProgress, serviceName);
+				id = await fetchDelta(
+					image,
+					opts,
+					onProgress,
+					serviceName,
+					abortSignal,
+				);
 			} else {
-				id = await fetchImage(image, opts, onProgress);
+				id = await fetchImage(image, opts, onProgress, abortSignal);
 			}
 
 			// Tag the image with the proper reference
@@ -744,6 +751,7 @@ async function fetchDelta(
 	opts: FetchOptions,
 	onProgress: (evt: FetchProgressEvent) => void,
 	serviceName: string,
+	abortSignal: AbortSignal,
 ): Promise<string> {
 	logger.logSystemEvent(LogTypes.downloadImageDelta, { image });
 
@@ -756,6 +764,7 @@ async function fetchDelta(
 		deltaOpts,
 		onProgress,
 		serviceName,
+		abortSignal,
 	);
 
 	return id;
@@ -765,7 +774,13 @@ function fetchImage(
 	image: Image,
 	opts: FetchOptions,
 	onProgress: (evt: FetchProgressEvent) => void,
+	abortSignal: AbortSignal,
 ): Promise<string> {
 	logger.logSystemEvent(LogTypes.downloadImage, { image });
-	return dockerUtils.fetchImageWithProgress(image.name, opts, onProgress);
+	return dockerUtils.fetchImageWithProgress(
+		image.name,
+		opts,
+		onProgress,
+		abortSignal,
+	);
 }
