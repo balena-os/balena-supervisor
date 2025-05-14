@@ -157,19 +157,19 @@ export async function start() {
 	// Update and apply new target state
 	TargetState.emitter.on(
 		'target-state-update',
-		async (targetState, force, isFromApi) => {
+		async (targetState, force, isFromApi, cancel) => {
 			try {
 				await deviceState.setTarget(targetState);
-				deviceState.triggerApplyTarget({ force, isFromApi });
+				deviceState.triggerApplyTarget({ force, isFromApi, cancel });
 			} catch (err) {
 				handleTargetUpdateError(err);
 			}
 		},
 	);
 	// Apply new target state
-	TargetState.emitter.on('target-state-apply', (force, isFromApi) => {
+	TargetState.emitter.on('target-state-apply', (force, isFromApi, cancel) => {
 		try {
-			deviceState.triggerApplyTarget({ force, isFromApi });
+			deviceState.triggerApplyTarget({ force, isFromApi, cancel });
 		} catch (err) {
 			handleTargetUpdateError(err);
 		}

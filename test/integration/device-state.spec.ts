@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import { promises as fs } from 'fs';
 import { UpdatesLockedError } from '~/lib/errors';
 import * as fsUtils from '~/lib/fs-utils';
 import * as updateLock from '~/lib/update-lock';
@@ -7,8 +8,8 @@ import * as config from '~/src/config';
 import * as deviceState from '~/src/device-state';
 import { appsJsonBackup, loadTargetFromFile } from '~/src/device-state/preload';
 import type { TargetState } from '~/src/types';
-import { promises as fs } from 'fs';
 import { initializeContractRequirements } from '~/lib/contracts';
+import log from '~/lib/supervisor-console';
 
 import { testfs } from 'mocha-pod';
 import { createDockerImage } from '~/test-lib/docker-helper';
@@ -253,6 +254,28 @@ describe('device-state', () => {
 			initial: false,
 			abortSignal: new AbortController().signal,
 		});
+		applyTargetStub.restore();
+	});
+
+	it('allows cancelling an in-progress target state apply', async () => {
+		(log.debug as sinon.SinonStub).reset();
+		const applyTargetStub = sinon
+			.stub(deviceState, 'applyTarget')
+			.returns(Promise.resolve());
+
+		// Trigger first apply
+		deviceState.triggerApplyTarget({ force: true });
+		// Trigger second apply immediately with cancel flag
+		deviceState.triggerApplyTarget({ force: true, cancel: true });
+
+		// TODO: There isn't an easy way to test actual target state apply behavior
+		// due to the structure of the function, which isn't ideal. We can however
+		// test that the code path for apply cancellation is as expected by checking the logs.
+		expect(
+			(log.debug as sinon.SinonStub).calledWith('Aborting target state apply'),
+		).to.be.true;
+
+		(log.debug as sinon.SinonStub).reset();
 		applyTargetStub.restore();
 	});
 

@@ -196,6 +196,14 @@ export async function triggerFetch(
 		});
 	};
 
+	// Remove image task on fetch abort to prevent noop loop
+	abortSignal.onabort = () => {
+		reportEvent('finish', {
+			...image,
+			status: 'Downloading',
+		});
+	};
+
 	let success: boolean;
 	try {
 		const imageName = normalise(image.name);

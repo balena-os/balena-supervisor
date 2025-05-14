@@ -1285,6 +1285,12 @@ describe('updates target state cache', () => {
 		await actions.updateTarget(false);
 		expect(updateStub).to.not.have.been.called;
 	});
+
+	it('updates target state cache with cancel flag', async () => {
+		await config.set({ instantUpdates: true });
+		await actions.updateTarget(false, true);
+		expect(updateStub).to.have.been.calledWith(false, true);
+	});
 });
 
 describe('identifies device', () => {

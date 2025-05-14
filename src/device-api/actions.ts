@@ -333,11 +333,14 @@ export const executeServiceAction = async ({
  * Used by:
  * - POST /v1/update
  */
-export const updateTarget = async (force: boolean = false) => {
+export const updateTarget = async (
+	force: boolean = false,
+	cancel: boolean = false,
+) => {
 	eventTracker.track('Update notification');
 
 	if (force || (await config.get('instantUpdates'))) {
-		TargetState.update(force, true).catch(_.noop);
+		TargetState.update(force, true, cancel).catch(_.noop);
 		return true;
 	}
 

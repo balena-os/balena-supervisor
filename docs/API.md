@@ -94,10 +94,11 @@ Triggers a check for the target state of configurations and app services. Option
 Responds with an empty 204 (No Content) response.
 
 #### Request body
-Can be a JSON object with a `force` property. If this property is true, the update lock will be overridden.
+Can be a JSON object with `force` and `cancel` properties. If `force` is true, update locks will be overridden by the Supervisor. If `cancel` is true, the Supervisor will abort its current state apply operation to apply the most up-to-date target state. This is useful for interrupting a long operation (e.g. image pull).
 ```json
 {
-	"force": true
+	"force": true,
+	"cancel": true
 }
 ```
 

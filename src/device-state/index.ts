@@ -93,7 +93,7 @@ export let connected: boolean;
 export let lastSuccessfulUpdate: number | null = null;
 
 // Controls cancelling of in-progress steps such as fetches
-let abortController: AbortController | null = null;
+let abortController = new AbortController();
 
 events.on('error', (err) => log.error('deviceState error: ', err));
 events.on('apply-target-state-end', function (err) {
@@ -762,8 +762,22 @@ export function triggerApplyTarget({
 	delay = 0,
 	initial = false,
 	isFromApi = false,
+	cancel = false,
 } = {}) {
 	if (applyInProgress) {
+		// If there's an apply in progress and we get a new target state,
+		// abort the current operation if cancel is true. Cancel is true if:
+		// - The target state changed (received a non-304 response from the API)
+		// - The user called /v1/update with { "cancel": true }
+		if (cancel) {
+			log.debug('Aborting target state apply');
+			abortController.abort();
+			applyInProgress = false;
+			abortController = new AbortController();
+			// Trigger a re-apply after aborting the current apply
+			triggerApplyTarget({ force, isFromApi });
+		}
+
 		if (scheduledApply == null || (isFromApi && cancelDelay)) {
 			scheduledApply = { force, delay };
 			if (isFromApi) {
@@ -771,12 +785,6 @@ export function triggerApplyTarget({
 				// prevent waiting due to backoff (and if we've
 				// previously setup a delay)
 				cancelDelay?.();
-			}
-			// TODO: If there's an apply in progress and we get a new target state,
-			// abort the current operation
-			if (abortController) {
-				abortController.abort();
-				abortController = null;
 			}
 		} else {
 			// If a delay has been set it's because we need to hold off before applying again,
@@ -815,11 +823,6 @@ export function triggerApplyTarget({
 			}
 			lastApplyStart = process.hrtime();
 			log.info('Applying target state');
-			if (!abortController) {
-				throw new InternalInconsistencyError(
-					'Attempting to apply target state without an abort controller',
-				);
-			}
 			return applyTarget({
 				force,
 				initial,
@@ -827,8 +830,7 @@ export function triggerApplyTarget({
 			});
 		})
 		.finally(() => {
-			// Clean up abort controller
-			abortController = null;
+			abortController = new AbortController();
 			applyInProgress = false;
 			reportCurrentState();
 			if (scheduledApply != null) {
