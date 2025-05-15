@@ -79,6 +79,40 @@ describe('lib/contracts', () => {
 				}),
 			).to.throw();
 		});
+
+		it('should ignore unsupported requirement properties', () => {
+			expect(
+				contracts.parseContract({
+					slug: 'user-container',
+					requires: [
+						{
+							type: 'sw.l4t',
+							version: '32.2',
+							name: 'l4t-version',
+							unsupported: 'something',
+						},
+						{
+							type: 'hw.device-type',
+							slug: 'raspberrypi3',
+							name: 'raspberrypi3',
+						},
+					],
+				}),
+			).to.deep.equal({
+				type: 'sw.container',
+				slug: 'user-container',
+				requires: [
+					{
+						type: 'sw.l4t',
+						version: '32.2',
+					},
+					{
+						type: 'hw.device-type',
+						slug: 'raspberrypi3',
+					},
+				],
+			});
+		});
 	});
 
 	describe('Requirement resolution', () => {
@@ -287,6 +321,25 @@ describe('lib/contracts', () => {
 			)
 				.to.have.property('valid')
 				.that.equals(false);
+
+			expect(
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
+						contract: {
+							type: 'sw.container',
+							name: 'user-container',
+							slug: 'user-container',
+							// This obvious contract should be valid
+							requires: [{ type: 'hw.device-type' }],
+						},
+						optional: false,
+					},
+				]),
+			)
+				.to.have.property('valid')
+				.that.equals(true);
 		});
 
 		it('should refuse to run containers whose requirements are not satisfied', async () => {

@@ -411,6 +411,7 @@ describe('device-state', () => {
 													{
 														type: 'arch.sw',
 														slug: 'armv7hf',
+														name: 'armv7hf',
 													},
 												],
 											},

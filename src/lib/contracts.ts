@@ -149,15 +149,20 @@ const ContainerContract = t.intersection([
 			t.null,
 			t.undefined,
 			t.array(
-				t.intersection([
-					t.type({
-						type: t.string,
-					}),
-					t.partial({
-						slug: t.union([t.null, t.undefined, t.string]),
-						version: t.union([t.null, t.undefined, t.string]),
-					}),
-				]),
+				// Ignore additional properties
+				t.exact(
+					t.intersection([
+						t.type({
+							type: t.string,
+						}),
+						// Allow searching the most common contract matchers
+						t.partial({
+							slug: t.union([t.null, t.undefined, t.string]),
+							version: t.union([t.null, t.undefined, t.string]),
+							data: t.record(t.union([t.string, t.number]), t.any),
+						}),
+					]),
+				),
 			),
 		]),
 	}),
@@ -171,13 +176,14 @@ export function parseContract(contract: unknown): ContractObject {
 		throw new Error(Reporter.report(result).join('\n'));
 	}
 
-	for (const { type } of result.right.requires || []) {
-		if (!isValidRequirementType(type)) {
-			throw new Error(`${type} is not a valid contract requirement type`);
+	const res = result.right;
+	for (const req of res.requires || []) {
+		if (!isValidRequirementType(req.type)) {
+			throw new Error(`${req.type} is not a valid contract requirement type`);
 		}
 	}
 
-	return result.right;
+	return res;
 }
 
 export function validateTargetContracts(
