@@ -23,6 +23,7 @@ const defaultContext = {
 	hasLeftoverLocks: false,
 	rebootBreadcrumbSet: false,
 	bootTime: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+	abortSignal: new AbortController().signal,
 };
 
 const mockLock: Lock = {

@@ -117,9 +117,17 @@ function reportCurrentState(data?: Partial<InstancedAppState>) {
 export async function getRequiredSteps(
 	currentApps: InstancedAppState,
 	targetApps: InstancedAppState,
-	keepImages?: boolean,
-	keepVolumes?: boolean,
-	force: boolean = false,
+	{
+		keepImages,
+		keepVolumes,
+		force = false,
+		abortSignal,
+	}: {
+		keepImages?: boolean;
+		keepVolumes?: boolean;
+		force?: boolean;
+		abortSignal: AbortSignal;
+	},
 ): Promise<CompositionStep[]> {
 	// get some required data
 	const [downloading, availableImages, { localMode, delta }] =
@@ -153,19 +161,21 @@ export async function getRequiredSteps(
 		containerIdsByAppId,
 		appLocks: lockRegistry,
 		rebootBreadcrumbSet,
+		abortSignal,
 	});
 }
 
 interface InferNextOpts {
-	keepImages: boolean;
-	keepVolumes: boolean;
-	delta: boolean;
-	force: boolean;
-	downloading: UpdateState['downloading'];
-	availableImages: UpdateState['availableImages'];
-	containerIdsByAppId: { [appId: number]: UpdateState['containerIds'] };
-	appLocks: LockRegistry;
-	rebootBreadcrumbSet: boolean;
+	keepImages?: boolean;
+	keepVolumes?: boolean;
+	delta?: boolean;
+	force?: boolean;
+	downloading?: UpdateState['downloading'];
+	availableImages?: UpdateState['availableImages'];
+	containerIdsByAppId?: { [appId: number]: UpdateState['containerIds'] };
+	appLocks?: LockRegistry;
+	rebootBreadcrumbSet?: boolean;
+	abortSignal: AbortSignal;
 }
 
 // Calculate the required steps from the current to the target state
@@ -182,7 +192,8 @@ export async function inferNextSteps(
 		containerIdsByAppId = {},
 		appLocks = {},
 		rebootBreadcrumbSet = false,
-	}: Partial<InferNextOpts>,
+		abortSignal,
+	}: InferNextOpts,
 ) {
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
 	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
@@ -258,6 +269,7 @@ export async function inferNextSteps(
 							hasLeftoverLocks: withLeftoverLocks[id],
 							rebootBreadcrumbSet,
 							bootTime,
+							abortSignal,
 						},
 						targetApps[id],
 					),
@@ -276,6 +288,7 @@ export async function inferNextSteps(
 						hasLeftoverLocks: withLeftoverLocks[id],
 						rebootBreadcrumbSet,
 						bootTime,
+						abortSignal,
 					}),
 				);
 			}
@@ -304,6 +317,7 @@ export async function inferNextSteps(
 							hasLeftoverLocks: false,
 							rebootBreadcrumbSet,
 							bootTime,
+							abortSignal,
 						},
 						targetApps[id],
 					),
