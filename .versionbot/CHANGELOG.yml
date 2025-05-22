@@ -1,4 +1,20 @@
 - commits:
+    - subject: Remove unsupported fields from contract requirements
+      hash: 4318272844c7067288675ca6a2b0f4d0175c3ae1
+      body: |
+        A contract including extra requirement fields, such as "name" would fail
+        validation. This PR removes any extra fields from the validated contract
+        to prevent services with these extra fields from getting rejected by the
+        contract validation.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 17.0.4
+  title: ""
+  date: 2025-05-22T18:47:27.797Z
+- commits:
     - subject: Simplify contract validation module
       hash: 7c83eaef8024cec9052eb0051a1a1f47e238c690
       body: |
