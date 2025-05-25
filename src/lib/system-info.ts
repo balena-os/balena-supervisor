@@ -56,9 +56,10 @@ export async function getMemoryInformation(): Promise<{
 	used: number;
 	total: number;
 }> {
+	// Used memory aligned with htop and Busybox's free; see Issue 2419
 	const mem = await systeminformation.mem();
 	return {
-		used: bytesToMb(mem.used - mem.cached - mem.buffers),
+		used: bytesToMb(mem.used - mem.cached - mem.buffers - mem.reclaimable),
 		total: bytesToMb(mem.total),
 	};
 }
