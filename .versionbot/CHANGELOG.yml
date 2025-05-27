@@ -1,4 +1,18 @@
 - commits:
+    - subject: Exclude reclaimable slab memory from used memory metric
+      hash: 49e91a2639fbee6333fbf3ea52d8d6a7acfd705d
+      body: |
+        Aligns metric value with used memory reported by the free and htop
+        utilities.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Ken Bannister
+      nested: []
+  version: 17.0.5
+  title: ""
+  date: 2025-05-27T15:32:21.540Z
+- commits:
     - subject: Remove unsupported fields from contract requirements
       hash: 4318272844c7067288675ca6a2b0f4d0175c3ae1
       body: |
