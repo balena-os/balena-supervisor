@@ -157,7 +157,7 @@ describe('System information', () => {
 				used: sysInfo.bytesToMb(
 					mockMemory.total -
 						mockMemory.free -
-						(mockMemory.cached + mockMemory.buffers),
+						(mockMemory.cached + mockMemory.buffers + mockMemory.reclaimable),
 				),
 			});
 		});
@@ -457,6 +457,7 @@ const mockMemory = {
 	cached: 1055621120,
 	slab: 252219392,
 	buffcache: 1494110208,
+	reclaimable: 57151488,
 	swaptotal: 2016358400,
 	swapused: 0,
 	swapfree: 2016358400,
