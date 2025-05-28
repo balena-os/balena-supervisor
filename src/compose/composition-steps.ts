@@ -115,6 +115,7 @@ export function getExecutors(app: { callbacks: CompositionCallbacks }) {
 					}
 				},
 				step.serviceName,
+				step.abortSignal,
 			);
 		},
 		removeImage: async (step) => {

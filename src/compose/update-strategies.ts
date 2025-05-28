@@ -16,6 +16,7 @@ export interface StrategyContext {
 	services: Service[];
 	servicesLocked: boolean;
 	appsToLock: AppsToLockMap;
+	abortSignal: AbortSignal;
 }
 
 function generateLockThenKillStep(
@@ -44,6 +45,7 @@ export function getStepsFromStrategy(
 					generateStep('fetch', {
 						image: imageManager.imageFromService(context.target),
 						serviceName: context.target.serviceName,
+						abortSignal: context.abortSignal,
 					}),
 				];
 			} else if (context.dependenciesMetForKill) {
@@ -71,6 +73,7 @@ export function getStepsFromStrategy(
 					generateStep('fetch', {
 						image: imageManager.imageFromService(context.target),
 						serviceName: context.target.serviceName,
+						abortSignal: context.abortSignal,
 					}),
 				];
 			} else if (context.needsSpecialKill && context.dependenciesMetForKill) {

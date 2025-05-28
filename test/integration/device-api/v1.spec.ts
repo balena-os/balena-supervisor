@@ -670,6 +670,14 @@ describe('device-api/v1', () => {
 				.post('/v1/update')
 				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`);
 			expect(updateTargetStub.lastCall.firstArg).to.be.false;
+
+			// Parses cancel: true
+			await request(api)
+				.post('/v1/update')
+				.send({ cancel: true })
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`);
+			expect(updateTargetStub.lastCall.args[1]).to.be.true;
+			updateTargetStub.resetHistory();
 		});
 
 		it('responds with 204 if update triggered', async () => {

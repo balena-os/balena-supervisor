@@ -45,6 +45,7 @@ export interface CompositionStepArgs {
 	fetch: {
 		image: Image;
 		serviceName: string;
+		abortSignal: AbortSignal;
 	};
 	removeImage: {
 		image: Image;

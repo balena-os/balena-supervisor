@@ -92,6 +92,9 @@ let applyInProgress = false;
 export let connected: boolean;
 export let lastSuccessfulUpdate: number | null = null;
 
+// Controls cancelling of in-progress steps such as fetches
+let abortController = new AbortController();
+
 events.on('error', (err) => log.error('deviceState error: ', err));
 events.on('apply-target-state-end', function (err) {
 	if (err != null) {
@@ -588,7 +591,17 @@ function applyError(
 	}
 }
 
-// We define this function this way so we can mock it in the tests
+interface ApplyTargetOpts {
+	force?: boolean;
+	initial?: boolean;
+	intermediate?: boolean;
+	nextDelay?: number;
+	retryCount?: number;
+	keepVolumes?: boolean;
+	// All target states should be abortable, so abortSignal is non-optional
+	abortSignal: AbortSignal;
+}
+
 export const applyTarget = async ({
 	force = false,
 	initial = false,
@@ -596,7 +609,8 @@ export const applyTarget = async ({
 	nextDelay = 200,
 	retryCount = 0,
 	keepVolumes = undefined as boolean | undefined,
-} = {}) => {
+	abortSignal,
+}: ApplyTargetOpts) => {
 	if (!intermediate) {
 		await applyBlocker;
 	}
@@ -627,12 +641,15 @@ export const applyTarget = async ({
 			const appSteps = await applicationManager.getRequiredSteps(
 				currentState.local.apps,
 				targetState.local.apps,
-				// Do not remove images while applying an intermediate state
-				// if not applying intermediate, we let getRequired steps set
-				// the value
-				intermediate || undefined,
-				keepVolumes,
-				force,
+				{
+					// Do not remove images while applying an intermediate state
+					// if not applying intermediate, we let getRequired steps set
+					// the value
+					keepImages: intermediate || undefined,
+					keepVolumes,
+					force,
+					abortSignal,
+				},
 			);
 
 			if (_.isEmpty(appSteps)) {
@@ -703,6 +720,7 @@ export const applyTarget = async ({
 				nextDelay,
 				retryCount,
 				keepVolumes,
+				abortSignal,
 			});
 		} catch (e: any) {
 			if (e instanceof UpdatesLockedError) {
@@ -744,8 +762,22 @@ export function triggerApplyTarget({
 	delay = 0,
 	initial = false,
 	isFromApi = false,
+	cancel = false,
 } = {}) {
 	if (applyInProgress) {
+		// If there's an apply in progress and we get a new target state,
+		// abort the current operation if cancel is true. Cancel is true if:
+		// - The target state changed (received a non-304 response from the API)
+		// - The user called /v1/update with { "cancel": true }
+		if (cancel) {
+			log.debug('Aborting target state apply');
+			abortController.abort();
+			applyInProgress = false;
+			abortController = new AbortController();
+			// Trigger a re-apply after aborting the current apply
+			triggerApplyTarget({ force, isFromApi });
+		}
+
 		if (scheduledApply == null || (isFromApi && cancelDelay)) {
 			scheduledApply = { force, delay };
 			if (isFromApi) {
@@ -756,8 +788,7 @@ export function triggerApplyTarget({
 			}
 		} else {
 			// If a delay has been set it's because we need to hold off before applying again,
-			// so we need to respect the maximum delay that has
-			// been passed
+			// so we need to respect the maximum delay that has been passed
 			if (scheduledApply.delay === undefined || isNaN(scheduledApply.delay)) {
 				log.debug(
 					`Tried to apply target with invalid delay: ${scheduledApply.delay}`,
@@ -775,6 +806,8 @@ export function triggerApplyTarget({
 	}
 	applyCancelled = false;
 	applyInProgress = true;
+	// Create new abort controller for this apply trigger
+	abortController = new AbortController();
 	void new Promise((resolve, reject) => {
 		void setTimeout(delay).then(resolve);
 		cancelDelay = reject;
@@ -790,9 +823,14 @@ export function triggerApplyTarget({
 			}
 			lastApplyStart = process.hrtime();
 			log.info('Applying target state');
-			return applyTarget({ force, initial });
+			return applyTarget({
+				force,
+				initial,
+				abortSignal: abortController.signal,
+			});
 		})
 		.finally(() => {
+			abortController = new AbortController();
 			applyInProgress = false;
 			reportCurrentState();
 			if (scheduledApply != null) {
@@ -807,6 +845,10 @@ export async function applyIntermediateTarget(
 	{ force = false, keepVolumes = undefined as boolean | undefined } = {},
 ) {
 	return pausingApply(async () => {
+		// Our current usage of intermediate state doesn't necessitate
+		// making intermediate state apply operations cancellable, which
+		// is why there's no public interface for aborting intermediate applies.
+		const intermediateAbortController = new AbortController();
 		// TODO: Make sure we don't accidentally overwrite this
 		TargetState.setIntermediateTarget(intermediate);
 		applyInProgress = true;
@@ -814,9 +856,15 @@ export async function applyIntermediateTarget(
 			intermediate: true,
 			force,
 			keepVolumes,
-		}).then(() => {
-			TargetState.setIntermediateTarget(null);
-			applyInProgress = false;
-		});
+			abortSignal: intermediateAbortController.signal,
+		})
+			.catch((err) => {
+				intermediateAbortController.abort();
+				throw err;
+			})
+			.finally(() => {
+				TargetState.setIntermediateTarget(null);
+				applyInProgress = false;
+			});
 	});
 }
