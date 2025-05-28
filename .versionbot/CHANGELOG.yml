@@ -1,4 +1,37 @@
 - commits:
+    - subject: Support target state apply cancellation
+      hash: 8c691662712d1b93264260bf6c7ded8d51bd7d55
+      body: >
+        The current target state apply is cancelled when either:
+
+        - /v1/update is called with cancel: true
+
+        - A different target state is received from the cloud (with a non-304
+        status)
+
+
+        Following apply cancellation, a target state apply is re-triggered. This
+        ensures
+
+        that the user can force a device out of a dead-locked situation where a
+        long-running
+
+        task such as an image fetch fails to cede control back to the
+        Supervisor, which is
+
+        the behavior observed in an Engine bug with infinite pull retries with a
+        bad network.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.1.0
+  title: ""
+  date: 2025-05-28T15:42:41.610Z
+- commits:
     - subject: Exclude reclaimable slab memory from used memory metric
       hash: 49e91a2639fbee6333fbf3ea52d8d6a7acfd705d
       body: |
