@@ -1,4 +1,46 @@
 - commits:
+    - subject: Remove memory healthcheck
+      hash: 8ffdba7d187a00d846d2c76c3416a45e02bf0e93
+      body: >
+        Supervisor has had memory leaks removed since v16.5.1, with latest
+        tested
+
+        version being v16.7.1. Furthermore, on recent reported instances of
+        memory healthcheck
+
+        triggering on support, we've snapshotted the heap before & after on
+        devices multiple times
+
+        without finding any evidence of memory leaks in the snapshots.
+
+
+        Therefore, it's hypothesized that the heuristic for determining starting
+        memory may
+
+        be flawed in that it's not waiting long enough after system startup, or
+        it may
+
+        run right after garbage collection has happened. Because of the
+        variability and
+
+        difficulty of ascertaining these factors, we suspect an inaccurate
+        memory
+
+        baseline may be the cause of the instances of false positives on
+        support.
+      footer:
+        See: https://balena.zulipchat.com/#narrow/channel/403752-channel.2Fsupport-help/topic/supervisor.20memory.20usage.20above.20threadhold/near/520640885
+        see: https://balena.zulipchat.com/#narrow/channel/403752-channel.2Fsupport-help/topic/supervisor.20memory.20usage.20above.20threadhold/near/520640885
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.1.1
+  title: ""
+  date: 2025-06-09T13:58:34.068Z
+- commits:
     - subject: Support target state apply cancellation
       hash: 8c691662712d1b93264260bf6c7ded8d51bd7d55
       body: >
