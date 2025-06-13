@@ -42,6 +42,7 @@ type StateReportOpts = {
 	[key in keyof Pick<
 		config.ConfigMap<SchemaTypeKey>,
 		| 'apiEndpoint'
+		| 'apiEndpointOverride'
 		| 'apiRequestTimeout'
 		| 'deviceApiKey'
 		| 'appUpdatePollInterval'
@@ -51,7 +52,8 @@ type StateReportOpts = {
 type StateReport = { body: Partial<DeviceState>; opts: StateReportOpts };
 
 async function report({ body, opts }: StateReport) {
-	const { apiEndpoint, apiRequestTimeout, deviceApiKey } = opts;
+	const { apiEndpoint, apiEndpointOverride, apiRequestTimeout, deviceApiKey } =
+		opts;
 
 	if (!apiEndpoint) {
 		throw new InternalInconsistencyError(
@@ -59,7 +61,10 @@ async function report({ body, opts }: StateReport) {
 		);
 	}
 
-	const endpoint = url.resolve(apiEndpoint, `/device/v3/state`);
+	const endpoint = url.resolve(
+		apiEndpointOverride ?? apiEndpoint,
+		`/device/v3/state`,
+	);
 	const request = await getRequestInstance();
 
 	const params: CoreOptions = {
@@ -206,6 +211,7 @@ export async function startReporting() {
 	// Get configs needed to make a report
 	const reportConfigs = (await config.getMany([
 		'apiEndpoint',
+		'apiEndpointOverride',
 		'apiRequestTimeout',
 		'deviceApiKey',
 		'appUpdatePollInterval',
