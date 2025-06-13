@@ -112,13 +112,19 @@ export const update = async (
 	await config.initialized();
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- it's used for resource management..
 	using _lock = await lockGetTarget();
-	const { uuid, apiEndpoint, apiRequestTimeout, deviceApiKey } =
-		await config.getMany([
-			'uuid',
-			'apiEndpoint',
-			'apiRequestTimeout',
-			'deviceApiKey',
-		]);
+	const {
+		uuid,
+		apiEndpoint,
+		apiEndpointOverride,
+		apiRequestTimeout,
+		deviceApiKey,
+	} = await config.getMany([
+		'uuid',
+		'apiEndpoint',
+		'apiEndpointOverride',
+		'apiRequestTimeout',
+		'deviceApiKey',
+	]);
 
 	if (typeof apiEndpoint !== 'string') {
 		throw new InternalInconsistencyError(
@@ -126,7 +132,10 @@ export const update = async (
 		);
 	}
 
-	const endpoint = url.resolve(apiEndpoint, `/device/v3/${uuid}/state`);
+	const endpoint = url.resolve(
+		apiEndpointOverride ?? apiEndpoint,
+		`/device/v3/${uuid}/state`,
+	);
 	const got = await getGotInstance();
 
 	const { statusCode, headers, body } = await got(endpoint, {

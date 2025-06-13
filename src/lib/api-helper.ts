@@ -24,12 +24,14 @@ export const getBalenaApi = memoizee(
 	async () => {
 		await config.initialized();
 
-		const { apiEndpoint, currentApiKey } = await config.getMany([
-			'apiEndpoint',
-			'currentApiKey',
-		]);
+		const { apiEndpoint, apiEndpointOverride, currentApiKey } =
+			await config.getMany([
+				'apiEndpoint',
+				'apiEndpointOverride',
+				'currentApiKey',
+			]);
 
-		const baseUrl = url.resolve(apiEndpoint, '/v7/');
+		const baseUrl = url.resolve(apiEndpointOverride ?? apiEndpoint, '/v7/');
 		const passthrough = structuredClone(await request.getRequestOptions());
 		passthrough.headers = passthrough.headers ?? {};
 		passthrough.headers.Authorization = `Bearer ${currentApiKey}`;
