@@ -11,6 +11,26 @@ import * as hostUtils from '../lib/host-utils';
 import log from '../lib/supervisor-console';
 
 export const fnSchema = {
+	apiEndpointHost: memoizee(
+		async () => {
+			const data = await hostUtils.readFromBoot(
+				hostUtils.pathOnBoot('config.json'),
+				'utf-8',
+			);
+
+			const configJson = JSON.parse(data);
+			return configJson.apiEndpoint;
+		},
+		{ promise: true },
+	),
+	apiEndpoint: async () => {
+		const { apiEndpointOverride, apiEndpointHost } = await config.getMany([
+			'apiEndpointOverride',
+			'apiEndpointHost',
+		]);
+
+		return apiEndpointOverride ?? apiEndpointHost;
+	},
 	version: () => {
 		return Promise.resolve(supervisorVersion);
 	},

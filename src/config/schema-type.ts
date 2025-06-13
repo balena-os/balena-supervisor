@@ -12,6 +12,14 @@ export const schemaTypes = {
 		type: t.string,
 		default: '',
 	},
+	apiEndpointHost: {
+		type: t.string,
+		default: NullOrUndefined,
+	},
+	apiEndpointOverride: {
+		type: t.string,
+		default: NullOrUndefined,
+	},
 	/**
 	 * The timeout for the supervisor's api
 	 */
@@ -22,6 +30,10 @@ export const schemaTypes = {
 	listenPort: {
 		type: PermissiveNumber,
 		default: 48484,
+	},
+	listenPortOverride: {
+		type: PermissiveNumber,
+		default: NullOrUndefined,
 	},
 	deltaEndpoint: {
 		type: t.string,

@@ -55,7 +55,6 @@ describe('ConfigJsonConfigBackend', () => {
 			'/mnt/root/etc/os-release': testfs.from('test/data/etc/os-release'),
 		}).enable();
 
-		expect(await configJsonConfigBackend.get('apiEndpoint')).to.equal('foo');
 		expect(await configJsonConfigBackend.get('deviceId')).to.equal(123);
 		expect(await configJsonConfigBackend.get('persistentLogging')).to.equal(
 			true,
@@ -93,12 +92,10 @@ describe('ConfigJsonConfigBackend', () => {
 		}).enable();
 
 		await configJsonConfigBackend.set({
-			apiEndpoint: 'bar',
 			deviceId: 456,
 			persistentLogging: false,
 		});
 
-		expect(await configJsonConfigBackend.get('apiEndpoint')).to.equal('bar');
 		expect(await configJsonConfigBackend.get('deviceId')).to.equal(456);
 		expect(await configJsonConfigBackend.get('persistentLogging')).to.equal(
 			false,
@@ -153,13 +150,13 @@ describe('ConfigJsonConfigBackend', () => {
 	it('should get cached value even if actual value has changed', async () => {
 		tfs = await testfs({
 			[CONFIG_PATH]: JSON.stringify({
-				apiEndpoint: 'foo',
+				deltaEndpoint: 'foo',
 			}),
 			'/mnt/root/etc/os-release': testfs.from('test/data/etc/os-release'),
 		}).enable();
 
 		// The cached value should be returned
-		expect(await configJsonConfigBackend.get('apiEndpoint')).to.equal('foo');
+		expect(await configJsonConfigBackend.get('deltaEndpoint')).to.equal('foo');
 
 		// Change the value in the file
 		await fs.writeFile(
@@ -170,34 +167,34 @@ describe('ConfigJsonConfigBackend', () => {
 		);
 
 		// Unintended behavior: the cached value should not be overwritten
-		expect(await configJsonConfigBackend.get('apiEndpoint')).to.equal('foo');
+		expect(await configJsonConfigBackend.get('deltaEndpoint')).to.equal('foo');
 	});
 
 	it('should set value and refresh cache to equal new value', async () => {
 		tfs = await testfs({
 			[CONFIG_PATH]: JSON.stringify({
-				apiEndpoint: 'foo',
+				deltaEndpoint: 'foo',
 			}),
 			'/mnt/root/etc/os-release': testfs.from('test/data/etc/os-release'),
 		}).enable();
 
-		expect(await configJsonConfigBackend.get('apiEndpoint')).to.equal('foo');
+		expect(await configJsonConfigBackend.get('deltaEndpoint')).to.equal('foo');
 
 		await fs.writeFile(
 			CONFIG_PATH,
 			JSON.stringify({
-				apiEndpoint: 'bar',
+				deltaEndpoint: 'bar',
 			}),
 		);
 
 		// Unintended behavior: cached value should not have been updated
 		// as the change was not written to config.json by the Supervisor
-		expect(await configJsonConfigBackend.get('apiEndpoint')).to.equal('foo');
+		expect(await configJsonConfigBackend.get('deltaEndpoint')).to.equal('foo');
 
 		await configJsonConfigBackend.set({
-			apiEndpoint: 'baz',
+			deltaEndpoint: 'baz',
 		});
 
-		expect(await configJsonConfigBackend.get('apiEndpoint')).to.equal('baz');
+		expect(await configJsonConfigBackend.get('deltaEndpoint')).to.equal('baz');
 	});
 });
