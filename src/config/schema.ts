@@ -1,6 +1,6 @@
 export const schema = {
-	apiEndpoint: {
-		source: 'config.json',
+	apiEndpointOverride: {
+		source: 'db',
 		mutable: false,
 		removeIfNull: false,
 	},
@@ -13,10 +13,16 @@ export const schema = {
 		removeIfNull: false,
 	},
 	listenPort: {
-		source: 'config.json',
+		source: 'db',
 		mutable: false,
 		removeIfNull: false,
 	},
+	listenPortOverride: {
+		source: 'db',
+		mutable: false,
+		removeIfNull: false,
+	},
+
 	deltaEndpoint: {
 		source: 'config.json',
 		mutable: false,
