@@ -45,18 +45,18 @@ RUN FATRW_ARCHIVE="fatrw-$(/rust-arch.sh).tar.gz" && \
 RUN npm ci --build-from-source=sqlite3 --sqlite=/usr/lib
 
 ###################################################################
-# Journal access.
+# systemd tool access, including journalctl and systemd-run
 # The supervisor is built on an alpine image but still needs
-# to use journalctl (from systemd) which cannot be built for
-# musl. We hack around this by copying the binary and its library
-# dependencies to the final image
+# to use systemd tool binaries which cannot be built for
+# musl. We hack around this by copying the binaries and their library
+# dependencies to the final image.
 ###################################################################
-FROM debian:bookworm-slim AS journal
+FROM debian:bookworm-slim AS systemd-tools
 
 RUN apt-get update && apt-get install -y --no-install-recommends systemd
 
-COPY ./build-utils/setup-journal.sh /
-RUN /setup-journal.sh
+COPY ./build-utils/setup-systemd-tools.sh /
+RUN /setup-systemd-tools.sh
 
 ###################################################
 # Extra dependencies. This uses alpine 3.11 as the
@@ -82,8 +82,8 @@ COPY --from=build-base /usr/local/bin/fatrw /usr/local/bin/fatrw
 # Similarly, from the procmail package we just need the lockfile binary
 COPY --from=extra /usr/bin/lockfile /usr/bin/lockfile
 
-# Copy journalctl and library dependecies to the final image
-COPY --from=journal /sysroot /
+# Copy journalctl, systemd-run and library dependecies to the final image
+COPY --from=systemd-tools /sysroot /
 
 # Copy mount script for mounting host partitions into container
 COPY mount-partitions.sh .

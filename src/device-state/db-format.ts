@@ -19,12 +19,12 @@ export async function getApp(id: number): Promise<InstancedApp> {
 	return await App.fromTargetState(dbApp);
 }
 
-export async function getApps(): Promise<InstancedAppState> {
+export async function getApps(isHost = false): Promise<InstancedAppState> {
 	const dbApps = await getDBEntry();
 	const apps: InstancedAppState = {};
 	await Promise.all(
 		dbApps.map(async (app) => {
-			apps[app.appId] = await App.fromTargetState(app);
+			apps[app.appId] = await App.fromTargetState(app, isHost);
 		}),
 	);
 	return apps;

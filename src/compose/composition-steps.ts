@@ -7,6 +7,7 @@ import * as volumeManager from './volume-manager';
 import * as commitStore from './commit';
 import { Lockable, cleanLocksForApp } from '../lib/update-lock';
 import { setRebootBreadcrumb } from '../lib/reboot';
+import { runUpgrade } from '../lib/os-updater';
 import type { DeviceLegacyReport } from '../types/state';
 import type { CompositionStepAction, CompositionStepT } from './types';
 import type { Lock } from '../lib/update-lock';
@@ -161,6 +162,9 @@ export function getExecutors(app: { callbacks: CompositionCallbacks }) {
 		},
 		requireReboot: async (step) => {
 			await setRebootBreadcrumb({ serviceName: step.serviceName });
+		},
+		runOsUpdater: async (step) => {
+			await runUpgrade(step.osVersion);
 		},
 	};
 

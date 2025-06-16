@@ -27,6 +27,7 @@ export interface InstancedDeviceState {
 		name: string;
 		config: Dictionary<string>;
 		apps: InstancedAppState;
+		hostApps?: InstancedAppState;
 	};
 }
 
@@ -133,12 +134,15 @@ export function getTarget({
 		if (intermediate) {
 			return intermediateTarget!;
 		}
-
+		// We probably don't need a separate hostApps. It's just to read the
+		// services for the hostapp, which is not usually included. See
+		// App.fromTargetState() to always include hostapp services.
 		return {
 			local: {
 				name: await config.get('name'),
 				config: await deviceConfig.getTarget({ initial }),
 				apps: await dbFormat.getApps(),
+				hostApps: await dbFormat.getApps(true),
 			},
 		};
 	});

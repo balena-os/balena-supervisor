@@ -98,3 +98,7 @@ export async function getL4tVersion(): Promise<string | undefined> {
 		return;
 	}
 }
+
+export function getOSBoardRev(path: string): Promise<string | undefined> {
+	return getOSReleaseField(path, 'BALENA_BOARD_REV');
+}

@@ -1002,6 +1002,7 @@ class AppImpl implements App {
 
 	public static async fromTargetState(
 		app: targetStateCache.DatabaseApp,
+		isHost = false,
 	): Promise<App> {
 		const jsonVolumes = JSON.parse(app.volumes) ?? {};
 		const volumes = Object.keys(jsonVolumes).map((name) => {
@@ -1060,7 +1061,9 @@ class AppImpl implements App {
 					// handle yet. If a user app adds the labels, we treat those services
 					// just as any other
 					(svc: ServiceComposeConfig) =>
-						!app.isHost || (isService(svc) && isDataStore(svc)),
+						!app.isHost ||
+						(isHost && app.isHost) ||
+						(isService(svc) && isDataStore(svc)),
 				)
 				// Ignore the supervisor service itself from the target state for now
 				// until the supervisor can update itself

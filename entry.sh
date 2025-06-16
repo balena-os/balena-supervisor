@@ -68,6 +68,7 @@ fi
 if [ ! -d /lib/modules ]; then
 	ln -s "${ROOT_MOUNTPOINT}"/lib/modules /lib/modules
 fi
+
 # Now load the ip6_tables kernel module, so we can do
 # filtering on ipv6 addresses. Don't fail here if the
 # modprobe fails, as this can either be that the module is

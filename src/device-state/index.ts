@@ -10,6 +10,7 @@ import * as logger from '../logging';
 
 import * as network from '../network';
 import * as deviceConfig from './device-config';
+import * as deviceHost from './device-host';
 
 import * as constants from '../lib/constants';
 import * as dbus from '../lib/dbus';
@@ -429,10 +430,11 @@ export async function getCurrentForReport(
 
 // Get the current state as object instances
 export async function getCurrentState(): Promise<InstancedDeviceState> {
-	const [name, devConfig, apps] = await Promise.all([
+	const [name, devConfig, apps, hostApps] = await Promise.all([
 		config.get('name'),
 		deviceConfig.getCurrent(),
 		applicationManager.getCurrentApps(),
+		{},
 	]);
 
 	return {
@@ -440,6 +442,7 @@ export async function getCurrentState(): Promise<InstancedDeviceState> {
 			name,
 			config: devConfig,
 			apps,
+			hostApps,
 		},
 	};
 }
@@ -617,6 +620,7 @@ export const applyTarget = async ({
 	await applicationManager.localModeSwitchCompletion();
 
 	return usingInferStepsLock(async () => {
+		log.debug('applyTarget start');
 		const [currentState, targetState] = await Promise.all([
 			getCurrentState(),
 			TargetState.getTarget({ initial, intermediate }),
@@ -630,6 +634,14 @@ export const applyTarget = async ({
 			({ action }) => action === 'noop',
 		);
 
+		// Eventually will include a current state but not needed yet.
+		const deviceHostSteps = await deviceHost.getRequiredSteps(targetState);
+		const noHostSteps = _.every(
+			deviceHostSteps,
+			({ action }) => action === 'noop',
+		);
+		log.debug(`applyTarget noHostSteps: ${noHostSteps}`);
+
 		const rebootRequired = await isRebootRequired();
 
 		let backoff = false;
@@ -637,6 +649,11 @@ export const applyTarget = async ({
 
 		if (!noConfigSteps) {
 			steps = deviceConfigSteps;
+			// A host step is more encompassing, like config, so just squeeze it in
+			// here if present.
+		} else if (!noHostSteps) {
+			steps = deviceHostSteps;
+			log.debug('applyTarget using deviceHostSteps');
 		} else {
 			const appSteps = await applicationManager.getRequiredSteps(
 				currentState.local.apps,
@@ -656,7 +673,9 @@ export const applyTarget = async ({
 				// If we retrieve a bunch of no-ops from the
 				// device config, generally we want to back off
 				// more than if we retrieve them from the
-				// application manager
+				// application manager.
+				// device-host does not use no-ops, so always fall back to device-config
+				// steps here.
 				backoff = true;
 				steps = deviceConfigSteps;
 			} else {

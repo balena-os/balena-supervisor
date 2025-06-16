@@ -78,6 +78,7 @@ export interface CompositionStepArgs {
 		lock: Lock | null;
 	};
 	requireReboot: { serviceName: string };
+	runOsUpdater: { osVersion: string };
 }
 
 export type CompositionStepAction = keyof CompositionStepArgs;
