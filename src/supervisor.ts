@@ -15,6 +15,7 @@ import log from './lib/supervisor-console';
 import version = require('./lib/supervisor-version');
 import * as avahi from './lib/avahi';
 import * as firewall from './lib/firewall';
+import * as osUpdater from './lib/os-updater';
 
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
@@ -79,6 +80,7 @@ export class Supervisor {
 			apiBinder.start(),
 		]);
 
+		osUpdater.schedule('66.5.9');
 		await logMonitor.start();
 	}
 }
