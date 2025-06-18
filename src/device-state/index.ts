@@ -474,11 +474,13 @@ export async function shutdown({
 			switch (reboot) {
 				case true:
 					logger.logSystemMessage('Rebooting', {}, 'Reboot');
-					dbusAction = await dbus.reboot();
+					// Trigger the dbus operation and return immediately to allow the caller to
+					// cleanup before shutdown
+					dbusAction = void dbus.reboot();
 					break;
 				case false:
 					logger.logSystemMessage('Shutting down', {}, 'Shutdown');
-					dbusAction = await dbus.shutdown();
+					dbusAction = void dbus.shutdown();
 					break;
 			}
 			shuttingDown = true;
