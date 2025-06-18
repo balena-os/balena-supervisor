@@ -475,15 +475,17 @@ export async function shutdown({
 	// Try to create a lock for all the services before shutting down
 	return updateLock.withLock(
 		appIds,
-		async () => {
+		() => {
 			switch (reboot) {
 				case true:
 					logger.logSystemMessage('Rebooting', {}, 'Reboot');
-					await dbus.reboot();
+					// Trigger the dbus operation and return immediately to allow the caller to
+					// cleanup before shutdown
+					void dbus.reboot();
 					break;
 				case false:
 					logger.logSystemMessage('Shutting down', {}, 'Shutdown');
-					await dbus.shutdown();
+					void dbus.shutdown();
 					break;
 			}
 			shuttingDown = true;
