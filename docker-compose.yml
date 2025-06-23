@@ -1,5 +1,8 @@
 version: '2.3'
 
+x-helios-image: &helios-image
+  image: ghcr.io/balena-io/helios:0.16.1
+
 services:
   # This service can only be named `main` or `balena-supervisor` as older
   # devices will keep relying on the `/v6/supervisor_release` endpoint that
@@ -14,3 +17,60 @@ services:
       io.balena.features.balena-api: '1'
       io.balena.features.dbus: '1'
       io.balena.features.balena-socket: '1'
+
+  # This is the next generation supervisor service. When started, it becomes a proxy
+  # for calls between the existing supervisor and the balenaAPI and containers
+  helios:
+    <<: *helios-image
+    restart: on-failure
+    labels:
+      # Needed to get access to supervisor api variables
+      # and credentials
+      io.balena.features.supervisor-api: '1'
+      # Needed for access to DOCKER_HOST
+      io.balena.features.balena-socket: '1'
+      # Needed to stop the supervisor service
+      io.balena.features.dbus: '1'
+      # Needed to get access to the API credentials
+      io.balena.features.balena-api: '1'
+      # Needed to get Host OS metadata
+      io.balena.features.host-os.board-rev: '1'
+    environment:
+      - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket
+      # Needed for locks and balenahup. This needs to match the device
+      # used for the `runtime` volume
+      - BALENA_HOST_RUNTIME_DIR=/tmp/balena-supervisor
+    volumes:
+      # Base directory for app configuration and update locks
+      - runtime:/tmp/run
+      # Service cache
+      - cache:/cache/helios
+      # Configurations and local data
+      - local:/local/helios
+
+  # The service below exposes the port on the network
+  # On balenaOS devices, this will probably be done by the OS and the
+  # access controlled via the firewall
+  helios-api:
+    <<: *helios-image
+    command: socat TCP-LISTEN:48484,reuseaddr,fork UNIX-CONNECT:/tmp/run/helios.sock
+    ports:
+      - 48484
+    depends_on:
+      - helios
+    volumes:
+      - runtime:/tmp/run
+    healthcheck:
+      test: ['CMD', 'wget', '-O', '-', '-q', 'http://127.0.0.1:48484/ping']
+
+volumes:
+  local:
+  cache:
+  runtime:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      # XXX: this directory needs to exist on the host
+      # before mounting
+      device: /tmp/balena-supervisor
