@@ -21,6 +21,7 @@ export const initialised = _.once(async () => {
 });
 
 const BALENA_FIREWALL_CHAIN = 'BALENA-FIREWALL';
+const BALENA_SUPERVISOR_CHAIN = 'BALENA-SUPERVISOR';
 
 const prepareChain: iptables.Rule[] = [
 	{
@@ -90,31 +91,92 @@ function updateSupervisorAccessRules(
 	localMode: boolean,
 	interfaces: string[],
 	port: number,
+	overridePort?: number | null,
 ) {
 	supervisorAccessRules = [];
 
-	// if localMode then add a dummy interface placeholder, otherwise add each interface...
-	const matchesIntf = localMode
-		? [[]]
-		: interfaces.map((intf) => [`-i ${intf}`]);
-	matchesIntf.forEach((intf) =>
+	// if there is an override port set, then just allow traffic on the supervisor0
+	// interface to the override port
+	if (overridePort != null) {
+		// Allow traffic on the override port on the supervisor0 interface
 		supervisorAccessRules.push({
 			comment: 'Supervisor API',
 			action: iptables.RuleAction.Append,
 			proto: 'tcp',
-			matches: [`--dport ${port}`, ...intf],
+			matches: [
+				`--dport ${overridePort}`,
+				`-i ${constants.supervisorNetworkInterface}`,
+			],
 			target: 'ACCEPT',
-		}),
-	);
+		});
 
-	// now block access to the port for any interface, since the above should have allowed legitimate traffic...
-	supervisorAccessRules.push({
-		comment: 'Supervisor API',
-		action: iptables.RuleAction.Append,
-		proto: 'tcp',
-		matches: [`--dport ${port}`],
-		target: 'REJECT',
-	});
+		// now block access to the port for any interface, since the above should have allowed legitimate traffic...
+		supervisorAccessRules.push({
+			comment: 'Supervisor API',
+			action: iptables.RuleAction.Append,
+			proto: 'tcp',
+			matches: [`--dport ${overridePort}`],
+			target: 'REJECT',
+		});
+		// otherwise configure traffic to the supervisor API port
+	} else {
+		// if localMode then add a dummy interface placeholder, otherwise add each interface...
+		const matchesIntf = localMode
+			? [[]]
+			: interfaces.map((intf) => [`-i ${intf}`]);
+		matchesIntf.forEach((intf) =>
+			supervisorAccessRules.push({
+				comment: 'Supervisor API',
+				action: iptables.RuleAction.Append,
+				proto: 'tcp',
+				matches: [`--dport ${port}`, ...intf],
+				target: 'ACCEPT',
+			}),
+		);
+
+		// now block access to the port for any interface, since the above should have allowed legitimate traffic...
+		supervisorAccessRules.push({
+			comment: 'Supervisor API',
+			action: iptables.RuleAction.Append,
+			proto: 'tcp',
+			matches: [`--dport ${port}`],
+			target: 'REJECT',
+		});
+	}
+}
+
+let supervisorOverrideAccessRules: iptables.Rule[] = [];
+function updateSupervisorOverrideAccessRules(
+	localMode: boolean,
+	port: number,
+	overridePort?: number | null,
+) {
+	supervisorOverrideAccessRules = [];
+
+	// if the override port is set, we assume the regular API port
+	// is controlled by the docker firewall, so we just need to add a
+	// couple of rules for backwards compatibility. This means
+	// allowing traffic only for the resin-vpn interface when in non local-mode
+	if (overridePort != null && !localMode) {
+		supervisorOverrideAccessRules.push({
+			comment: 'Supervisor API override',
+			action: iptables.RuleAction.Append,
+			proto: 'tcp',
+			matches: [`--dport ${port}`, `-i resin-vpn`],
+			target: 'ACCEPT',
+			family: 4,
+		});
+
+		// block access to the port for anything else
+		supervisorOverrideAccessRules.push({
+			comment: 'Supervisor API override',
+			action: iptables.RuleAction.Append,
+			proto: 'tcp',
+			matches: [`--dport ${port}`],
+			target: 'REJECT',
+			family: 4,
+		});
+	}
 }
 
 async function runningHostBoundServices(): Promise<boolean> {
@@ -131,12 +193,13 @@ async function applyFirewall(
 	// grab the current config...
 	const currentConfig = await config.getMany([
 		'listenPort',
+		'listenPortOverride',
 		'firewallMode',
 		'localMode',
 	]);
 
 	// populate missing config elements...
-	const { listenPort, firewallMode, localMode } = {
+	const { listenPort, listenPortOverride, firewallMode, localMode } = {
 		...opts,
 		...currentConfig,
 	};
@@ -146,6 +209,14 @@ async function applyFirewall(
 		localMode,
 		constants.allowedInterfaces,
 		listenPort,
+		listenPortOverride,
+	);
+
+	// update the Supervisor API override rules
+	updateSupervisorOverrideAccessRules(
+		localMode,
+		listenPort,
+		listenPortOverride,
 	);
 
 	// apply the firewall rules...
@@ -178,16 +249,24 @@ export async function applyFirewallMode(mode: string) {
 				: [];
 
 		// Get position of BALENA-FIREWALL rule in the INPUT chain for both iptables & ip6tables
-		const v4Position = await iptables.getRulePosition(
+		const balenaFirewallPositionV4 = await iptables.getRulePosition(
 			'INPUT',
-			'BALENA-FIREWALL',
+			BALENA_FIREWALL_CHAIN,
 			4,
 		);
-		const v6Position = await iptables.getRulePosition(
+		const balenaFirewallPositionV6 = await iptables.getRulePosition(
 			'INPUT',
-			'BALENA-FIREWALL',
+			BALENA_FIREWALL_CHAIN,
 			6,
 		);
+
+		// Get position of BALENA-SUPERVISOR rule in the DOCKER-USER chain
+		const balenaSupervisorChainIsSet =
+			(await iptables.getRulePosition(
+				'DOCKER-USER',
+				BALENA_SUPERVISOR_CHAIN,
+				4,
+			)) > 0;
 
 		// get an adaptor to manipulate iptables rules...
 		const ruleAdaptor = iptables.getDefaultRuleAdaptor();
@@ -199,31 +278,31 @@ export async function applyFirewallMode(mode: string) {
 				filter
 					.forChain('INPUT', (chain) => {
 						// Delete & insert to v4 tables
-						if (v4Position !== -1) {
+						if (balenaFirewallPositionV4 !== -1) {
 							chain.addRule({
 								action: iptables.RuleAction.Delete,
-								target: 'BALENA-FIREWALL',
+								target: BALENA_FIREWALL_CHAIN,
 								family: 4,
 							});
 						}
 						chain.addRule({
 							action: iptables.RuleAction.Insert,
-							id: v4Position > 0 ? v4Position : 1,
-							target: 'BALENA-FIREWALL',
+							id: balenaFirewallPositionV4 > 0 ? balenaFirewallPositionV4 : 1,
+							target: BALENA_FIREWALL_CHAIN,
 							family: 4,
 						});
 						// Delete & insert to v6 tables
-						if (v6Position !== -1) {
+						if (balenaFirewallPositionV6 !== -1) {
 							chain.addRule({
 								action: iptables.RuleAction.Delete,
-								target: 'BALENA-FIREWALL',
+								target: BALENA_FIREWALL_CHAIN,
 								family: 6,
 							});
 						}
 						chain.addRule({
 							action: iptables.RuleAction.Insert,
-							id: v6Position > 0 ? v6Position : 1,
-							target: 'BALENA-FIREWALL',
+							id: balenaFirewallPositionV6 > 0 ? balenaFirewallPositionV6 : 1,
+							target: BALENA_FIREWALL_CHAIN,
 							family: 6,
 						});
 						return chain;
@@ -240,6 +319,21 @@ export async function applyFirewallMode(mode: string) {
 								action: iptables.RuleAction.Append,
 								target: 'REJECT',
 							}),
+					)
+					.forChain('DOCKER-USER', (chain) => {
+						// Add the supervisor chain if not added
+						if (!balenaSupervisorChainIsSet) {
+							chain.addRule({
+								action: iptables.RuleAction.Append,
+								target: BALENA_SUPERVISOR_CHAIN,
+								family: 4,
+							});
+						}
+
+						return chain;
+					})
+					.forChain(BALENA_SUPERVISOR_CHAIN, (chain) =>
+						chain.addRule(prepareChain).addRule(supervisorOverrideAccessRules),
 					),
 			)
 			.apply(ruleAdaptor);
