@@ -6,6 +6,7 @@ import * as config from '~/src/config';
 import * as logger from '~/src/logging';
 import * as iptablesMock from '~/test-lib/mocked-iptables';
 import * as dbFormat from '~/src/device-state/db-format';
+import * as db from '~/src/db';
 
 import * as iptables from '~/lib/iptables';
 import * as firewall from '~/lib/firewall';
@@ -525,6 +526,180 @@ describe('lib/firewall', function () {
 
 					// we should always reject AFTER we allow
 					expect(allowRuleIdx).to.be.lessThan(rejectRuleIdx);
+				},
+			);
+		});
+	});
+
+	describe('Supervisor API override access', () => {
+		before(async () => {
+			// override the API port
+			await db
+				.models('config')
+				.insert({ key: 'listenPortOverride', value: 3333 });
+		});
+
+		after(async () => {
+			// set the device to be in local mode...
+			await db.models('config').where({ key: 'listenPortOverride' }).delete();
+		});
+
+		it('should allow limited access in non-localmode when override port is set', async function () {
+			await iptablesMock.whilstMocked(
+				async ({ hasAppliedRules, expectRule, expectNoRule }) => {
+					// set the device to be in non local mode...
+					await config.set({ localMode: false });
+					await hasAppliedRules;
+
+					[4, 6].forEach((family: 4 | 6) => {
+						// ensure we have no unrestricted rule on the BALENA-FIREWALL chain
+						expectNoRule({
+							chain: 'BALENA-FIREWALL',
+							proto: 'tcp',
+							matches: [`--dport ${listenPort}`],
+							target: 'ACCEPT',
+							family,
+						});
+					});
+
+					// but we also have no specific interface rules
+					constants.allowedInterfaces.forEach((intf) => {
+						[4, 6].forEach((family: 4 | 6) => {
+							expectNoRule({
+								chain: 'BALENA-FIREWALL',
+								proto: 'tcp',
+								matches: [`--dport ${listenPort}`, `-i ${intf}`],
+								target: 'ACCEPT',
+								family,
+							});
+						});
+					});
+
+					// make sure we do have a rule allowing override port access on the
+					// `supervisor0` interface
+					[4, 6].forEach((family: 4 | 6) => {
+						const allowOverrideIdx = expectRule({
+							chain: 'BALENA-FIREWALL',
+							proto: 'tcp',
+							matches: [
+								`--dport 3333`,
+								`-i ${constants.supervisorNetworkInterface}`,
+							],
+							target: 'ACCEPT',
+							family,
+						});
+
+						const rejectOverrideIdx = expectRule({
+							proto: 'tcp',
+							matches: [`--dport 3333`],
+							target: 'REJECT',
+							chain: 'BALENA-FIREWALL',
+							table: 'filter',
+							family,
+						});
+
+						expect(allowOverrideIdx).to.be.lessThan(rejectOverrideIdx);
+					});
+
+					// finally, we should have a rule allowing resin-vpn interface access to the listenPort
+					const allowRuleIdx = expectRule({
+						chain: 'BALENA-SUPERVISOR',
+						proto: 'tcp',
+						matches: [`--dport ${listenPort}`, `-i resin-vpn`],
+						target: 'ACCEPT',
+						family: 4,
+					});
+
+					// make sure we have a rule to block traffic on ANY interface also
+					const rejectRuleIdx = expectRule({
+						proto: 'tcp',
+						matches: [`--dport ${listenPort}`],
+						target: 'REJECT',
+						chain: 'BALENA-SUPERVISOR',
+						table: 'filter',
+						family: 4,
+					});
+
+					expect(allowRuleIdx).to.be.lessThan(rejectRuleIdx);
+				},
+			);
+		});
+
+		it('should not limit access in localmode when override port is set', async function () {
+			await iptablesMock.whilstMocked(
+				async ({ hasAppliedRules, expectRule, expectNoRule }) => {
+					// set the device to be in non local mode...
+					await config.set({ localMode: true });
+					await hasAppliedRules;
+
+					[4, 6].forEach((family: 4 | 6) => {
+						// ensure we have no unrestricted rule on the BALENA-FIREWALL chain
+						expectNoRule({
+							chain: 'BALENA-FIREWALL',
+							proto: 'tcp',
+							matches: [`--dport ${listenPort}`],
+							target: 'ACCEPT',
+							family,
+						});
+					});
+
+					// but we also have no specific interface rules
+					constants.allowedInterfaces.forEach((intf) => {
+						[4, 6].forEach((family: 4 | 6) => {
+							expectNoRule({
+								chain: 'BALENA-FIREWALL',
+								proto: 'tcp',
+								matches: [`--dport ${listenPort}`, `-i ${intf}`],
+								target: 'ACCEPT',
+								family,
+							});
+						});
+					});
+
+					// make sure we do have a rule allowing override port access on the
+					// `supervisor0` interface
+					[4, 6].forEach((family: 4 | 6) => {
+						const allowOverrideIdx = expectRule({
+							chain: 'BALENA-FIREWALL',
+							proto: 'tcp',
+							matches: [
+								`--dport 3333`,
+								`-i ${constants.supervisorNetworkInterface}`,
+							],
+							target: 'ACCEPT',
+							family,
+						});
+
+						const rejectOverrideIdx = expectRule({
+							proto: 'tcp',
+							matches: [`--dport 3333`],
+							target: 'REJECT',
+							chain: 'BALENA-FIREWALL',
+							table: 'filter',
+							family,
+						});
+
+						expect(allowOverrideIdx).to.be.lessThan(rejectOverrideIdx);
+					});
+
+					// finally, we should not have any rules the BALENA-SUPERVISOR chain
+					expectNoRule({
+						chain: 'BALENA-SUPERVISOR',
+						proto: 'tcp',
+						matches: [`--dport ${listenPort}`, `-i resin-vpn`],
+						target: 'ACCEPT',
+						family: 4,
+					});
+
+					// make sure we have a rule to block traffic on ANY interface also
+					expectNoRule({
+						proto: 'tcp',
+						matches: [`--dport ${listenPort}`],
+						target: 'REJECT',
+						chain: 'BALENA-SUPERVISOR',
+						table: 'filter',
+						family: 4,
+					});
 				},
 			);
 		});
