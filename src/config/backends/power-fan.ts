@@ -62,6 +62,7 @@ export class PowerFanConfig extends ConfigBackend {
 			'jetson-orin-nano-seeed-j3010',
 			'jetson-orin-nx-seeed-j4012',
 			'jetson-orin-nx-xavier-nx-devkit',
+			'forecr-dsb-ornx-orin-nano-8gb',
 		]).has(deviceType);
 	}
 
