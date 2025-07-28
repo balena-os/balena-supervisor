@@ -1,4 +1,19 @@
 - commits:
+    - subject: "config/backends/power-fan: Enable configurable power and fan for
+        Forecr DSBOARD ORNX Nano 8GB"
+      hash: 69b451c650a6d641a77b293abfd253d17db8a2ce
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 17.1.2
+  title: ""
+  date: 2025-07-28T14:08:15.142Z
+- commits:
     - subject: Remove memory healthcheck
       hash: 8ffdba7d187a00d846d2c76c3416a45e02bf0e93
       body: >
