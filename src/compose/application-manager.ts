@@ -400,7 +400,10 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 				// We get the image metadata from the image database because we cannot
 				// get it from the container itself
 				const imageForService = images.find(
-					(img) => img.serviceName === s.serviceName && img.commit === s.commit,
+					(img) =>
+						img.appUuid === s.appUuid &&
+						img.serviceName === s.serviceName &&
+						img.commit === s.commit,
 				);
 
 				s.imageName = imageForService?.name ?? s.imageName;
@@ -727,6 +730,7 @@ function saveAndRemoveImages(
 					dockerImageId: svc.config.image,
 					// There is no way to compare a current service to an image by
 					// name, the only way to do it is by both commit and service name
+					appUuid: svc.appUuid,
 					commit: svc.commit,
 					serviceName: svc.serviceName,
 				}) ?? _.find(availableImages, { dockerImageId: svc.config.image }),
@@ -887,6 +891,7 @@ export async function getLegacyState() {
 		// in the containers
 		const imageForService = images.find(
 			(img) =>
+				img.appUuid === service.appUuid &&
 				img.serviceName === service.serviceName &&
 				img.commit === service.commit,
 		);
@@ -992,7 +997,10 @@ export async function getState(): Promise<AppsReport> {
 			},
 			// Get the corresponding image to augment the service data
 			stateFromImages.find(
-				(img) => img.serviceName === serviceName && img.commit === commit,
+				(img) =>
+					img.appUuid === appUuid &&
+					img.serviceName === serviceName &&
+					img.commit === commit,
 			),
 		])
 		// We cannot report services that do not have an image as the API
@@ -1036,7 +1044,9 @@ export async function getState(): Promise<AppsReport> {
 				(img) =>
 					!stateFromServices.some(
 						(svc) =>
-							img.serviceName === svc.serviceName && img.commit === svc.commit,
+							img.appUuid === svc.appUuid &&
+							img.serviceName === svc.serviceName &&
+							img.commit === svc.commit,
 					),
 			)
 			// With the services that have a container

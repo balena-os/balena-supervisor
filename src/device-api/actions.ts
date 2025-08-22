@@ -372,7 +372,9 @@ export const getSingleContainerApp = async (appId: number) => {
 	const images = await imageManager.getState();
 	service.releaseId = images.find(
 		(img) =>
-			img.serviceName === service.serviceName && img.commit === service.commit,
+			img.appId === service.appId &&
+			img.serviceName === service.serviceName &&
+			img.commit === service.commit,
 	)?.releaseId;
 
 	// Because we only have a single app, we can fetch the commit for that
