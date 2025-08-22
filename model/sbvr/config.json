@@ -1,0 +1,11 @@
+{
+    "models": [{
+        "modelName": "supervisor",
+        "modelFile": "supervisor.sbvr"
+    }],
+    "users": [{
+        "username": "postgres",
+        "password": "postgres",
+        "permissions": [ "resource.all" ]
+    }]
+}
