@@ -1,7 +1,7 @@
 version: '2.3'
 
 x-helios-image: &helios-image
-  image: ghcr.io/balena-io/helios:0.10.0
+  image: ghcr.io/balena-io/helios:build-7596047fdb98dd4198238af7d02e953095c28bc8
 
 services:
   # This service can only be named `main` or `balena-supervisor` as older
@@ -33,6 +33,8 @@ services:
       io.balena.features.dbus: '1'
       # Needed to get access to the API credentials
       io.balena.features.balena-api: '1'
+      # Needed to get Host OS metadata
+      io.balena.features.host-os.board-rev: '1'
     environment:
       - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket
     volumes:
