@@ -32,7 +32,7 @@ assumption that updates are locked (see [issue #20](https://github.com/balena-os
 
 There are many different tools and libraries to provide proper lockfile functionality and a few common examples are shown below.
 
-__Note:__ Just creating the lockfile, for example by using `touch /tmp/balena/updates.lock`, is not adequate to prevent updates. A file created in this way won't have the exclusive access flag set, and thus does not provide reliable locking.
+__Note:__ Just creating the lockfile, for example by using `touch /tmp/balena/updates.lock`, is not adequate to prevent updates. A file created in this way won't have the exclusive access flag set, and thus does not provide reliable locking. Additionally, a file needs to be held by a process to be counted by the system as a lockfile.
 
 #### Shell
 
