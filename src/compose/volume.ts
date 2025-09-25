@@ -1,6 +1,6 @@
 import type Docker from 'dockerode';
-import isEqual = require('lodash/isEqual');
-import omitBy = require('lodash/omitBy');
+import isEqual from 'lodash/isEqual';
+import omitBy from 'lodash/omitBy';
 
 import * as constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';

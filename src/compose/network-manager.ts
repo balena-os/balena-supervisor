@@ -3,7 +3,7 @@ import _ from 'lodash';
 import * as constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';
 import { isNotFoundError } from '../lib/errors';
-import logTypes = require('../lib/log-types');
+import * as logTypes from '../lib/log-types';
 import log from '../lib/supervisor-console';
 
 import * as logger from '../logging';

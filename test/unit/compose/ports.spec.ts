@@ -2,8 +2,8 @@ import type { PortRange } from '~/src/compose/ports';
 import { PortMap } from '~/src/compose/ports';
 import { expect } from 'chai';
 
-import portBindings = require('~/test-data/ports/not-ascending/port-bindings.json');
-import compose = require('~/test-data/ports/not-ascending/compose.json');
+import portBindings from '~/test-data/ports/not-ascending/port-bindings.json';
+import compose from '~/test-data/ports/not-ascending/compose.json';
 
 // Force cast `PortMap` as a public version so we can test it
 const PortMapPublic = PortMap as any as new (

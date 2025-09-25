@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import rewire = require('rewire');
+import rewire from 'rewire';
 
 import { unlinkAll } from '~/lib/fs-utils';
 import * as serviceManager from '~/src/compose/service-manager';

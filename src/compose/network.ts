@@ -2,7 +2,7 @@ import _ from 'lodash';
 import type dockerode from 'dockerode';
 
 import { docker } from '../lib/docker-utils';
-import logTypes = require('../lib/log-types');
+import * as logTypes from '../lib/log-types';
 import * as logger from '../logging';
 import log from '../lib/supervisor-console';
 import * as ComposeUtils from './utils';

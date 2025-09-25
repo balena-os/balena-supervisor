@@ -1,4 +1,4 @@
-import mask = require('json-mask');
+import mask from 'json-mask';
 import log from './lib/supervisor-console';
 
 export type EventTrackProperties = Dictionary<any>;

@@ -1,6 +1,6 @@
 import { detailedDiff as diff } from 'deep-object-diff';
 import type Dockerode from 'dockerode';
-import Duration = require('duration-js');
+import Duration from 'duration-js';
 import _ from 'lodash';
 import path from 'path';
 

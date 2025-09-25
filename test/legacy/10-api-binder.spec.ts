@@ -5,16 +5,16 @@ import type { SinonSpy, SinonStub } from 'sinon';
 import { spy, stub } from 'sinon';
 import { expect } from 'chai';
 
-import prepare = require('~/test-lib/prepare');
+import prepare from '~/test-lib/prepare';
 import * as config from '~/src/config';
 import * as deviceState from '~/src/device-state';
 import Log from '~/lib/supervisor-console';
-import balenaAPI = require('~/test-lib/mocked-balena-api');
+import balenaAPI from '~/test-lib/mocked-balena-api';
 import { schema } from '~/src/config/schema';
 import ConfigJsonConfigBackend from '~/src/config/configJson';
 import * as TargetState from '~/src/api-binder/poll';
 import * as ApiHelper from '~/lib/api-helper';
-import supervisorVersion = require('~/lib/supervisor-version');
+import supervisorVersion from '~/lib/supervisor-version';
 import * as eventTracker from '~/src/event-tracker';
 import * as constants from '~/lib/constants';
 
