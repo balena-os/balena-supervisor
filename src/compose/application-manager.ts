@@ -777,10 +777,16 @@ function saveAndRemoveImages(
 				return false;
 			});
 
-			// There is no image in the database with the same metadata
-			const isNotSaved = !availableWithoutIds.some((img) =>
-				_.isEqual(img, targetImage),
-			);
+			const isNotSaved =
+				// There is no image in the database with the same metadata
+				!availableWithoutIds.some((img) => _.isEqual(img, targetImage)) ||
+				// Or if there is an image then the docker ids match
+				(targetImageDockerIds[targetImage.name] != null &&
+					!availableImages.some(
+						(img) =>
+							img.name === targetImage.name &&
+							img.dockerImageId === targetImageDockerIds[targetImage.name],
+					));
 
 			// The image is not on the database but we know it exists on the
 			// engine because we could find it through inspectByName
