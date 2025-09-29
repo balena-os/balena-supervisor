@@ -12,7 +12,7 @@ import { initializeContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/legacy';
 import * as osRelease from './lib/os-release';
 import log from './lib/supervisor-console';
-import version = require('./lib/supervisor-version');
+import version from './lib/supervisor-version';
 import * as avahi from './lib/avahi';
 import * as firewall from './lib/firewall';
 

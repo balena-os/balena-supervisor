@@ -4,7 +4,7 @@ import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 
 import * as osRelease from '~/lib/os-release';
-import supervisorVersion = require('~/lib/supervisor-version');
+import supervisorVersion from '~/lib/supervisor-version';
 import * as fsUtils from '~/lib/fs-utils';
 
 describe('lib/contracts', () => {

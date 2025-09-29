@@ -17,7 +17,7 @@ import * as volumeManager from '../compose/volume-manager';
 import * as serviceManager from '../compose/service-manager';
 import { spawnJournalctl } from '../lib/journald';
 import log from '../lib/supervisor-console';
-import supervisorVersion = require('../lib/supervisor-version');
+import supervisorVersion from '../lib/supervisor-version';
 import { checkInt, checkString, checkTruthy } from '../lib/validation';
 import {
 	isNotFoundError,

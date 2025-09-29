@@ -1,10 +1,10 @@
 import Bluebird from 'bluebird';
-import once = require('lodash/once');
+import once from 'lodash/once';
 import requestLib from 'request';
 import resumableRequestLib from 'resumable-request';
 import * as config from '../config';
 
-import supervisorVersion = require('./supervisor-version');
+import supervisorVersion from './supervisor-version';
 
 export { requestLib };
 

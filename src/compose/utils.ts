@@ -1,5 +1,5 @@
 import type Dockerode from 'dockerode';
-import Duration = require('duration-js');
+import Duration from 'duration-js';
 import _ from 'lodash';
 import { parse as parseCommand } from 'shell-quote';
 
