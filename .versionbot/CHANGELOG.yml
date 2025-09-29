@@ -1,4 +1,18 @@
 - commits:
+    - subject: Clarify that a process should hold a lockfile
+      hash: 934d5d5f7efb3b73f283a2d61fe9bdb13cbe411f
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.1.3
+  title: ""
+  date: 2025-09-29T16:49:41.875Z
+- commits:
     - subject: "config/backends/power-fan: Enable configurable power and fan for
         Forecr DSBOARD ORNX Nano 8GB"
       hash: 69b451c650a6d641a77b293abfd253d17db8a2ce
