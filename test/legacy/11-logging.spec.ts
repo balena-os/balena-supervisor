@@ -19,7 +19,7 @@ describe('Logger', function () {
 
 		this._req.body = '';
 		this._req.pipe(zlib.createGunzip()).on('data', (chunk: Buffer) => {
-			this._req.body += chunk;
+			this._req.body = this._req.body.concat(chunk);
 		});
 
 		this.requestStub = sinon.stub(https, 'request').returns(this._req);
@@ -37,7 +37,7 @@ describe('Logger', function () {
 		);
 		// delete the require cache for the logger module so we can force a refresh
 		delete require.cache[require.resolve('~/src/logger')];
-		logger = require('~/src/logger');
+		logger = require('~/src/logger'); // eslint-disable-line @typescript-eslint/no-require-imports
 		await logger.initialized();
 	});
 

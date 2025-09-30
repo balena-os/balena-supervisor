@@ -1006,9 +1006,7 @@ class AppImpl implements App {
 		const jsonVolumes = JSON.parse(app.volumes) ?? {};
 		const volumes = Object.keys(jsonVolumes).map((name) => {
 			const conf = jsonVolumes[name];
-			if (conf.labels == null) {
-				conf.labels = {};
-			}
+			conf.labels ??= {};
 			return Volume.fromComposeObject(name, app.appId, app.uuid, conf);
 		});
 
@@ -1028,10 +1026,11 @@ class AppImpl implements App {
 					firmware: await pathExistsOnRoot('/lib/firmware'),
 					modules: await pathExistsOnRoot('/lib/modules'),
 				}))(),
-				(
-					(await config.get('hostname')) ??
-					(await fs.readFile('/etc/hostname', 'utf-8'))
-				).trim(),
+				(async () =>
+					(
+						(await config.get('hostname')) ??
+						(await fs.readFile('/etc/hostname', 'utf-8'))
+					).trim())(),
 			]);
 
 		const svcOpts = {

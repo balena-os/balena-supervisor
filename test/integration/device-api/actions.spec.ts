@@ -56,7 +56,9 @@ describe('regenerates API keys', () => {
 	// Stub external dependency - current state report should be tested separately.
 	// API key related methods are tested in api-keys.spec.ts.
 	beforeEach(() => stub(deviceState, 'reportCurrentState'));
-	afterEach(() => (deviceState.reportCurrentState as SinonStub).restore());
+	afterEach(() => {
+		(deviceState.reportCurrentState as SinonStub).restore();
+	});
 
 	it("communicates new key to cloud if it's a global key", async () => {
 		const originalGlobalKey = await apiKeys.getGlobalApiKey();
@@ -83,7 +85,7 @@ describe('regenerates API keys', () => {
 describe('manages application lifecycle', () => {
 	const BASE_IMAGE = 'alpine:latest';
 	const BALENA_SUPERVISOR_ADDRESS =
-		process.env.BALENA_SUPERVISOR_ADDRESS || 'http://balena-supervisor:48484';
+		process.env.BALENA_SUPERVISOR_ADDRESS ?? 'http://balena-supervisor:48484';
 	const APP_ID = 1;
 	const lockdir = pathOnRoot(updateLock.BASE_LOCK_DIR);
 	const docker = new Docker();
@@ -606,7 +608,7 @@ describe('manages application lifecycle', () => {
 
 			// Start the container
 			const containerToStart = containers.find(({ Name }) =>
-				new RegExp(serviceNames[0]).test(Name),
+				Name.includes('server'),
 			);
 			if (!containerToStart) {
 				expect.fail(
@@ -621,7 +623,7 @@ describe('manages application lifecycle', () => {
 
 			// First, stop the container so we can test the start step
 			const containerToStop = containers.find((ctn) =>
-				new RegExp(serviceNames[0]).test(ctn.Name),
+				ctn.Name.includes('server'),
 			);
 			if (!containerToStop) {
 				expect.fail(
@@ -720,7 +722,7 @@ describe('manages application lifecycle', () => {
 			// Get volume metadata. As the name stays the same, we just need to check that the volume
 			// has been deleted & recreated. We can use the CreatedAt timestamp to determine this.
 			const volume = (await docker.listVolumes()).Volumes.find((vol) =>
-				/data/.test(vol.Name),
+				vol.Name.includes('data'),
 			);
 			if (!volume) {
 				expect.fail('Expected initial volume with name matching "data"');
@@ -754,7 +756,7 @@ describe('manages application lifecycle', () => {
 
 			// Volume should be recreated
 			const newVolume = (await docker.listVolumes()).Volumes.find((vol) =>
-				/data/.test(vol.Name),
+				vol.Name.includes('data'),
 			);
 			if (!volume) {
 				expect.fail('Expected recreated volume with name matching "data"');
@@ -1117,7 +1119,7 @@ describe('manages application lifecycle', () => {
 
 			// Start the container
 			const containerToStart = containers.find(({ Name }) =>
-				new RegExp(serviceNames[0]).test(Name),
+				Name.includes('server'),
 			);
 			if (!containerToStart) {
 				expect.fail(
@@ -1132,7 +1134,7 @@ describe('manages application lifecycle', () => {
 
 			// First, stop the container so we can test the start step
 			const containerToStop = containers.find((ctn) =>
-				new RegExp(serviceNames[0]).test(ctn.Name),
+				ctn.Name.includes('server'),
 			);
 			if (!containerToStop) {
 				expect.fail(
@@ -1174,7 +1176,7 @@ describe('manages application lifecycle', () => {
 			// Get volume metadata. As the name stays the same, we just need to check that the volume
 			// has been deleted & recreated. We can use the CreatedAt timestamp to determine this.
 			const volume = (await docker.listVolumes()).Volumes.find((vol) =>
-				/data/.test(vol.Name),
+				vol.Name.includes('data'),
 			);
 			if (!volume) {
 				expect.fail('Expected initial volume with name matching "data"');
@@ -1208,7 +1210,7 @@ describe('manages application lifecycle', () => {
 
 			// Volume should be recreated
 			const newVolume = (await docker.listVolumes()).Volumes.find((vol) =>
-				/data/.test(vol.Name),
+				vol.Name.includes('data'),
 			);
 			if (!volume) {
 				expect.fail('Expected recreated volume with name matching "data"');

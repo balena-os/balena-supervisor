@@ -31,7 +31,7 @@ export async function createDockerImage(
 	return await new Promise((resolve, reject) => {
 		docker.modem.followProgress(stream, (err: any, res: any) => {
 			if (err) {
-				reject(err);
+				reject(err instanceof Error ? err : new Error(err));
 			}
 
 			const ids = res

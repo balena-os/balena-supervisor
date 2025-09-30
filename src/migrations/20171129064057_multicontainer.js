@@ -17,7 +17,7 @@ const singleToMulticontainerApp = function (app) {
 	const environment = {};
 	const appId = parseInt(app.appId, 10);
 	for (const key in env) {
-		if (!/^RESIN_/.test(key)) {
+		if (!key.startsWith('RESIN_')) {
 			environment[key] = env[key];
 		}
 	}
@@ -295,9 +295,7 @@ exports.up = function (knex) {
 						newDevice.targetEnvironment = JSON.stringify(
 							tryParse(device.targetEnvironment),
 						);
-						if (newDevice.markedForDeletion == null) {
-							newDevice.markedForDeletion = false;
-						}
+						newDevice.markedForDeletion ??= false;
 						const deviceTarget = {
 							uuid: device.uuid,
 							name: device.name,

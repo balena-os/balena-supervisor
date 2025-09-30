@@ -1,3 +1,4 @@
+/* eslint @typescript-eslint/require-await: 0 */
 import { expect } from 'chai';
 import * as Docker from 'dockerode';
 import * as sinon from 'sinon';

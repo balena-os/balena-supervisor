@@ -70,7 +70,7 @@ export const initialized = _.once(async () => {
 				// balenaBackend, and remove our listener
 				balenaBackend!.assignFields(
 					conf.logsEndpoint ?? conf.apiEndpoint,
-					conf.uuid!,
+					conf.uuid ?? '',
 					conf.deviceApiKey,
 				);
 			}
@@ -100,7 +100,7 @@ export function getLocalBackend(): LocalLogBackend {
 	return localBackend;
 }
 
-export function enable(value: boolean = true) {
+export function enable(value = true) {
 	if (backend != null) {
 		backend.publishEnabled = value;
 	}
@@ -114,20 +114,17 @@ export function logSystemMessage(
 	message: string,
 	eventObj?: LogEventObject,
 	eventName?: string,
-	track: boolean = true,
+	track = true,
 ) {
 	const msgObj: LogMessage = { message, isSystem: true, timestamp: Date.now() };
-	if (eventObj != null && eventObj.error != null) {
+	if (eventObj?.error != null) {
 		msgObj.isStdErr = true;
 	}
 	// IMPORTANT: this could potentially create a memory leak if logSystemMessage
 	// is used too quickly but we don't want supervisor logging to hold up other tasks
 	void log(msgObj);
 	if (track) {
-		eventTracker.track(
-			eventName != null ? eventName : message,
-			eventObj != null ? eventObj : {},
-		);
+		eventTracker.track(eventName ?? message, eventObj ?? {});
 	}
 }
 
@@ -149,23 +146,24 @@ export async function attach(
 	}
 
 	return Bluebird.using(lock(containerId), async () => {
-		await logMonitor.attach(containerId, async (message) => {
+		logMonitor.attach(containerId, async (message) => {
 			await log({ ...message, serviceId });
 		});
+		return Promise.resolve();
 	});
 }
 
 export function logSystemEvent(
 	logType: LogType,
 	obj: LogEventObject,
-	track: boolean = true,
+	track = true,
 ): void {
 	let message = logType.humanName;
 	const objectName = objectNameForLogs(obj);
 	if (objectName != null) {
 		message += ` '${objectName}'`;
 	}
-	if (obj && obj.error != null) {
+	if (obj?.error != null) {
 		let errorMessage = obj.error.message;
 		if (_.isEmpty(errorMessage)) {
 			errorMessage =
@@ -204,10 +202,8 @@ function objectNameForLogs(eventObj: LogEventObject): string | null {
 		return null;
 	}
 	if (
-		eventObj.service != null &&
-		eventObj.service.serviceName != null &&
-		eventObj.service.config != null &&
-		eventObj.service.config.image != null
+		eventObj.service?.serviceName != null &&
+		eventObj.service.config?.image != null
 	) {
 		return `${eventObj.service.serviceName} ${eventObj.service.config.image}`;
 	}
@@ -216,11 +212,11 @@ function objectNameForLogs(eventObj: LogEventObject): string | null {
 		return eventObj.image.name;
 	}
 
-	if (eventObj.network != null && eventObj.network.name != null) {
+	if (eventObj.network?.name != null) {
 		return eventObj.network.name;
 	}
 
-	if (eventObj.volume != null && eventObj.volume.name != null) {
+	if (eventObj.volume?.name != null) {
 		return eventObj.volume.name;
 	}
 

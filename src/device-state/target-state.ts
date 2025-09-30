@@ -42,13 +42,17 @@ function parseTargetState(state: unknown): TargetState {
 }
 
 // TODO: avoid singletons
-let failedUpdates: number = 0;
+let failedUpdates = 0;
 let intermediateTarget: InstancedDeviceState | null = null;
 
 const readLockTarget = () =>
-	takeGlobalLockRO('target').disposer((release) => release());
+	takeGlobalLockRO('target').disposer((release) => {
+		release();
+	});
 const writeLockTarget = () =>
-	takeGlobalLockRW('target').disposer((release) => release());
+	takeGlobalLockRW('target').disposer((release) => {
+		release();
+	});
 function usingReadLockTarget<T extends () => any, U extends ReturnType<T>>(
 	fn: T,
 ): Bluebird<UnwrappedPromise<U>> {
@@ -82,9 +86,7 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 
 	// When we get a new target state, clear any built up apply errors
 	// This means that we can attempt to apply the new state instantly
-	if (localSource == null) {
-		localSource = false;
-	}
+	localSource ??= false;
 	failedUpdates = 0;
 
 	// This will throw if target state is invalid
@@ -131,7 +133,7 @@ export function getTarget({
 } = {}): Bluebird<InstancedDeviceState> {
 	return usingReadLockTarget(async () => {
 		if (intermediate) {
-			return intermediateTarget!;
+			return intermediateTarget;
 		}
 
 		return {
@@ -141,5 +143,5 @@ export function getTarget({
 				apps: await dbFormat.getApps(),
 			},
 		};
-	});
+	}) as Bluebird<InstancedDeviceState>;
 }

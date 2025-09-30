@@ -158,7 +158,7 @@ export class LocalModeManager {
 	private async collectOwnResources(): Promise<EngineSnapshot> {
 		try {
 			return this.collectContainerResources(
-				this.containerId || SUPERVISOR_CONTAINER_NAME_FALLBACK,
+				this.containerId ?? SUPERVISOR_CONTAINER_NAME_FALLBACK,
 			);
 		} catch (e: any) {
 			if (this.containerId !== undefined) {
@@ -247,7 +247,9 @@ export class LocalModeManager {
 				return docker
 					.getContainer(cId)
 					.remove({ force: true })
-					.catch((e) => log.error(`Unable to delete container ${cId}`, e));
+					.catch((e) => {
+						log.error(`Unable to delete container ${cId}`, e);
+					});
 			}),
 		);
 		await Promise.all(
@@ -255,7 +257,9 @@ export class LocalModeManager {
 				return docker
 					.getImage(iId)
 					.remove({ force: true })
-					.catch((e) => log.error(`Unable to delete image ${iId}`, e));
+					.catch((e) => {
+						log.error(`Unable to delete image ${iId}`, e);
+					});
 			}),
 		);
 		await Promise.all(
@@ -263,7 +267,9 @@ export class LocalModeManager {
 				return docker
 					.getNetwork(nId)
 					.remove()
-					.catch((e) => log.error(`Unable to delete network ${nId}`, e));
+					.catch((e) => {
+						log.error(`Unable to delete network ${nId}`, e);
+					});
 			}),
 		);
 		await Promise.all(
@@ -271,7 +277,9 @@ export class LocalModeManager {
 				return docker
 					.getVolume(vId)
 					.remove()
-					.catch((e) => log.error(`Unable to delete volume ${vId}`, e));
+					.catch((e) => {
+						log.error(`Unable to delete volume ${vId}`, e);
+					});
 			}),
 		);
 
@@ -280,9 +288,9 @@ export class LocalModeManager {
 			.models('app')
 			.del()
 			.where({ source: 'local' })
-			.catch((e) =>
-				log.error('Cannot delete local app entries in the database', e),
-			);
+			.catch((e) => {
+				log.error('Cannot delete local app entries in the database', e);
+			});
 	}
 
 	// Handle local mode state change.
@@ -291,7 +299,8 @@ export class LocalModeManager {
 		try {
 			const currentRecord = await this.collectEngineSnapshot();
 			if (local) {
-				return await this.storeEngineSnapshot(currentRecord);
+				await this.storeEngineSnapshot(currentRecord);
+				return;
 			}
 
 			const previousRecord = await this.retrieveLatestSnapshot();

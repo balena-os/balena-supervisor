@@ -18,23 +18,23 @@ const DEFAULT_REQUEST_RETRY_COUNT = 30;
 type PromisifiedRequest = typeof requestLib & {
 	delAsync: (
 		uri: string | requestLib.CoreOptions,
-		options?: requestLib.CoreOptions | undefined,
+		options?: requestLib.CoreOptions,
 	) => Bluebird<[requestLib.Response, any]>;
 	putAsync: (
 		uri: string | requestLib.CoreOptions,
-		options?: requestLib.CoreOptions | undefined,
+		options?: requestLib.CoreOptions,
 	) => Bluebird<[requestLib.Response, any]>;
 	postAsync: (
 		uri: string | requestLib.CoreOptions,
-		options?: requestLib.CoreOptions | undefined,
+		options?: requestLib.CoreOptions,
 	) => Bluebird<[requestLib.Response, any]>;
 	patchAsync: (
 		uri: string | requestLib.CoreOptions,
-		options?: requestLib.CoreOptions | undefined,
+		options?: requestLib.CoreOptions,
 	) => Bluebird<[requestLib.Response, any]>;
 	getAsync: (
 		uri: string | requestLib.CoreOptions,
-		options?: requestLib.CoreOptions | undefined,
+		options?: requestLib.CoreOptions,
 	) => Bluebird<[requestLib.Response, any]>;
 };
 
@@ -72,10 +72,9 @@ const getRequestInstances = once(async () => {
 
 	const requestHandle = requestLib.defaults(requestOpts);
 
-	// @ts-expect-error promisifyAll is a bit wonky
 	const request = Bluebird.promisifyAll(requestHandle, {
 		multiArgs: true,
-	}) as PromisifiedRequest;
+	}) as unknown as PromisifiedRequest;
 	const resumable = resumableRequestLib.defaults(resumableOpts);
 
 	return {

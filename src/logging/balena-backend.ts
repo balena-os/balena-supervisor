@@ -26,8 +26,8 @@ interface Options extends url.UrlWithParsedQuery {
 
 export class BalenaLogBackend extends LogBackend {
 	private req: ClientRequest | null = null;
-	private dropCount: number = 0;
-	private writable: boolean = true;
+	private dropCount = 0;
+	private writable = true;
 	private gzip: zlib.Gzip | null = null;
 	private opts: Options;
 	private stream: stream.PassThrough;

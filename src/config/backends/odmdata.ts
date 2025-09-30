@@ -35,7 +35,7 @@ export class Odmdata extends ConfigBackend {
 	);
 
 	public async matches(deviceType: string): Promise<boolean> {
-		return deviceType.endsWith('-tx2');
+		return Promise.resolve(deviceType.endsWith('-tx2'));
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {

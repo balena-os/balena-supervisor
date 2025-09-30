@@ -18,7 +18,7 @@ export const fnSchema = {
 		return config
 			.getMany(['apiKey', 'deviceApiKey'])
 			.then(({ apiKey, deviceApiKey }) => {
-				return apiKey || deviceApiKey;
+				return apiKey ?? deviceApiKey;
 			});
 	},
 	provisioned: () => {

@@ -4,7 +4,7 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 import type { TargetState } from './types/state';
 
 export interface GlobalEvents {
-	deviceProvisioned: void;
+	deviceProvisioned: never;
 	targetStateChanged: TargetState;
 }
 

@@ -101,12 +101,12 @@ const actionExecutors: DeviceActionExecutors = {
 		}
 		const backends = await getConfigBackends();
 		for (const backend of backends) {
-			await setBootConfig(backend, step.target as Dictionary<string>);
+			await setBootConfig(backend, step.target);
 		}
 	},
 	setRebootBreadcrumb: async (step) => {
 		const changes =
-			step != null && step.target != null && typeof step.target === 'object'
+			step?.target != null && typeof step.target === 'object'
 				? step.target
 				: {};
 		return setRebootBreadcrumb(changes);
@@ -447,6 +447,7 @@ function getConfigSteps(
 						rebootingChanges[key] = changingValue;
 					}
 					humanReadableConfigChanges[envVarName] = changingValue;
+					// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 					reboot = $rebootRequired || reboot;
 				}
 			}
