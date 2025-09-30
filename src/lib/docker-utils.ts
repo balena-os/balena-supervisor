@@ -95,6 +95,7 @@ export function normaliseImageName(image: string) {
 	const repository = [registry, imageName].filter((s) => !!s).join('/');
 
 	if (!digest) {
+		// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 		return [repository, tagName || 'latest'].join(':');
 	}
 
@@ -117,6 +118,7 @@ export function getRepoAndTag(image: string): { repo: string; tag?: string } {
 // Same as getRepoAndTag but joined with ':' for searching
 export function getImageWithTag(image: string) {
 	const { repo, tag } = getRepoAndTag(image);
+	// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 	return [repo, tag || 'latest'].join(':');
 }
 
@@ -130,8 +132,9 @@ export async function fetchDeltaWithProgress(
 	const deltaSourceId = deltaOpts.deltaSourceId ?? deltaOpts.deltaSource;
 	const timeout = deltaOpts.deltaApplyTimeout;
 
-	const logFn = (str: string) =>
+	const logFn = (str: string) => {
 		log.debug(`delta([${serviceName}] ${deltaOpts.deltaSource}): ${str}`);
+	};
 
 	if (![2, 3].includes(deltaOpts.deltaVersion)) {
 		logFn(
@@ -318,7 +321,8 @@ export async function fetchDeltaWithProgress(
 	}
 
 	logFn(`Delta applied successfully`);
-	return id!;
+	// @ts-expect-error id is assigned in the try block
+	return id;
 }
 
 export async function fetchImageWithProgress(
@@ -402,6 +406,7 @@ async function applyRsyncDelta(
 							`Got ${res.statusCode} when requesting delta from storage.`,
 						),
 					);
+					// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 				} else if (parseInt(res.headers['content-length'] || '0', 10) === 0) {
 					reject(new Error('Invalid delta URL'));
 				} else {
@@ -411,7 +416,9 @@ async function applyRsyncDelta(
 					});
 					res
 						.pipe(deltaStream)
-						.on('id', (id) => resolve(`sha256:${id}`))
+						.on('id', (id) => {
+							resolve(`sha256:${id}`);
+						})
 						.on('error', (err) => {
 							logFn(`Delta stream emitted error: ${err}`);
 							req.abort();

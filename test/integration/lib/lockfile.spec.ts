@@ -170,7 +170,7 @@ describe('lib/lockfile', () => {
 		);
 
 		// Clean up locks
-		await fs.rm(`${lockdir}`, { recursive: true });
+		await fs.rm(lockdir, { recursive: true });
 	});
 
 	it('should get locks taken with a custom filter', async () => {
@@ -217,7 +217,7 @@ describe('lib/lockfile', () => {
 		]);
 
 		// Clean up locks
-		await fs.rm(`${lockdir}`, { recursive: true });
+		await fs.rm(lockdir, { recursive: true });
 	});
 
 	// This tests an edge case where the lockfile is a symlink to a nonexistent file.

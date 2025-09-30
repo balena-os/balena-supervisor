@@ -82,7 +82,9 @@ describe('network', () => {
 			} as any),
 		);
 
-		after(() => (os.networkInterfaces as SinonStub).restore());
+		after(() => {
+			(os.networkInterfaces as SinonStub).restore();
+		});
 
 		it('returns only the relevant IP addresses', () =>
 			expect(network.getIPAddresses()).to.deep.equal([

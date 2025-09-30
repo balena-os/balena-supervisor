@@ -65,7 +65,7 @@ export class ExtraUEnv extends ConfigBackend {
 				deviceType.includes('-agx-orin-') ||
 				deviceType.includes('-orin-nx-') ||
 				deviceType.includes('-orin-nano-') ||
-				/imx8mm-var-som/.test(deviceType) ||
+				deviceType.includes('imx8mm-var-som') ||
 				/imx8mm?-var-dart/.test(deviceType)) &&
 			(await exists(ExtraUEnv.bootConfigPath))
 		);
@@ -95,7 +95,7 @@ export class ExtraUEnv extends ConfigBackend {
 		});
 
 		// Write new extra_uEnv configuration
-		return await hostUtils.writeToBoot(
+		await hostUtils.writeToBoot(
 			ExtraUEnv.bootConfigPath,
 			ExtraUEnv.configToString(supportedOptions),
 		);
@@ -249,7 +249,7 @@ export class ExtraUEnv extends ConfigBackend {
 	}
 
 	private static appendToCollection(
-		collection: string = '',
+		collection = '',
 		key: string,
 		value: string | string[],
 	) {

@@ -37,6 +37,7 @@ const baseBlock = {
 	redirector: 'iptables',
 };
 
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class RedsocksConf {
 	public static stringify(config: RedsocksConfig): string {
 		const blocks: string[] = [];

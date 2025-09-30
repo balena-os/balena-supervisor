@@ -38,7 +38,8 @@ export const auth: apiKeys.AuthorizedRequestHandler = async (
 		if (!needsAuth) {
 			// Allow requests that do not need auth to be scoped for all applications
 			req.auth.isScoped = () => true;
-			return next();
+			next();
+			return;
 		}
 
 		// if we have a key, find the scopes and add them to the request
@@ -49,7 +50,8 @@ export const auth: apiKeys.AuthorizedRequestHandler = async (
 			if (scopes != null) {
 				// keep the scopes for later incase they're desired
 				req.auth.scopes.push(...scopes);
-				return next();
+				next();
+				return;
 			}
 		}
 

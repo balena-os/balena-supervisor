@@ -30,7 +30,7 @@ class FakeRuleAdaptor {
 			// remove any undefined values from the object...
 			for (const key of Object.getOwnPropertyNames(rule)) {
 				if ((rule as any)[key] === undefined) {
-					delete (rule as any)[key];
+					await Promise.resolve(delete (rule as any)[key]);
 				}
 			}
 
@@ -167,9 +167,13 @@ export const whilstMocked = async (
 	await context({
 		expectRule: (rule) => fakeRuleAdaptorManager.expectRule(rule),
 		expectNoRule: (rule) => fakeRuleAdaptorManager.expectNoRule(rule),
-		clearHistory: () => fakeRuleAdaptorManager.clearHistory(),
+		clearHistory: () => {
+			fakeRuleAdaptorManager.clearHistory();
+		},
 		hasAppliedRules: new Promise((resolve) => {
-			applied.once('applied', () => resolve());
+			applied.once('applied', () => {
+				resolve();
+			});
 		}),
 	});
 

@@ -11,7 +11,7 @@ const DEFAULT_OPTIONS = {
 	minDelay: 10000, // 10 seconds
 };
 
-describe('lib/backoff', async () => {
+describe('lib/backoff', () => {
 	let clock: sinon.SinonFakeTimers;
 
 	beforeEach(() => {
@@ -207,11 +207,14 @@ class Failer {
 		return new Promise((resolve, reject) => {
 			if (++this.callCount <= this.maxFails) {
 				if (this.customError) {
-					return reject(this.customError);
+					reject(this.customError);
+					return;
 				}
-				return reject('Not ready!');
+				// eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+				reject('Not ready!');
+				return;
 			}
-			return resolve(resolvesWith);
+			resolve(resolvesWith);
 		});
 	}
 }

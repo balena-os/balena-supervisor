@@ -2,7 +2,7 @@ import type { LogMessage } from './types';
 
 export abstract class LogBackend {
 	public unmanaged: boolean;
-	public publishEnabled: boolean = true;
+	public publishEnabled = true;
 
 	public abstract log(message: LogMessage): Promise<void>;
 }

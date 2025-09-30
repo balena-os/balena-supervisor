@@ -174,7 +174,7 @@ router.patch('/v1/device/host-config', async (req, res) => {
 			// If network does not exist, skip all field validation checks below
 			throw new Error();
 		}
-	} catch (e) {
+	} catch {
 		/* noop */
 	}
 

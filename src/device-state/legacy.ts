@@ -15,7 +15,7 @@ function singleToMulticontainerApp(
 ): TargetApp & { uuid: string } {
 	const environment: Dictionary<string> = {};
 	for (const key in app.env) {
-		if (!/^RESIN_/.test(key)) {
+		if (!key.startsWith('RESIN_')) {
 			environment[key] = app.env[key];
 		}
 	}
@@ -28,7 +28,7 @@ function singleToMulticontainerApp(
 		volumes: {},
 		services: {},
 	};
-	const conf = app.config != null ? app.config : {};
+	const conf = app.config ?? {};
 	const newApp: TargetApp & { uuid: string } = {
 		id: appId,
 		uuid: 'user-app',
@@ -41,17 +41,9 @@ function singleToMulticontainerApp(
 	const defaultVolume = exports.defaultLegacyVolume();
 	release.volumes[defaultVolume] = {};
 	const updateStrategy =
-		conf['RESIN_SUPERVISOR_UPDATE_STRATEGY'] != null
-			? conf['RESIN_SUPERVISOR_UPDATE_STRATEGY']
-			: 'download-then-kill';
-	const handoverTimeout =
-		conf['RESIN_SUPERVISOR_HANDOVER_TIMEOUT'] != null
-			? conf['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
-			: '';
-	const restartPolicy =
-		conf['RESIN_APP_RESTART_POLICY'] != null
-			? conf['RESIN_APP_RESTART_POLICY']
-			: 'always';
+		conf['RESIN_SUPERVISOR_UPDATE_STRATEGY'] ?? 'download-then-kill';
+	const handoverTimeout = conf['RESIN_SUPERVISOR_HANDOVER_TIMEOUT'] ?? '';
+	const restartPolicy = conf['RESIN_APP_RESTART_POLICY'] ?? 'always';
 	release.services = {
 		main: {
 			id: 1,

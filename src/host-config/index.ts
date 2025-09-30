@@ -24,7 +24,8 @@ async function setHostname(val: string) {
 	// If hostname is an empty string, return first 7 digits of device uuid
 	if (!val) {
 		const uuid = await config.get('uuid');
-		hostname = uuid?.slice(0, 7) as string;
+		// uuid could be nullish, but if that's the case, we have bigger issues
+		hostname = uuid!.slice(0, 7);
 	}
 	// Changing the hostname on config.json will trigger
 	// the OS config-json service to restart the necessary services
@@ -90,12 +91,14 @@ function patchProxy(
 
 export async function patch(
 	conf: HostConfiguration | LegacyHostConfiguration,
-	force: boolean = false,
+	force = false,
 ): Promise<void> {
 	const ops: Array<() => Promise<void>> = [];
 	if (conf.network.hostname != null) {
 		const hostname = conf.network.hostname;
-		ops.push(async () => await setHostname(hostname));
+		ops.push(async () => {
+			await setHostname(hostname);
+		});
 	}
 
 	if (conf.network.proxy != null) {

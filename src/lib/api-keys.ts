@@ -55,8 +55,7 @@ interface ScopedResources {
  */
 const scopeChecks: ScopeCheckCollection = {
 	global: () => true,
-	app: (resources, { appId }) =>
-		resources.apps != null && resources.apps.includes(appId),
+	app: (resources, { appId }) => resources.apps?.includes(appId) ?? false,
 };
 
 const serialiseScopes = (scopes: Scope[]): string => JSON.stringify(scopes);
@@ -66,6 +65,7 @@ export const isScoped = (
 	resources: Partial<ScopedResources>,
 	scopes: Scope[],
 ) =>
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	scopes.some((scope) =>
 		scopeChecks[scope.type](resources, scope as unknown as any),
 	);
@@ -92,7 +92,7 @@ export const initialized = _.once(async () => {
 });
 
 // empty until populated in `initialized`
-let globalApiKey: string = '';
+let globalApiKey = '';
 
 export const getGlobalApiKey = async (): Promise<string> => {
 	if (globalApiKey === '') {
@@ -126,7 +126,7 @@ export async function generateScopedKey(
 	return await generateKey(appId, serviceName, options);
 }
 
-async function generateGlobalKey(force: boolean = false): Promise<string> {
+async function generateGlobalKey(force = false): Promise<string> {
 	globalApiKey = await generateKey(0, null, {
 		force,
 		scopes: [{ type: 'global' }],

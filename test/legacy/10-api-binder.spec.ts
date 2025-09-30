@@ -42,7 +42,7 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 		},
 	} as any;
 
-	ApiBinder = require('~/src/api-binder');
+	ApiBinder = require('~/src/api-binder'); // eslint-disable-line @typescript-eslint/no-require-imports
 	await ApiBinder.initialized();
 	obj.apiBinder = ApiBinder;
 
@@ -62,7 +62,7 @@ describe('ApiBinder', () => {
 	const defaultConfigBackend = config.configJsonBackend;
 	let server: Server;
 
-	before(async () => {
+	before(() => {
 		delete require.cache[require.resolve('~/src/api-binder')];
 
 		spy(balenaAPI.balenaBackend!, 'registerHandler');
@@ -78,7 +78,7 @@ describe('ApiBinder', () => {
 		balenaAPI.balenaBackend!.registerHandler.restore();
 		try {
 			server.close();
-		} catch (error) {
+		} catch {
 			/* noop */
 		}
 

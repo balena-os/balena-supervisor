@@ -14,6 +14,10 @@ export const logging = morgan(
 			'ms',
 		].join(' '),
 	{
-		stream: { write: (d) => log.api(d.toString().trimEnd()) },
+		stream: {
+			write: (d) => {
+				log.api(d.toString().trimEnd());
+			},
+		},
 	},
 );
