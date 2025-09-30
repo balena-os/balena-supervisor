@@ -31,7 +31,7 @@ const defaultLegacyVolume = () => 'resin-data';
 async function createVolumeFromLegacyData(
 	appId: number,
 	appUuid: string,
-): Promise<Volume | void> {
+): Promise<Volume | undefined> {
 	const name = defaultLegacyVolume();
 	const legacyPath = pathOnData(path.join('resin-data', appId.toString()));
 
@@ -270,7 +270,7 @@ const getUUIDFromAPI = async (appId: number) => {
 		},
 	});
 
-	if (!appDetails || !appDetails.uuid) {
+	if (!appDetails?.uuid) {
 		throw new StatusError(404, `No app with id ${appId} found on the API.`);
 	}
 

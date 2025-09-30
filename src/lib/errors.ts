@@ -71,11 +71,8 @@ export class InvalidNetGatewayError extends TypedError {}
 export class DeltaStillProcessingError extends TypedError {}
 
 export class DeltaServerError extends StatusError {}
-export class DeltaApplyError extends Error {
-	constructor(message?: string) {
-		super(message);
-	}
-}
+
+export class DeltaApplyError extends TypedError {}
 
 export class UpdatesLockedError extends TypedError {}
 

@@ -158,7 +158,7 @@ export class SplashImage extends ConfigBackend {
 
 	public async matches(): Promise<boolean> {
 		// all device types
-		return true;
+		return Promise.resolve(true);
 	}
 
 	public processConfigVarName(name: string): string {

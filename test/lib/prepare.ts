@@ -36,7 +36,7 @@ export = async function () {
 
 	try {
 		fs.unlinkSync(process.env.LED_FILE!);
-	} catch (e) {
+	} catch {
 		/* ignore /*/
 	}
 

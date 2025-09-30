@@ -102,7 +102,7 @@ export function getStepsFromStrategy(
 
 export function getStrategyFromService(svc: Service): string {
 	let strategy =
-		checkString(svc.config.labels['io.balena.update.strategy']) || '';
+		checkString(svc.config.labels['io.balena.update.strategy']) ?? '';
 
 	const validStrategies = [
 		'download-then-kill',

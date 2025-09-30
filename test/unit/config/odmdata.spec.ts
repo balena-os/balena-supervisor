@@ -11,7 +11,7 @@ describe('config/odmdata', () => {
 		}
 	});
 
-	it('correctly parses configuration mode', async () => {
+	it('correctly parses configuration mode', () => {
 		for (const config of CONFIG_MODES) {
 			// @ts-expect-error accessing private value
 			expect(backend.parseOptions(config.buffer)).to.deep.equal({

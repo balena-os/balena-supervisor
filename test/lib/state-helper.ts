@@ -109,17 +109,17 @@ export function createApps(
 	},
 	target = false,
 ) {
-	const servicesByAppId = services.reduce(
+	const servicesByAppId = services.reduce<Dictionary<Service[]>>(
 		(svcs, s) => ({ ...svcs, [s.appId]: [s].concat(svcs[s.appId] || []) }),
-		{} as Dictionary<Service[]>,
+		{},
 	);
-	const volumesByAppId = volumes.reduce(
+	const volumesByAppId = volumes.reduce<Dictionary<Volume[]>>(
 		(vols, v) => ({ ...vols, [v.appId]: [v].concat(vols[v.appId] || []) }),
-		{} as Dictionary<Volume[]>,
+		{},
 	);
-	const networksByAppId = networks.reduce(
+	const networksByAppId = networks.reduce<Dictionary<Network[]>>(
 		(nets, n) => ({ ...nets, [n.appId]: [n].concat(nets[n.appId] || []) }),
-		{} as Dictionary<Network[]>,
+		{},
 	);
 
 	const allAppIds = [
@@ -160,7 +160,9 @@ export function createCurrentState({
 }) {
 	const currentApps = createApps({ services, networks, volumes });
 
-	const containerIdsByAppId = services.reduce(
+	const containerIdsByAppId = services.reduce<{
+		[appId: number]: Dictionary<string>;
+	}>(
 		(ids, s) => ({
 			...ids,
 			[s.appId]: {
@@ -169,7 +171,7 @@ export function createCurrentState({
 					s.containerId && { [s.serviceName]: s.containerId }),
 			},
 		}),
-		{} as { [appId: number]: Dictionary<string> },
+		{},
 	);
 
 	return {

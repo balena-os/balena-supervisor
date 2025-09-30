@@ -8,7 +8,7 @@ import Docker from 'dockerode';
 describe('lib/docker-utils', () => {
 	const docker = new Docker();
 
-	describe('getNetworkGateway', async () => {
+	describe('getNetworkGateway', () => {
 		before(async () => {
 			// Remove network if it already exists
 			await cleanupDocker(docker);

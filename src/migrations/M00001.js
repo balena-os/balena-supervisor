@@ -14,7 +14,7 @@ exports.up = function (knex) {
 			}
 
 			let value = checkTruthy(results[0].value);
-			value = value != null ? value : false;
+			value = value ?? false;
 
 			return new Promise((resolve) => {
 				if (!configJsonPath) {
@@ -46,7 +46,7 @@ exports.up = function (knex) {
 							}
 							resolve(false);
 						});
-					} catch (e) {
+					} catch {
 						console.log(
 							'Failed to parse config.json! Things may fail unexpectedly!',
 						);

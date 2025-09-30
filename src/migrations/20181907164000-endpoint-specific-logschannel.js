@@ -55,7 +55,7 @@ exports.up = function (knex) {
 		})
 		.then(({ config, secret }) => {
 			return knex('logsChannelSecret').insert({
-				backend: config.apiEndpoint || '',
+				backend: config.apiEndpoint ?? '',
 				secret,
 			});
 		})

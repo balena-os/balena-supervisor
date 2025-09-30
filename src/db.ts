@@ -39,7 +39,7 @@ export async function upsertModel(
 	id: Dictionary<unknown>,
 	trx?: Knex.Transaction,
 ): Promise<any> {
-	const k = trx || db;
+	const k = trx ?? db;
 
 	const n = await k(modelName).update(obj).where(id);
 	if (n === 0) {

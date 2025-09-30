@@ -37,8 +37,8 @@ const baseBlock = {
 	redirector: 'iptables',
 };
 
-export class RedsocksConf {
-	public static stringify(config: RedsocksConfig): string {
+export const RedsocksConf = {
+	stringify(config: RedsocksConfig): string {
 		const blocks: string[] = [];
 
 		// If no redsocks config is provided or dns is the only config, return empty string.
@@ -80,9 +80,8 @@ export class RedsocksConf {
 		}
 
 		return blocks.join('\n');
-	}
-
-	public static parse(rawConf: string): RedsocksConfig {
+	},
+	parse(rawConf: string): RedsocksConfig {
 		const conf: RedsocksConfig = {};
 		rawConf = rawConf.trim();
 		if (rawConf.length === 0) {
@@ -130,12 +129,8 @@ export class RedsocksConf {
 			);
 			return {};
 		}
-	}
-
-	private static stringifyBlock(
-		label: string,
-		block: Record<string, any>,
-	): string {
+	},
+	stringifyBlock(label: string, block: Record<string, any>): string {
 		const lines = Object.entries(block).map(([key, value]) => {
 			if (isAuthField(key)) {
 				// Add double quotes around login and password fields
@@ -144,13 +139,12 @@ export class RedsocksConf {
 			return `\t${key} = ${value};`;
 		});
 		return `${label} {\n${lines.join('\n')}\n}\n`;
-	}
-
+	},
 	/**
 	 * Given the raw contents of a block redsocks.conf file,
 	 * extract to a key-value object.
 	 */
-	private static parseBlock(
+	parseBlock(
 		rawBlockConf: string,
 		unsupportedKeys: string[],
 	): Record<string, string> {
@@ -181,8 +175,8 @@ export class RedsocksConf {
 		}
 
 		return parsedBlock;
-	}
-}
+	},
+};
 
 function dnsToDnsu2t(
 	dns: DnsInput,

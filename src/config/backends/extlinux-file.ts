@@ -95,7 +95,7 @@ export class AppendDirective extends ConfigurableDirective {
 	 * 	-> 'isolcpus=0,4'
 	 *
 	 */
-	public generate(opts: ConfigOptions, existingValue: string = ''): string {
+	public generate(opts: ConfigOptions, existingValue = ''): string {
 		// Parse current append line and remove whitelisted values
 		// We remove whitelisted values to avoid duplicates
 		const appendLine = existingValue.split(' ').filter((entry) => {
@@ -112,7 +112,7 @@ export class AppendDirective extends ConfigurableDirective {
 						);
 					} else if (!value) {
 						// Example: rootwait (config without a value)
-						return `${key}`;
+						return key;
 					} else {
 						// Example: isolcpus=2,3 (config with a value)
 						return `${key}=${value}`;

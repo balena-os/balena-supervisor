@@ -23,7 +23,7 @@ export async function getStorageInfo(): Promise<{
 	let total = 0;
 	// First we find the block device which the data partition is part of
 	for (const partition of fsInfo) {
-		if (new RegExp('/data').test(partition.mount)) {
+		if (partition.mount.includes('/data')) {
 			mainFs = partition.fs;
 			total = partition.size;
 			break;
@@ -83,8 +83,8 @@ export async function getSystemId(): Promise<string | undefined> {
 	} catch {
 		// Otherwise use dmidecode
 		const [baseBoardInfo] = (
-			await dmidecode('baseboard').catch(() => [] as DmiDecodeInfo[])
-		).filter((entry) => entry.type === 'Base Board Information');
+			await dmidecode('baseboard').catch(() => [])
+		).filter((entry: DmiDecodeInfo) => entry.type === 'Base Board Information');
 		systemId = baseBoardInfo?.values?.['Serial Number'] || undefined;
 	}
 	if (systemId == null) {
@@ -105,8 +105,8 @@ export async function getSystemModel(): Promise<string | undefined> {
 		return buffer.toString('utf-8').replace(/\0/g, '').trim();
 	} catch {
 		const [baseBoardInfo] = (
-			await dmidecode('baseboard').catch(() => [] as DmiDecodeInfo[])
-		).filter((entry) => entry.type === 'Base Board Information');
+			await dmidecode('baseboard').catch(() => [])
+		).filter((entry: DmiDecodeInfo) => entry.type === 'Base Board Information');
 
 		// Join manufacturer and product name in a single string
 		return (
@@ -139,8 +139,8 @@ export const dmidecode = memoizee(
 				.toString()
 				.split(/\r?\n/) // Split by line jumps
 				// Split into groups by looking for empty lines
-				.reduce((groups, line) => {
-					const currentGroup = groups.pop() || [];
+				.reduce<string[][]>((groups, line) => {
+					const currentGroup = groups.pop() ?? [];
 					if (/^\s*$/.test(line)) {
 						// For each empty line create a new group
 						groups.push(currentGroup);
@@ -151,9 +151,9 @@ export const dmidecode = memoizee(
 						groups.push(currentGroup);
 					}
 					return groups;
-				}, [] as string[][])
+				}, [])
 				// Only select the handles
-				.filter((group) => group.length > 1 && /^Handle/.test(group[0]))
+				.filter((group) => group.length > 1 && group[0].startsWith('Handle'))
 				.map(([, type, ...lines]) => ({
 					type,
 					values: lines

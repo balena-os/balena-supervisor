@@ -350,7 +350,7 @@ describe('lib/update-lock', () => {
 			}).enable();
 
 			await expect(
-				updateLock.withLock(appIds, async () => {
+				updateLock.withLock(appIds, () => {
 					throw new Error('This is the wrong error');
 				}),
 			).to.be.rejectedWith('Lockfile exists for { appId: 222, service: main }');

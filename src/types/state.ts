@@ -85,7 +85,7 @@ export const withDefault = <T extends t.Any>(
 	new t.Type(
 		type.name,
 		type.is,
-		(v, c) => type.validate(v != null ? v : defaultValue, c),
+		(v, c) => type.validate(v ?? defaultValue, c),
 		type.encode,
 	);
 /**

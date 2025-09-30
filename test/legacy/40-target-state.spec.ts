@@ -1,3 +1,4 @@
+/* eslint @typescript-eslint/require-await: 0 */
 import type { SinonStub, SinonSpy } from 'sinon';
 import { stub, spy } from 'sinon';
 import Bluebird from 'bluebird';

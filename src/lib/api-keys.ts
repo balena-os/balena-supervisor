@@ -28,7 +28,7 @@ type SerializableScope<T extends ScopeTypeKey> = {
 type ScopeCheck<T extends ScopeTypeKey> = (
 	resources: Partial<ScopedResources>,
 	scope: ScopeTypes[T],
-) => Resolvable<boolean>;
+) => boolean;
 type ScopeCheckCollection = {
 	[K in ScopeTypeKey]: ScopeCheck<K>;
 };
@@ -55,8 +55,7 @@ interface ScopedResources {
  */
 const scopeChecks: ScopeCheckCollection = {
 	global: () => true,
-	app: (resources, { appId }) =>
-		resources.apps != null && resources.apps.includes(appId),
+	app: (resources, { appId }) => resources.apps?.includes(appId) ?? false,
 };
 
 const serialiseScopes = (scopes: Scope[]): string => JSON.stringify(scopes);
@@ -92,7 +91,7 @@ export const initialized = _.once(async () => {
 });
 
 // empty until populated in `initialized`
-let globalApiKey: string = '';
+let globalApiKey = '';
 
 export const getGlobalApiKey = async (): Promise<string> => {
 	if (globalApiKey === '') {
@@ -126,7 +125,7 @@ export async function generateScopedKey(
 	return await generateKey(appId, serviceName, options);
 }
 
-async function generateGlobalKey(force: boolean = false): Promise<string> {
+async function generateGlobalKey(force = false): Promise<string> {
 	globalApiKey = await generateKey(0, null, {
 		force,
 		scopes: [{ type: 'global' }],

@@ -257,7 +257,7 @@ describe('device-state', () => {
 		applyTargetStub.restore();
 	});
 
-	it('allows cancelling an in-progress target state apply', async () => {
+	it('allows cancelling an in-progress target state apply', () => {
 		(log.debug as sinon.SinonStub).reset();
 		const applyTargetStub = sinon
 			.stub(deviceState, 'applyTarget')

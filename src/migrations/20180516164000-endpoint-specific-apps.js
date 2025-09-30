@@ -7,7 +7,8 @@ exports.up = function (knex) {
 			console.log(
 				'Unable to locate config.json! Things may fail unexpectedly!',
 			);
-			return resolve({});
+			resolve({});
+			return;
 		}
 		fs.readFile(configJsonPath, (err, data) => {
 			if (err) {
@@ -20,7 +21,7 @@ exports.up = function (knex) {
 			try {
 				const parsed = JSON.parse(data.toString());
 				resolve(parsed);
-			} catch (e) {
+			} catch {
 				console.log(
 					'Failed to parse config.json! Things may fail unexpectedly!',
 				);
@@ -35,7 +36,7 @@ exports.up = function (knex) {
 				t.string('source');
 			})
 			.then(() => {
-				return knex('app').update({ source: config.apiEndpoint || '' });
+				return knex('app').update({ source: config.apiEndpoint ?? '' });
 			});
 	});
 };

@@ -30,7 +30,7 @@ async function checkHost(opts: ConnectOptions): Promise<boolean> {
 }
 
 function customMonitor(options: ConnectOptions, fn: MonitorChangeFunction) {
-	return monitor(checkHost, options, fn);
+	monitor(checkHost, options, fn);
 }
 
 export function enableCheck(enable: boolean) {
@@ -38,7 +38,7 @@ export function enableCheck(enable: boolean) {
 }
 
 export async function isVPNActive(): Promise<boolean> {
-	let active: boolean = true;
+	let active = true;
 	try {
 		await fs.lstat(`${constants.vpnStatusPath}/active`);
 	} catch {
@@ -80,14 +80,14 @@ export const startConnectivityCheck = _.once(
 		}
 
 		const parsedUrl = url.parse(apiEndpoint);
-		const port = parseInt(parsedUrl.port!, 10);
+		const port = parseInt(parsedUrl.port ?? '80', 10);
 		const blink = await getBlink();
 
 		customMonitor(
 			{
 				host: parsedUrl.hostname ?? undefined,
 				port: port || (parsedUrl.protocol === 'https' ? 443 : 80),
-				path: parsedUrl.path || '/',
+				path: parsedUrl.path ?? '/',
 				interval: 10 * 1000,
 			},
 			(connected) => {
@@ -111,7 +111,7 @@ export function enableConnectivityCheck(enable: boolean) {
 	log.debug(`Connectivity check enabled: ${enable}`);
 }
 
-export const connectivityCheckEnabled = async () => isConnectivityCheckEnabled;
+export const connectivityCheckEnabled = () => isConnectivityCheckEnabled;
 
 const IP_REGEX =
 	/^(?:(?:balena|docker|rce|tun)[0-9]+|tun[0-9]+|resin-vpn|lo|resin-dns|supervisor0|balena-redsocks|resin-redsocks|br-[0-9a-f]{12})$/;

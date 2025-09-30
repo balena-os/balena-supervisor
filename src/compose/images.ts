@@ -33,7 +33,7 @@ interface FetchProgressEvent {
 
 // Setup an event emitter
 interface ImageEvents {
-	change: void;
+	change: never;
 }
 class ImageEventEmitter extends (EventEmitter as new () => StrictEventEmitter<
 	EventEmitter,
@@ -153,11 +153,11 @@ export function imageFromService(service: ServiceInfo): Image {
 		name: service.imageName!,
 		appId: service.appId,
 		appUuid: service.appUuid!,
-		serviceId: service.serviceId!,
-		serviceName: service.serviceName!,
-		imageId: service.imageId!,
-		releaseId: service.releaseId!,
-		commit: service.commit!,
+		serviceId: service.serviceId,
+		serviceName: service.serviceName,
+		imageId: service.imageId,
+		releaseId: service.releaseId,
+		commit: service.commit,
 	};
 }
 
@@ -301,20 +301,18 @@ export async function removeByDockerId(id: string): Promise<void> {
 }
 
 export function getNormalisedTags(image: Docker.ImageInfo): string[] {
-	return (image.RepoTags || []).map(normalise);
+	return (image.RepoTags ?? []).map(normalise);
 }
 
 async function withImagesFromDockerAndDB<T>(
 	cb: (dockerImages: Docker.ImageInfo[], composeImages: Image[]) => T,
 ) {
 	const [normalisedImages, dbImages] = await Promise.all([
-		docker.listImages({ digests: true }).then(async (images) => {
-			return await Promise.all(
-				images.map((image) => ({
-					...image,
-					RepoTag: getNormalisedTags(image),
-				})),
-			);
+		docker.listImages({ digests: true }).then((images) => {
+			return images.map((image) => ({
+				...image,
+				RepoTag: getNormalisedTags(image),
+			}));
 		}),
 		db.models('image').select(),
 	]);
@@ -505,7 +503,7 @@ async function getImagesForCleanup(): Promise<Array<Docker.ImageInfo['Id']>> {
 		}
 
 		// We also remove images from the Supervisor repository with a different tag
-		for (const repoTag of image.RepoTags || []) {
+		for (const repoTag of image.RepoTags ?? []) {
 			if (isSupervisorRepoTag({ repoTag, svRepos, svTag })) {
 				imagesToCleanup.add(image.Id);
 			}
@@ -677,7 +675,7 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 				digests: true,
 				filters: { reference: [reference] },
 			})
-		).flatMap((imgInfo) => imgInfo.RepoTags || []);
+		).flatMap((imgInfo) => imgInfo.RepoTags ?? []);
 
 		reportEvent('start', { ...image, status: 'Deleting' });
 		logger.logSystemEvent(LogTypes.deleteImage, { image });
@@ -703,7 +701,7 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 				digests: true,
 				filters: { reference: [reference] },
 			})
-		).flatMap((imgInfo) => imgInfo.RepoDigests || []);
+		).flatMap((imgInfo) => imgInfo.RepoDigests ?? []);
 
 		// Remove all remaining digests
 		for (const digest of digests) {

@@ -42,8 +42,8 @@ import { setTimeout } from 'timers/promises';
 
 interface DeviceStateEvents {
 	error: Error;
-	change: void;
-	shutdown: void;
+	change: never;
+	shutdown: never;
 	'apply-target-state-end': Nullable<Error>;
 	'apply-target-state-error': Error;
 
@@ -95,18 +95,22 @@ export let lastSuccessfulUpdate: number | null = null;
 // Controls cancelling of in-progress steps such as fetches
 let abortController = new AbortController();
 
-events.on('error', (err) => log.error('deviceState error: ', err));
+events.on('error', (err) => {
+	log.error('deviceState error: ', err);
+});
 events.on('apply-target-state-end', function (err) {
 	if (err != null) {
 		if (!(err instanceof UpdatesLockedError)) {
-			return log.error('Device state apply error', err);
+			log.error('Device state apply error', err);
+			return;
 		}
 	} else {
 		log.success('Device state apply success');
 		// We also let the device-config module know that we
 		// successfully reached the target state and that it
 		// should clear any rate limiting it's applied
-		return deviceConfig.resetRateLimits();
+		deviceConfig.resetRateLimits();
+		return;
 	}
 });
 
@@ -114,7 +118,9 @@ export const initialized = _.once(async () => {
 	await config.initialized();
 	await applicationManager.initialized();
 
-	applicationManager.on('change', (d) => reportCurrentState(d));
+	applicationManager.on('change', (d) => {
+		reportCurrentState(d);
+	});
 
 	config.on('change', (changedConfig) => {
 		if (changedConfig.loggingEnabled != null) {
@@ -272,7 +278,9 @@ function emitAsync<T extends keyof DeviceStateEvents>(
 }
 
 const inferStepsLock = () =>
-	takeGlobalLockRW('inferSteps').disposer((release) => release());
+	takeGlobalLockRW('inferSteps').disposer((release) => {
+		release();
+	});
 // Exported for unit test
 export function usingInferStepsLock<
 	T extends () => any,
@@ -295,7 +303,7 @@ export async function getLegacyState(): Promise<DeviceLegacyState> {
 		...theState.local,
 		...currentVolatile,
 	};
-	theState.local!.apps = appsStatus.local;
+	theState.local.apps = appsStatus.local;
 
 	// Multi-app warning!
 	// If we have more than one app, simply return the first commit.
@@ -303,7 +311,7 @@ export async function getLegacyState(): Promise<DeviceLegacyState> {
 	// at that point we can filter non-system apps leaving a single user app.
 	// After this, for true multi-app, we will need to report our status back in a
 	// different way, meaning this function will no longer be needed
-	const appIds = Object.keys(theState.local!.apps).map((strId) =>
+	const appIds = Object.keys(theState.local.apps).map((strId) =>
 		parseInt(strId, 10),
 	);
 
@@ -312,7 +320,7 @@ export async function getLegacyState(): Promise<DeviceLegacyState> {
 		const commit = await commitStore.getCommitForApp(appId);
 
 		if (commit != null && !applyInProgress) {
-			theState.local!.is_on__commit = commit;
+			theState.local.is_on__commit = commit;
 		}
 	}
 
@@ -445,9 +453,7 @@ export async function getCurrentState(): Promise<InstancedDeviceState> {
 }
 
 export function reportCurrentState(newState: DeviceReport = {}) {
-	if (newState == null) {
-		newState = {};
-	}
+	newState ??= {};
 	currentVolatile = { ...currentVolatile, ...newState };
 	emitAsync('change', undefined);
 }
@@ -470,20 +476,18 @@ export async function shutdown({
 	return updateLock.withLock(
 		appIds,
 		async () => {
-			let dbusAction;
 			switch (reboot) {
 				case true:
 					logger.logSystemMessage('Rebooting', {}, 'Reboot');
-					dbusAction = await dbus.reboot();
+					await dbus.reboot();
 					break;
 				case false:
 					logger.logSystemMessage('Shutting down', {}, 'Shutdown');
-					dbusAction = await dbus.shutdown();
+					await dbus.shutdown();
 					break;
 			}
 			shuttingDown = true;
 			emitAsync('shutdown', undefined);
-			return dbusAction;
 		},
 		{ force: force || lockOverride },
 	);
@@ -587,7 +591,8 @@ function applyError(
 				err,
 			);
 		}
-		return triggerApplyTarget({ force, delay, initial });
+		triggerApplyTarget({ force, delay, initial });
+		return;
 	}
 }
 
@@ -735,13 +740,15 @@ export const applyTarget = async ({
 			);
 		}
 	}).catch((err) => {
-		return applyError(err, { force, initial, intermediate });
+		applyError(err, { force, initial, intermediate });
 	});
 };
 
 function pausingApply(fn: () => any) {
 	const lock = () => {
-		return takeGlobalLockRW('pause').disposer((release) => release());
+		return takeGlobalLockRW('pause').disposer((release) => {
+			release();
+		});
 	};
 	// TODO: This function is a bit of a mess
 	const pause = () => {
@@ -798,6 +805,7 @@ export function triggerApplyTarget({
 				);
 			}
 			scheduledApply.delay = Math.max(delay, scheduledApply.delay);
+			// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 			if (!scheduledApply.force) {
 				scheduledApply.force = force;
 			}

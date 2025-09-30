@@ -36,8 +36,7 @@ export const getBalenaApi = memoizee(
 
 		const baseUrl = url.resolve(apiEndpoint, '/v6/');
 		const passthrough = structuredClone(await request.getRequestOptions());
-		passthrough.headers =
-			passthrough.headers != null ? passthrough.headers : {};
+		passthrough.headers = passthrough.headers ?? {};
 		passthrough.headers.Authorization = `Bearer ${currentApiKey}`;
 		log.info(`API Binder bound to: ${baseUrl}`);
 		return new PinejsClientRequest({

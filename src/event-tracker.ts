@@ -34,6 +34,6 @@ export function track(
 	}
 
 	// Don't send potentially sensitive information, by using a whitelist
-	properties = mask(properties, mixpanelMask) || {};
+	properties = mask(properties, mixpanelMask) ?? {};
 	log.event('Event:', event, JSON.stringify(properties));
 }
