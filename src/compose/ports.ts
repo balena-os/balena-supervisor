@@ -152,13 +152,8 @@ export class PortMap {
 		let externalEnd = match[3];
 		let internalEnd = match[5];
 
-		if (external == null) {
-			external = internal;
-		}
-
-		if (internalEnd == null) {
-			internalEnd = internal;
-		}
+		external ??= internal;
+		internalEnd ??= internal;
 
 		if (externalEnd == null) {
 			if (internal === internalEnd) {

@@ -61,7 +61,7 @@ function diffcmp<T>(src: T, tgt: T, depth = Infinity): [Partial<T>, boolean] {
 				return changed ? { [key]: delta } : {};
 			}),
 		)
-		.reduce((res, delta) => ({ ...res, ...delta }), {} as Partial<T>);
+		.reduce<Partial<T>>((res, delta) => ({ ...res, ...delta }), {});
 
 	return [r, Object.keys(r).length > 0];
 }
@@ -130,5 +130,5 @@ export function prune<T>(obj: T): Partial<T> {
 			}
 			return { [key]: prunedChild };
 		})
-		.reduce((res, delta) => ({ ...res, ...delta }), {} as Partial<T>);
+		.reduce<Partial<T>>((res, delta) => ({ ...res, ...delta }), {});
 }

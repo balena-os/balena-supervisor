@@ -54,7 +54,7 @@ export async function get<T extends SchemaTypeKey>(
 	key: T,
 	trx?: Knex.Transaction,
 ): Promise<SchemaReturn<T>> {
-	const $db = trx || db.models;
+	const $db = trx ?? db.models;
 
 	if (Object.hasOwn(Schema.schema, key)) {
 		const schemaKey = key as Schema.SchemaKey;
@@ -191,7 +191,7 @@ export async function set<T extends SchemaTypeKey>(
 export async function remove<T extends Schema.SchemaKey>(
 	key: T,
 ): Promise<void> {
-	if (Schema.schema[key] == null || !Schema.schema[key].mutable) {
+	if (!Schema.schema[key]?.mutable) {
 		throw new Error(`Attempt to delete non-existent or immutable key ${key}`);
 	}
 	if (Schema.schema[key].source === 'config.json') {
@@ -222,7 +222,7 @@ export function valueIsValid<T extends SchemaTypeKey>(
 ): boolean {
 	// If the default entry in the schema is a type and not a value,
 	// use this in the validation of the value
-	const schemaTypesEntry = schemaTypes[key as SchemaTypeKey];
+	const schemaTypesEntry = schemaTypes[key];
 	let type: t.Type<unknown>;
 	if (schemaTypesEntry.default instanceof t.Type) {
 		type = t.union([schemaTypesEntry.type, schemaTypesEntry.default]);
@@ -304,9 +304,7 @@ export async function generateRequiredFields() {
 	return getMany(['uuid', 'deviceApiKey', 'unmanaged']).then(
 		({ uuid, deviceApiKey, unmanaged }) => {
 			// These fields need to be set regardless
-			if (uuid == null) {
-				uuid = uuid || newUniqueKey();
-			}
+			uuid ??= newUniqueKey();
 			return set({ uuid }).then(() => {
 				if (unmanaged) {
 					return;

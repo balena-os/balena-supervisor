@@ -2,7 +2,7 @@ import request from 'supertest';
 import { expect } from 'chai';
 
 const BALENA_SUPERVISOR_ADDRESS =
-	process.env.BALENA_SUPERVISOR_ADDRESS || 'http://balena-supervisor:48484';
+	process.env.BALENA_SUPERVISOR_ADDRESS ?? 'http://balena-supervisor:48484';
 
 describe('supervisor app', () => {
 	it('the supervisor app runs and the API responds to /v1/healthy', async () => {

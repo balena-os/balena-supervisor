@@ -361,7 +361,7 @@ describe('RedsocksConf', () => {
 			});
 		});
 
-		it('parses and removes double quotes around auth fields if present', async () => {
+		it('parses and removes double quotes around auth fields if present', () => {
 			const expected = {
 				redsocks: {
 					ip: 'example.org',

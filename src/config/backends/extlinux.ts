@@ -43,11 +43,11 @@ export class Extlinux extends ConfigBackend {
 		deviceType: string,
 		metaRelease: string | undefined,
 	): Promise<boolean> {
-		return (
+		return Promise.resolve(
 			// Only test metaRelease with Jetson devices
 			deviceType.startsWith('jetson-') &&
-			typeof metaRelease === 'string' &&
-			semver.lt(metaRelease, EXTLINUX_READONLY)
+				typeof metaRelease === 'string' &&
+				semver.lt(metaRelease, EXTLINUX_READONLY),
 		);
 	}
 
@@ -136,7 +136,7 @@ export class Extlinux extends ConfigBackend {
 		);
 
 		// Write new extlinux configuration
-		return await hostUtils.writeToBoot(
+		await hostUtils.writeToBoot(
 			Extlinux.bootConfigPath,
 			Extlinux.extlinuxFileToString(parsedBootFile),
 		);

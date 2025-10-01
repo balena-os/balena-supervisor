@@ -93,7 +93,7 @@ export class ConfigTxt extends ConfigBackend {
 	].concat(ConfigTxt.UNSUPPORTED_KEYS);
 
 	public async matches(deviceType: string): Promise<boolean> {
-		return (
+		return Promise.resolve(
 			[
 				'fincm3',
 				'rt-rpi-300',
@@ -103,7 +103,7 @@ export class ConfigTxt extends ConfigBackend {
 				'revpi-connect-s',
 				'revpi-core-3',
 				'revpi-connect-4',
-			].includes(deviceType) || deviceType.startsWith('raspberry')
+			].includes(deviceType) || deviceType.startsWith('raspberry'),
 		);
 	}
 
@@ -165,10 +165,8 @@ export class ConfigTxt extends ConfigBackend {
 						overlayQueue.push([overlay, params]);
 					} else {
 						// Otherwise push the new value to the array
-						if (conf[key] == null) {
-							conf[key] = [];
-						}
-						conf[key]!.push(value);
+						conf[key] ??= [];
+						conf[key].push(value);
 					}
 				}
 				continue;
@@ -188,11 +186,11 @@ export class ConfigTxt extends ConfigBackend {
 		for (const [overlay, params] of overlayQueue) {
 			// Convert the base overlay to global dtparams
 			if (overlay === BASE_OVERLAY && params.length > 0) {
-				conf.dtparam = conf.dtparam != null ? conf.dtparam : [];
+				conf.dtparam ??= [];
 				conf.dtparam.push(...params);
 			} else if (overlay !== BASE_OVERLAY) {
 				// Convert dtoverlays to array format
-				conf.dtoverlay = conf.dtoverlay != null ? conf.dtoverlay : [];
+				conf.dtoverlay ??= [];
 				conf.dtoverlay.push([overlay, ...params].join(','));
 			}
 		}

@@ -1,3 +1,5 @@
+/* eslint @typescript-eslint/require-await: 0 */
+
 process.env.DOCKER_HOST = 'unix:///your/dockerode/mocks/are/not/working';
 
 import Dockerode from 'dockerode';
@@ -54,7 +56,7 @@ registerOverride(
 	async () =>
 		new Stream.Readable({
 			read: () => {
-				return _.noop();
+				_.noop();
 			},
 		}),
 );

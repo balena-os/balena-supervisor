@@ -6,7 +6,7 @@ import { setTimeout as delay } from 'timers/promises';
 import { exec } from '~/lib/fs-utils';
 
 const BALENA_SUPERVISOR_ADDRESS =
-	process.env.BALENA_SUPERVISOR_ADDRESS || 'http://balena-supervisor:48484';
+	process.env.BALENA_SUPERVISOR_ADDRESS ?? 'http://balena-supervisor:48484';
 
 const getCurrentState = async () =>
 	await request(BALENA_SUPERVISOR_ADDRESS)
@@ -45,15 +45,13 @@ const setTargetState = async (
 	return new Promise((resolve, reject) => {
 		const timer =
 			timeout > 0
-				? setTimeout(
-						() =>
-							reject(
-								new Error(
-									`Timeout while waiting for the target state to be applied`,
-								),
+				? setTimeout(() => {
+						reject(
+							new Error(
+								`Timeout while waiting for the target state to be applied`,
 							),
-						timeout,
-					)
+						);
+					}, timeout)
 				: undefined;
 
 		waitApplied()
