@@ -221,11 +221,11 @@ async function generateKey(
 		// remove the cached lookup for the key
 		const [apiKey] = secrets;
 		if (apiKey != null) {
-			await getApiKeyByKey.delete(apiKey.key);
+			getApiKeyByKey.delete(apiKey.key);
 		}
 
 		// remove the cached value for this lookup
-		await getApiKeyForService.delete(appId, serviceName);
+		getApiKeyForService.delete(appId, serviceName);
 
 		// return a new API key
 		return await createNewKey(appId, serviceName, scopes);
