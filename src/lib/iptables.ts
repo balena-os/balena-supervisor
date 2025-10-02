@@ -205,7 +205,7 @@ const iptablesRestoreAdaptor: RuleAdaptor = async (
 				if (code && code !== 0) {
 					return reject(
 						new IPTablesRuleError(
-							`Error running iptables: ${stderr.join()} (${args.join(' ')})`,
+							`Error running iptables (${family}): ${stderr.join()} (${args.join(' ')})`,
 							ruleset,
 						),
 					);
