@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import memoizee from 'memoizee';
 import { promises as fs } from 'fs';
 
 import { InternalInconsistencyError } from './errors';
@@ -6,7 +6,7 @@ import { exec } from './fs-utils';
 import log from './supervisor-console';
 
 // Retrieve the data for the OS once only per path
-const getOSReleaseData = _.memoize(
+const getOSReleaseData = memoizee(
 	async (path: string): Promise<Dictionary<string>> => {
 		const releaseItems: Dictionary<string> = {};
 		try {
@@ -17,8 +17,11 @@ const getOSReleaseData = _.memoize(
 				const [key, ...values] = line.split('=');
 
 				// Remove enclosing quotes: http://stackoverflow.com/a/19156197/2549019
-				const value = _.trim(values.join('=')).replace(/^"(.+(?="$))"$/, '$1');
-				releaseItems[_.trim(key)] = value;
+				const value = values
+					.join('=')
+					.trim()
+					.replace(/^"(.+(?="$))"$/, '$1');
+				releaseItems[key.trim()] = value;
 			}
 		} catch (e: any) {
 			throw new InternalInconsistencyError(
@@ -28,6 +31,7 @@ const getOSReleaseData = _.memoize(
 
 		return releaseItems;
 	},
+	{ promise: true },
 );
 
 async function getOSReleaseField(
@@ -66,6 +70,10 @@ export async function getOSVariant(path: string): Promise<string | undefined> {
 
 export function getOSSemver(path: string): Promise<string | undefined> {
 	return getOSReleaseField(path, 'VERSION');
+}
+
+export function getOSBoardRev(path: string): Promise<string | undefined> {
+	return getOSReleaseField(path, 'BALENA_BOARD_REV');
 }
 
 export async function getMetaOSRelease(

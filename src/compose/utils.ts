@@ -19,8 +19,8 @@ import type {
 } from './types';
 
 import log from '../lib/supervisor-console';
-
 import * as apiKeys from '../lib/api-keys';
+import { getOSBoardRev } from '../lib/os-release';
 
 export function camelCaseConfig(
 	literalConfig: ConfigMap,
@@ -404,6 +404,12 @@ export async function addFeaturesFromLabels(
 				Capabilities: [['gpu']],
 				Options: {},
 			} as Dockerode.DeviceRequest),
+		'io.balena.features.host-os.board-rev': async () => {
+			const osBoardRev = await getOSBoardRev(constants.hostOSVersionPath);
+			if (osBoardRev) {
+				setEnvVariables('HOST_OS_BOARD_REV', osBoardRev);
+			}
+		},
 	};
 
 	for (const feature of Object.keys(features) as [keyof typeof features]) {
