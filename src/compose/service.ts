@@ -43,6 +43,13 @@ const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
 
 const unsupportedSecurityOpt = (opt: string) => /label=.*/.test(opt);
 
+// Type for the return value of deep-object-diff's detailedDiff function
+interface DetailedDiff<T = any> {
+	added: Partial<T>;
+	deleted: Partial<T>;
+	updated: Partial<T>;
+}
+
 export type Service = ServiceIface;
 
 class ServiceImpl implements Service {
@@ -817,13 +824,22 @@ class ServiceImpl implements Service {
 			);
 			if (!nonArrayEquals) {
 				// Try not to leak any sensitive information
-				const diffObj = diff(thisOmitted, otherOmitted) as ServiceConfig;
-				if (diffObj.environment != null) {
-					diffObj.environment = _.mapValues(
-						diffObj.environment,
-						() => 'hidden',
-					);
-				}
+				const diffObj = diff(
+					thisOmitted,
+					otherOmitted,
+				) as DetailedDiff<ServiceConfig>;
+
+				// Redact environment variables from all sections (added, deleted, updated)
+				const redactEnvironment = (obj: Partial<ServiceConfig> | undefined) => {
+					if (obj?.environment != null) {
+						obj.environment = _.mapValues(obj.environment, () => 'hidden');
+					}
+				};
+
+				redactEnvironment(diffObj.added);
+				redactEnvironment(diffObj.deleted);
+				redactEnvironment(diffObj.updated);
+
 				log.debug('  Non-array fields: ', JSON.stringify(diffObj));
 			}
 			if (differentArrayFields.length > 0) {
