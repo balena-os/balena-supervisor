@@ -1,4 +1,5 @@
 import * as _ from 'lodash';
+import type { SinonSpy } from 'sinon';
 
 import { expect } from 'chai';
 import { createContainer } from '~/test-lib/mockerode';
@@ -7,6 +8,7 @@ import { Service } from '~/src/compose/service';
 import { Volume } from '~/src/compose/volume';
 import * as ServiceT from '~/src/compose/types/service';
 import * as constants from '~/lib/constants';
+import log from '~/src/lib/supervisor-console';
 
 const configs = {
 	simple: {
@@ -657,6 +659,55 @@ describe('compose/service: unit tests', () => {
 
 			expect(svc1.isEqualConfig(svc2, {})).to.be.true;
 			expect(svc2.isEqualConfig(svc1, {})).to.be.true;
+		});
+
+		it('should redact environment variables from debug logs when configs differ', async () => {
+			const svc1 = await Service.fromComposeObject(
+				{
+					appId: 1,
+					serviceId: 1,
+					serviceName: 'test',
+					environment: {
+						SECRET_KEY: 'super-secret-value',
+						API_TOKEN: 'sensitive-token',
+					},
+				},
+				{ appName: 'test' } as any,
+			);
+
+			const svc2 = await Service.fromComposeObject(
+				{
+					appId: 1,
+					serviceId: 1,
+					serviceName: 'test',
+					environment: {
+						SECRET_KEY: 'different-secret',
+						API_TOKEN: 'different-token',
+						NEW_VAR: 'new-value',
+					},
+				},
+				{ appName: 'test' } as any,
+			);
+
+			svc1.isEqualConfig(svc2, {});
+
+			const debugSpy = log.debug as SinonSpy;
+			const diffLog = debugSpy
+				.getCalls()
+				.map((call) => call.args.join(' '))
+				.find((msg) => msg.includes('Non-array fields'));
+
+			expect(diffLog).to.not.be.undefined;
+
+			// Ensure sensitive values are not in the logs
+			expect(diffLog).to.not.include('super-secret-value');
+			expect(diffLog).to.not.include('sensitive-token');
+			expect(diffLog).to.not.include('different-secret');
+			expect(diffLog).to.not.include('different-token');
+			expect(diffLog).to.not.include('new-value');
+
+			// Ensure the redaction marker is present
+			expect(diffLog).to.include('hidden');
 		});
 	});
 
