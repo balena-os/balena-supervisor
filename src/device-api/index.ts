@@ -79,7 +79,7 @@ export class SupervisorAPI {
 				if (this.server) {
 					this.server.timeout = apiTimeout;
 				}
-				return resolve();
+				resolve();
 			});
 		});
 	}
@@ -94,10 +94,12 @@ export class SupervisorAPI {
 						// In case the HTTP server fails to shut down,
 						// make this.server available again for future attempts.
 						this.server = server;
-						return reject(err);
+						reject(err);
+						return;
 					} else {
 						log.info('Stopped Supervisor API');
-						return resolve();
+						resolve();
+						return;
 					}
 				});
 			});

@@ -30,7 +30,7 @@ import { setTimeout } from 'timers/promises';
 import { getBootTime } from '../lib/fs-utils';
 
 interface ServiceManagerEvents {
-	change: void;
+	change: never;
 }
 type ServiceManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
@@ -73,7 +73,7 @@ export const getAll = async (
 				// We know that the containerId is set below, because `fromDockerContainer`
 				// always sets it
 				const vState = volatileState[service.containerId!];
-				if (vState != null && vState.status != null) {
+				if (vState?.status != null) {
 					service.status = vState.status;
 				}
 				return service;
@@ -86,13 +86,13 @@ export const getAll = async (
 		}),
 	);
 
-	return services.filter((s) => s != null) as Service[];
+	return services.filter((s) => s != null);
 };
 
 async function get(service: Service) {
 	// Get the container ids for special network handling
 	const containerIds = await getContainerIdMap(
-		service.appUuid || service.appId,
+		service.appUuid ?? service.appId,
 	);
 	const services = (await getAll(`service-name=${service.serviceName}`)).filter(
 		(currentService) => currentService.isEqualConfig(service, containerIds),
@@ -121,18 +121,16 @@ export async function getState() {
 				`containerId not defined in ServiceManager.getLegacyServicesState: ${service}`,
 			);
 		}
-		if (status[service.containerId] == null) {
-			status[service.containerId] = _.pick(service, [
-				'appId',
-				'appUuid',
-				'imageId',
-				'status',
-				'releaseId',
-				'commit',
-				'createdAt',
-				'serviceName',
-			]) as Partial<Service>;
-		}
+		status[service.containerId] ??= _.pick(service, [
+			'appId',
+			'appUuid',
+			'imageId',
+			'status',
+			'releaseId',
+			'commit',
+			'createdAt',
+			'serviceName',
+		]) as Partial<Service>;
 	}
 
 	return _.values(status);
@@ -293,7 +291,7 @@ async function create(service: Service): Promise<Service> {
 		service = Service.fromDockerContainer(inspectInfo);
 
 		await Promise.all(
-			_.map((nets || {}).EndpointsConfig, (endpointConfig, name) =>
+			_.map((nets ?? {})?.EndpointsConfig, (endpointConfig, name) =>
 				docker.getNetwork(name).connect({
 					Container: container.id,
 					EndpointConfig: endpointConfig,
@@ -439,7 +437,7 @@ export function listenToEvents() {
 									serviceId,
 								});
 							} else if (status === 'destroy') {
-								await logMonitor.detach(data.id);
+								logMonitor.detach(data.id);
 							}
 						}
 					} catch (e: any) {
@@ -650,7 +648,7 @@ async function prepareForHandover(service: Service) {
 
 function waitToKill(service: Service, timeout: number | string) {
 	const pollInterval = 100;
-	timeout = checkInt(timeout, { positive: true }) || 60000;
+	timeout = checkInt(timeout, { positive: true }) ?? 60000;
 	const deadline = Date.now() + timeout;
 
 	const handoverCompletePaths = service.handoverCompleteFullPathsOnHost();

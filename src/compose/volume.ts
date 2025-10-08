@@ -29,9 +29,9 @@ class VolumeImpl implements Volume {
 	public static fromDockerVolume(inspect: Docker.VolumeInspectInfo): Volume {
 		// Convert the docker inspect to the config
 		const config: VolumeConfig = {
-			labels: inspect.Labels || {},
+			labels: inspect.Labels ?? {},
 			driver: inspect.Driver,
-			driverOpts: inspect.Options || {},
+			driverOpts: inspect.Options ?? {},
 		};
 
 		// Detect the name and appId from the inspect data
@@ -48,12 +48,12 @@ class VolumeImpl implements Volume {
 		config = {} as Partial<ComposeVolumeConfig>,
 	) {
 		const filledConfig: VolumeConfig = {
-			driverOpts: config.driver_opts || {},
-			driver: config.driver || 'local',
+			driverOpts: config.driver_opts ?? {},
+			driver: config.driver ?? 'local',
 			labels: {
 				// We only need to assign the labels here, as when we
 				// get it from the daemon, they should already be there
-				...ComposeUtils.normalizeLabels(config.labels || {}),
+				...ComposeUtils.normalizeLabels(config.labels ?? {}),
 				...constants.defaultVolumeLabels,
 
 				// the app uuid will always be in the target state, the

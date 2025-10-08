@@ -83,17 +83,19 @@ async function mdnsLookup(
 	// see if we resolved anything...
 	if (allAddresses.length === 0) {
 		// nothing! return a suitable error...
-		return cb(new DnsLookupError());
+		cb(new DnsLookupError());
+		return;
 	}
 
 	// all the addresses were requested...
 	if (opts && typeof opts !== 'number' && opts.all) {
-		return cb(null, allAddresses);
+		cb(null, allAddresses);
+		return;
 	}
 
 	// only a single address was requested...
 	const [{ address: addr, family: fmly }] = allAddresses;
-	return cb(null, addr, fmly);
+	cb(null, addr, fmly);
 }
 
 // This was originally wrapped in a do block in
@@ -123,16 +125,17 @@ async function mdnsLookup(
 			Object.assign({ verbatim: true }, opts),
 			(error: any, address: string, family: number) => {
 				if (error == null) {
-					return cb(null, address, family);
+					cb(null, address, family);
+					return;
 				}
 
 				// If the regular lookup fails, we perform a mdns lookup if the
 				// name ends with .local
-				if (name && name.endsWith('.local')) {
+				if (name?.endsWith('.local')) {
 					return mdnsLookup(name, opts, cb);
 				}
 
-				return cb(error);
+				cb(error);
 			},
 		);
 	};

@@ -108,9 +108,9 @@ class LogMonitor {
 				throw new Error('failed to open process stream');
 			}
 
-			stderr?.on('data', (data) =>
-				log.error('Journalctl process stderr: ', data.toString()),
-			);
+			stderr?.on('data', (data) => {
+				log.error('Journalctl process stderr: ', data.toString());
+			});
 
 			const self = this;
 
@@ -125,7 +125,7 @@ class LogMonitor {
 						) {
 							await self.handleRow(row);
 						} else if (HOST_SERVICES.includes(row._SYSTEMD_UNIT)) {
-							await self.handleHostServiceRow(row);
+							self.handleHostServiceRow(row);
 						}
 					} catch {
 						// ignore parsing errors
@@ -171,9 +171,7 @@ class LogMonitor {
 		}
 
 		// If the conditions weren't met to set the lastSentTimestamp, use the process uptime
-		if (this.lastSentTimestamp == null) {
-			this.lastSentTimestamp = Date.now() - performance.now();
-		}
+		this.lastSentTimestamp ??= Date.now() - performance.now();
 
 		return {
 			all: true,
@@ -193,7 +191,7 @@ class LogMonitor {
 		return containerId in this.containers;
 	}
 
-	public async attach(containerId: string, hook: MonitorHook) {
+	public attach(containerId: string, hook: MonitorHook) {
 		if (!this.containers[containerId]) {
 			this.containers[containerId] = {
 				hook,
@@ -201,7 +199,7 @@ class LogMonitor {
 		}
 	}
 
-	public async detach(containerId: string) {
+	public detach(containerId: string) {
 		delete this.containers[containerId];
 	}
 
@@ -236,9 +234,7 @@ class LogMonitor {
 		this.lastSentTimestamp = timestamp;
 	}
 
-	private async handleHostServiceRow(
-		row: JournalRow & { _SYSTEMD_UNIT: string },
-	) {
+	private handleHostServiceRow(row: JournalRow & { _SYSTEMD_UNIT: string }) {
 		const message = messageFieldToString(row.MESSAGE);
 		if (message == null) {
 			return;

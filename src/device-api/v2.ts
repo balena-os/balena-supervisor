@@ -224,12 +224,12 @@ router.get(
 					if (svc == null) {
 						status = img.status;
 					} else {
-						status = svc.status || img.status;
+						status = svc.status ?? img.status;
 					}
 					response[appName].services[img.serviceName] = {
 						status,
 						releaseId: img.releaseId,
-						downloadProgress: img.downloadProgress || null,
+						downloadProgress: img.downloadProgress ?? null,
 					};
 				});
 
@@ -321,7 +321,7 @@ router.post('/v2/local/target-state', async (req, res) => {
 
 	try {
 		await deviceState.setTarget(targetState, true);
-		await deviceState.triggerApplyTarget({ force });
+		deviceState.triggerApplyTarget({ force });
 		res.status(200).json({
 			status: 'success',
 			message: 'OK',
@@ -356,7 +356,7 @@ router.get('/v2/local/device-info', async (_req, res) => {
 	}
 });
 
-router.get('/v2/local/logs', async (_req, res) => {
+router.get('/v2/local/logs', (_req, res) => {
 	const serviceNameCache: { [sId: number]: string } = {};
 	const backend = logger.getLocalBackend();
 	// Cache the service names to IDs per call to the endpoint
@@ -396,7 +396,7 @@ router.get('/v2/containerId', async (req: AuthorizedRequest, res) => {
 	);
 
 	if (req.query.serviceName != null || req.query.service != null) {
-		const serviceName = req.query.serviceName || req.query.service;
+		const serviceName = req.query.serviceName ?? req.query.service;
 		const service = _.find(services, (svc) => svc.serviceName === serviceName);
 		if (service != null) {
 			res.status(200).json({
@@ -546,9 +546,9 @@ router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res) => {
 router.post('/v2/journal-logs', (req, res) => {
 	const all = checkTruthy(req.body.all);
 	const follow = checkTruthy(req.body.follow);
-	const count = checkInt(req.body.count, { positive: true }) || undefined;
+	const count = checkInt(req.body.count, { positive: true }) ?? undefined;
 	const unit = req.body.unit;
-	const format = req.body.format || 'short';
+	const format = req.body.format ?? 'short';
 	const containerId = req.body.containerId;
 	const since = req.body.since;
 	const until = req.body.until;

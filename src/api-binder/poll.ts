@@ -32,7 +32,9 @@ export const emitter: StrictEventEmitter<EventEmitter, TargetStateEvents> =
 	new EventEmitter();
 
 const lockGetTarget = () =>
-	takeGlobalLockRW('getTarget').disposer((release) => release());
+	takeGlobalLockRW('getTarget').disposer((release) => {
+		release();
+	});
 
 type CachedResponse = {
 	etag?: string | string[];
@@ -177,10 +179,7 @@ export const update = async (
 	});
 };
 
-const poll = async (
-	skipFirstGet: boolean = false,
-	fetchErrors: number = 0,
-): Promise<void> => {
+const poll = async (skipFirstGet = false, fetchErrors = 0): Promise<void> => {
 	// Add random jitter up to `maxApiJitterDelay` to space out poll requests
 	// NOTE: the jitter has as objective to reduce the load on networks that have
 	// devices on the 1000s. It's not meant to ease the load on the API as the backend performs

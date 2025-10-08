@@ -37,7 +37,7 @@ describe('device-config', () => {
 
 	let logSpy: SinonSpy;
 
-	before(async () => {
+	before(() => {
 		logSpy = spy(logger, 'logSystemMessage');
 	});
 
@@ -50,7 +50,7 @@ describe('device-config', () => {
 	});
 
 	describe('formatConfigKeys', () => {
-		it('accepts RESIN_ and BALENA_ variables', async () => {
+		it('accepts RESIN_ and BALENA_ variables', () => {
 			return expect(
 				deviceConfig.formatConfigKeys({
 					FOO: 'bar', // should be removed
@@ -168,7 +168,7 @@ describe('device-config', () => {
 			});
 		});
 
-		it('does not allow setting forbidden keys', async () => {
+		it('does not allow setting forbidden keys', () => {
 			const current = {
 				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
 				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
@@ -202,7 +202,7 @@ describe('device-config', () => {
 			);
 		});
 
-		it('does not try to change config.txt if it should not change', async () => {
+		it('does not try to change config.txt if it should not change', () => {
 			const current = {
 				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
 				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',

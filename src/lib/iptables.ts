@@ -21,14 +21,20 @@ export enum RuleAction {
 	Flush = '-F',
 	Delete = '-D',
 }
+
+enum RuleTarget {
+	ACCEPT = 'ACCEPT',
+	BLOCK = 'BLOCK',
+	REJECT = 'REJECT',
+}
 export interface Rule {
 	id?: number;
 	family?: 4 | 6;
 	action?: RuleAction;
-	target?: 'ACCEPT' | 'BLOCK' | 'REJECT' | string;
+	target?: RuleTarget | string;
 	chain?: string;
-	table?: 'filter' | string;
-	proto?: 'all' | any;
+	table?: string;
+	proto?: any;
 	src?: string;
 	dest?: string;
 	matches?: string[];
@@ -200,17 +206,20 @@ const iptablesRestoreAdaptor: RuleAdaptor = async (
 			});
 
 			// handle close/error with the promise...
-			proc.on('error', (err) => reject(err));
+			proc.on('error', (err) => {
+				reject(err);
+			});
 			proc.on('close', (code) => {
 				if (code && code !== 0) {
-					return reject(
+					reject(
 						new IPTablesRuleError(
 							`Error running iptables: ${stderr.join()} (${args.join(' ')})`,
 							ruleset,
 						),
 					);
+					return;
 				}
-				return resolve(stdout.join());
+				resolve(stdout.join());
 			});
 		});
 	}
@@ -302,7 +311,9 @@ async function applyRules(rules: Rule | Rule[], adaptor: RuleAdaptor) {
 	};
 
 	const processedRules: Rule[] = [];
-	_.castArray(rules).forEach((rule) => processRule(rule, processedRules));
+	_.castArray(rules).forEach((rule) => {
+		processRule(rule, processedRules);
+	});
 
 	await adaptor(processedRules);
 }

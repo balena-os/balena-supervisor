@@ -27,9 +27,13 @@ export default class ConfigJsonConfigBackend {
 		this.configPath = configPath;
 
 		this.writeLockConfigJson = () =>
-			takeGlobalLockRW('config.json').disposer((release) => release());
+			takeGlobalLockRW('config.json').disposer((release) => {
+				release();
+			});
 		this.readLockConfigJson = () =>
-			takeGlobalLockRO('config.json').disposer((release) => release());
+			takeGlobalLockRO('config.json').disposer((release) => {
+				release();
+			});
 	}
 
 	public async set<T extends Schema.SchemaKey>(keyVals: {
@@ -57,8 +61,9 @@ export default class ConfigJsonConfigBackend {
 
 	public async get(key: Schema.SchemaKey): Promise<unknown> {
 		await this.init();
-		return Bluebird.using(this.readLockConfigJson(), async () =>
-			structuredClone(this.cache[key]),
+		return Bluebird.using(
+			this.readLockConfigJson(),
+			async () => await structuredClone(this.cache[key]),
 		);
 	}
 
@@ -80,11 +85,11 @@ export default class ConfigJsonConfigBackend {
 
 	private async write(): Promise<void> {
 		// writeToBoot uses fatrw to safely write to the boot partition
-		return hostUtils.writeToBoot(await this.path(), JSON.stringify(this.cache));
+		await hostUtils.writeToBoot(this.path(), JSON.stringify(this.cache));
 	}
 
 	private async read(): Promise<string> {
-		const filename = await this.path();
+		const filename = this.path();
 		return JSON.parse(await hostUtils.readFromBoot(filename, 'utf-8'));
 	}
 
@@ -94,14 +99,9 @@ export default class ConfigJsonConfigBackend {
 	 * TODO: Remove this once api-binder tests are migrated. The only
 	 * time configPath is passed to the constructor is in the legacy tests.
 	 */
-	private async path(): Promise<string> {
+	private path(): string {
 		// TODO: Remove this once api-binder tests are migrated. The only
 		// time configPath is passed to the constructor is in the legacy tests.
-		if (this.configPath != null) {
-			return this.configPath;
-		}
-
-		// The default path in the boot partition
-		return constants.configJsonPath;
+		return this.configPath ?? constants.configJsonPath;
 	}
 }
