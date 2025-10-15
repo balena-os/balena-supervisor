@@ -1,4 +1,22 @@
 - commits:
+    - subject: Only publish + finalize arm64 & amd64 for staging
+      hash: fcf101808c52e060aae12c1344551f0458c3a3bc
+      body: >
+        The armv7/v6 builds are broken due to emulating on QEMU with Alpine
+        musl,
+
+        and tests are run on arm/amd64 anyway.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.1.4
+  title: ""
+  date: 2025-10-15T22:16:52.628Z
+- commits:
     - subject: Clarify that a process should hold a lockfile
       hash: 934d5d5f7efb3b73f283a2d61fe9bdb13cbe411f
       body: ""
