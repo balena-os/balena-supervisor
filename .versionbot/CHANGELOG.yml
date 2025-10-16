@@ -1,4 +1,37 @@
 - commits:
+    - subject: Add back python3 distutils with py3-setuptools
+      hash: b2a0b84bc34e09c87ee38a2e2122f19c6e041f7c
+      body: |
+        Python3 was bumped to remove distutils, but it's needed for building
+        sqlite3 from source, so add it back via py3-setuptools.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Bump dependencies
+      hash: 1d7ff62c73419310c6827457dd41dac47649b4bf
+      body: |
+        - dockerode 4.0.2 -> 4.0.9
+        - livepush 3.5.1 -> 3.5.2
+        - mocha 10.4.0 -> 11.7.2
+        - mocha-pod 2.0.10 -> 2.0.12
+        - morgan 1.10.0 -> 1.10.1
+        - sinon 18.0.0 -> 21.0.0
+        - supertest 7.0.0 -> 7.1.4
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.1.6
+  title: ""
+  date: 2025-10-16T18:30:36.732Z
+- commits:
     - subject: "fix(2433): Fix redaction of secrets in env variables logging"
       hash: 2952818cf3412fcb550fa981e178771678007fd8
       body: >
