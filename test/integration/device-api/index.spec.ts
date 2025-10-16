@@ -7,7 +7,7 @@ import * as deviceApi from '~/src/device-api';
 describe('device-api/index', () => {
 	let api: express.Application;
 
-	before(async () => {
+	before(() => {
 		api = new deviceApi.SupervisorAPI({
 			routers: [],
 			healthchecks: [],

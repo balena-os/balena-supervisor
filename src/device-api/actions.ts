@@ -91,7 +91,7 @@ export const regenerateKey = async (oldKey: string) => {
  * - POST /v1/restart
  * - POST /v2/applications/:appId/restart
  */
-export const doRestart = async (appId: number, force: boolean = false) => {
+export const doRestart = async (appId: number, force = false) => {
 	await deviceState.initialized();
 
 	const currentState = await deviceState.getCurrentState();
@@ -125,7 +125,7 @@ export const doRestart = async (appId: number, force: boolean = false) => {
  * - POST /v1/purge
  * - POST /v2/applications/:appId/purge
  */
-export const doPurge = async (appId: number, force: boolean = false) => {
+export const doPurge = async (appId: number, force = false) => {
 	await deviceState.initialized();
 
 	logger.logSystemMessage(
@@ -210,9 +210,9 @@ export const getLegacyService = async (appId: number) => {
  */
 export const executeDeviceAction = async (
 	step: Parameters<typeof deviceState.executeStepAction>[0],
-	force: boolean = false,
+	force = false,
 ) => {
-	return await deviceState.executeStepAction(step, {
+	await deviceState.executeStepAction(step, {
 		force,
 	});
 };
@@ -333,10 +333,7 @@ export const executeServiceAction = async ({
  * Used by:
  * - POST /v1/update
  */
-export const updateTarget = async (
-	force: boolean = false,
-	cancel: boolean = false,
-) => {
+export const updateTarget = async (force = false, cancel = false) => {
 	eventTracker.track('Update notification');
 
 	if (force || (await config.get('instantUpdates'))) {

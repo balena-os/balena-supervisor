@@ -172,12 +172,12 @@ export type DockerName = t.TypeOf<typeof DockerName>;
  */
 export const DeviceName = new t.Type<string, string>(
 	'DeviceName',
-	(i: unknown): i is string => ShortString.is(i) && i.indexOf('\n') === -1,
+	(i: unknown): i is string => ShortString.is(i) && !i.includes('\n'),
 	(i, c) =>
 		pipe(
 			ShortString.validate(i, c),
 			chain((s) =>
-				s.indexOf('\n') === -1
+				!s.includes('\n')
 					? t.success(s)
 					: t.failure(s, c, 'must not contain newline chars'),
 			),

@@ -247,6 +247,9 @@ export function getHealthcheck(
 ): ServiceHealthcheck {
 	// get the image info healtcheck
 	const imageServiceHealthcheck = dockerHealthcheckToServiceHealthcheck(
+		// This eslint disable is required because dockerode doesn't define Config.Healthcheck,
+		// and can be removed once that type is added to @types/dockerode
+		// eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
 		_.get(imageInfo, 'Config.Healthcheck'),
 	);
 	const composeServiceHealthcheck =
@@ -276,27 +279,24 @@ export function getWorkingDir(
 	workingDir: string | null | undefined,
 	imageInfo?: Dockerode.ImageInspectInfo,
 ): string {
-	return (
-		workingDir != null ? workingDir : _.get(imageInfo, 'Config.WorkingDir', '')
-	).replace(/(^.+)\/$/, '$1');
+	return (workingDir ?? _.get(imageInfo, 'Config.WorkingDir', '')).replace(
+		/(^.+)\/$/,
+		'$1',
+	);
 }
 
 export function getUser(
 	user: string | null | undefined,
 	imageInfo?: Dockerode.ImageInspectInfo,
 ): string {
-	return user != null ? user : _.get(imageInfo, 'Config.User', '');
+	return user ?? _.get(imageInfo, 'Config.User', '');
 }
 
 export function formatDevice(deviceStr: string): DockerDevice {
 	const [pathOnHost, ...parts] = deviceStr.split(':');
 	let [pathInContainer, cgroup] = parts;
-	if (pathInContainer == null) {
-		pathInContainer = pathOnHost;
-	}
-	if (cgroup == null) {
-		cgroup = 'rwm';
-	}
+	pathInContainer ??= pathOnHost;
+	cgroup ??= 'rwm';
 	return {
 		PathOnHost: pathOnHost,
 		PathInContainer: pathInContainer,
@@ -350,10 +350,8 @@ export async function addFeaturesFromLabels(
 				target: constants.dockerSocket,
 			} as LongBind);
 
-			if (service.config.environment['DOCKER_HOST'] == null) {
-				service.config.environment['DOCKER_HOST'] =
-					`unix://${constants.containerDockerSocket}`;
-			}
+			service.config.environment['DOCKER_HOST'] ??=
+				`unix://${constants.containerDockerSocket}`;
 			// We keep balena.sock for backwards compatibility
 			if (constants.dockerSocket !== '/var/run/balena.sock') {
 				service.config.volumes.push({
@@ -627,7 +625,7 @@ export function serviceMountToDockerMount(
 	}
 	if ('bind' in serviceMount && 'propagation' in serviceMount.bind!) {
 		mount.BindOptions = {
-			Propagation: serviceMount.bind!.propagation as Dockerode.MountPropagation,
+			Propagation: serviceMount.bind.propagation as Dockerode.MountPropagation,
 		};
 	}
 	// Although Dockerode.MountSettings type includes some additional options
@@ -636,12 +634,12 @@ export function serviceMountToDockerMount(
 	// Therefore we need to typecast here to satisfy the TS compiler.
 	if ('volume' in serviceMount && 'nocopy' in serviceMount.volume!) {
 		mount.VolumeOptions = {
-			NoCopy: serviceMount.volume!.nocopy,
+			NoCopy: serviceMount.volume.nocopy,
 		} as Dockerode.MountSettings['VolumeOptions'];
 	}
 	if ('tmpfs' in serviceMount && 'size' in serviceMount.tmpfs!) {
 		mount.TmpfsOptions = {
-			SizeBytes: serviceMount.tmpfs!.size,
+			SizeBytes: serviceMount.tmpfs.size,
 		} as Dockerode.MountSettings['TmpfsOptions'];
 	}
 

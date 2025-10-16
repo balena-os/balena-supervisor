@@ -37,15 +37,13 @@ describe('lib/contracts', () => {
 			).to.be.not.throw());
 
 		it('should not validate a contract with fields of invalid type', () => {
-			return Promise.all([
-				expect(() => contracts.parseContract({ type: 1234 })).to.throw(),
-				expect(() =>
-					contracts.parseContract({ slug: true, name: 'test' }),
-				).to.throw(),
-				expect(() =>
-					contracts.parseContract({ requires: 'my-requirement' }),
-				).to.throw(),
-			]);
+			expect(() => contracts.parseContract({ type: 1234 })).to.throw();
+			expect(() =>
+				contracts.parseContract({ slug: true, name: 'test' }),
+			).to.throw();
+			expect(() =>
+				contracts.parseContract({ requires: 'my-requirement' }),
+			).to.throw();
 		});
 
 		it('should correctly validate a contract with requirements', () => {
@@ -121,13 +119,13 @@ describe('lib/contracts', () => {
 		// and below the current value, and use these to reason
 		// about the contract engine results
 		const supervisorVersionGreater = `${
-			semver.major(supervisorVersion)! + 1
+			semver.major(supervisorVersion) + 1
 		}.0.0`;
 		const supervisorVersionLesser = `${
-			semver.major(supervisorVersion)! - 1
+			semver.major(supervisorVersion) - 1
 		}.0.0`;
 
-		before(async () => {
+		before(() => {
 			// We ensure that the versions we're using for testing
 			// are the same as the time of implementation, otherwise
 			// these tests could fail or succeed when they shouldn't
@@ -138,7 +136,7 @@ describe('lib/contracts', () => {
 			expect(semver.lt(supervisorVersionLesser, supervisorVersion)).to.be.true;
 		});
 
-		it('Should correctly run containers with no requirements', async () => {
+		it('Should correctly run containers with no requirements', () => {
 			expect(
 				contracts.containerContractsFulfilled([
 					{
@@ -180,7 +178,7 @@ describe('lib/contracts', () => {
 				.that.equals(true);
 		});
 
-		it('should correctly run containers whose requirements are satisfied', async () => {
+		it('should correctly run containers whose requirements are satisfied', () => {
 			expect(
 				contracts.containerContractsFulfilled([
 					{
@@ -342,7 +340,7 @@ describe('lib/contracts', () => {
 				.that.equals(true);
 		});
 
-		it('should refuse to run containers whose requirements are not satisfied', async () => {
+		it('should refuse to run containers whose requirements are not satisfied', () => {
 			let fulfilled = contracts.containerContractsFulfilled([
 				{
 					commit: 'd0',
@@ -510,7 +508,7 @@ describe('lib/contracts', () => {
 		});
 
 		describe('Optional containers', () => {
-			it('should correctly run passing optional containers', async () => {
+			it('should correctly run passing optional containers', () => {
 				const { valid, unmetServices, fulfilledServices } =
 					contracts.containerContractsFulfilled([
 						{
@@ -538,7 +536,7 @@ describe('lib/contracts', () => {
 				});
 			});
 
-			it('should corrrectly omit failing optional containers', async () => {
+			it('should corrrectly omit failing optional containers', () => {
 				const { valid, unmetServices, fulfilledServices } =
 					contracts.containerContractsFulfilled([
 						{

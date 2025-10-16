@@ -20,7 +20,8 @@ async function createOldDatabase(path: string) {
 	) =>
 		db.schema.createTable(name, (t) => {
 			if (fn != null) {
-				return fn(t);
+				fn(t);
+				return;
 			}
 		});
 

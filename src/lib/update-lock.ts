@@ -39,7 +39,7 @@ export async function abortIfHUPInProgress({
 	force = false,
 }: {
 	force?: boolean;
-}): Promise<boolean | never> {
+}): Promise<boolean> {
 	const breadcrumbs = await Promise.all(
 		['rollback-health-breadcrumb', 'rollback-altboot-breadcrumb'].map(
 			(filename) => pathExistsOnState(filename),
@@ -188,7 +188,7 @@ function newLockable(appId: string, services: string[]): Lockable {
 					(l) => !existing.includes(l),
 				);
 
-				for await (const file of missingLocks) {
+				for (const file of missingLocks) {
 					try {
 						if (force) {
 							// If force: true we remove the lock first

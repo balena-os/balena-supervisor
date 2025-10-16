@@ -10,6 +10,7 @@ import * as ServiceT from '~/src/compose/types/service';
 import * as constants from '~/lib/constants';
 import log from '~/src/lib/supervisor-console';
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const configs = {
 	simple: {
 		compose: require('~/test-data/docker-states/simple/compose.json'),
@@ -32,6 +33,7 @@ const configs = {
 		inspect: require('~/test-data/docker-states/init/inspect.json'),
 	},
 };
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 describe('compose/service: unit tests', () => {
 	describe('Creating a service instance from a compose object', () => {
@@ -1330,7 +1332,7 @@ describe('compose/service: unit tests', () => {
 			});
 		});
 
-		it('should generate a service instance from a docker container (container -> Service)', async () => {
+		it('should generate a service instance from a docker container (container -> Service)', () => {
 			const appId = 6;
 			const mockContainer = createContainer({
 				Id: 'deadbeef',

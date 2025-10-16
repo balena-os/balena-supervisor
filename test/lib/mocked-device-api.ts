@@ -1,3 +1,4 @@
+/* eslint @typescript-eslint/require-await: 0 */
 import * as _ from 'lodash';
 import rewire from 'rewire';
 
@@ -150,7 +151,7 @@ async function cleanUp(): Promise<void> {
 	// Clean up test data
 	await unlinkAll(DB_PATH);
 	// Restore created SinonStubs
-	return restoreStubs();
+	restoreStubs();
 }
 
 async function createAPIOpts(): Promise<void> {

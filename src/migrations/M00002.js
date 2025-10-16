@@ -9,7 +9,8 @@ exports.up = function (knex) {
 			console.log(
 				'Unable to locate config.json! Things may fail unexpectedly!',
 			);
-			return resolve(false);
+			resolve(false);
+			return;
 		}
 
 		fs.readFile(configJsonPath, (err, data) => {
@@ -17,19 +18,23 @@ exports.up = function (knex) {
 				console.log(
 					'Failed to read config.json! Things may fail unexpectedly!',
 				);
-				return resolve(false);
+				resolve(false);
+				return;
 			}
 			try {
 				const parsed = JSON.parse(data.toString());
 				if (parsed.localMode != null) {
-					return resolve(checkTruthy(parsed.localMode));
+					resolve(checkTruthy(parsed.localMode));
+					return;
 				}
-				return resolve(false);
+				resolve(false);
+				return;
 			} catch {
 				console.log(
 					'Failed to parse config.json! Things may fail unexpectedly!',
 				);
-				return resolve(false);
+				resolve(false);
+				return;
 			}
 		});
 	}).then((localMode) => {

@@ -194,10 +194,10 @@ describe('config', () => {
 	});
 
 	describe('Config data sources', () => {
-		afterEach(async () => {
+		afterEach(() => {
 			// Clean up memoized values
-			await fnSchema.deviceArch.clear();
-			await fnSchema.deviceType.clear();
+			fnSchema.deviceArch.clear();
+			fnSchema.deviceType.clear();
 		});
 
 		it('should obtain deviceArch from device-type.json', async () => {

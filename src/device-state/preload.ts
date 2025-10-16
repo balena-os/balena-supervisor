@@ -38,13 +38,15 @@ async function migrateAppsJson(appsPath: string) {
 		await fsUtils
 			.safeRename(appsPath, targetPath)
 			.then(() => fsUtils.writeFileAtomic(appsPath, '{}'))
-			.then(() => log.debug(`Migrated existing apps.json`))
-			.catch((e) =>
+			.then(() => {
+				log.debug(`Migrated existing apps.json`);
+			})
+			.catch((e) => {
 				log.debug(
 					`Continuing without migrating apps.json because of`,
 					e.message,
-				),
-			);
+				);
+			});
 	}
 }
 
@@ -64,7 +66,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 
 		if (Array.isArray(stateFromFile)) {
 			log.debug('Detected a legacy apps.json, converting...');
-			stateFromFile = fromLegacyAppsJson(stateFromFile as any[]);
+			stateFromFile = fromLegacyAppsJson(stateFromFile);
 		}
 
 		// if apps.json apps are keyed by numeric ids, then convert to v3 target state

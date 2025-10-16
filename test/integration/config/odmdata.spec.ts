@@ -23,7 +23,7 @@ describe('config/odmdata', () => {
 		);
 	});
 
-	it('logs error for malformed configuration mode', async () => {
+	it('logs error for malformed configuration mode', () => {
 		// Logs when configuration mode is unknown
 		// @ts-expect-error accessing private value
 		expect(() => backend.parseOptions(Buffer.from([0x9, 0x9, 0x9]))).to.throw();

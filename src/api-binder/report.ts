@@ -20,9 +20,9 @@ import { pathOnRoot } from '../lib/host-utils';
 import { touch, writeAndSyncFile } from '../lib/fs-utils';
 
 let lastReport: DeviceState = {};
-let lastReportTime: number = -Infinity;
+let lastReportTime = -Infinity;
 // Tracks if unable to report the latest state change event.
-let stateChangeDeferred: boolean = false;
+let stateChangeDeferred = false;
 // How often can we report our state to the server in ms
 const maxReportFrequency = 10 * 1000;
 // How often can we report metrics to the server in ms; mirrors server setting.

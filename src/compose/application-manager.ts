@@ -60,7 +60,7 @@ const localModeManager = new LocalModeManager();
 export let fetchesInProgress = 0;
 export let timeSpentFetching = 0;
 
-export function resetTimeSpentFetching(value: number = 0) {
+export function resetTimeSpentFetching(value = 0) {
 	timeSpentFetching = value;
 }
 
@@ -132,7 +132,7 @@ export async function getRequiredSteps(
 	// get some required data
 	const [downloading, availableImages, { localMode, delta }] =
 		await Promise.all([
-			imageManager.getDownloadingImageNames(),
+			Promise.resolve(imageManager.getDownloadingImageNames()),
 			imageManager.getAvailable(),
 			config.getMany(['localMode', 'delta']),
 		]);
@@ -141,13 +141,8 @@ export async function getRequiredSteps(
 
 	// Local mode sets the image and volume retention only
 	// if not explicitely set by the caller
-	if (keepImages == null) {
-		keepImages = localMode;
-	}
-
-	if (keepVolumes == null) {
-		keepVolumes = localMode;
-	}
+	keepImages ??= localMode;
+	keepVolumes ??= localMode;
 
 	return await inferNextSteps(currentApps, targetApps, {
 		// Images are not removed while in local mode to avoid removing the user app images
@@ -561,11 +556,11 @@ export async function executeStep(
 		);
 	}
 
-	// TODO: Find out why this needs to be cast, the typings should hold true
 	await actionExecutors[step.action]({
 		...step,
+		// @ts-expect-error - TODO: Find out why this errors, the typings should hold true
 		force,
-	} as any);
+	});
 }
 
 export async function setTarget(
@@ -825,14 +820,14 @@ function getAppContainerIds(currentApps: InstancedAppState) {
 	Object.keys(currentApps).forEach((appId) => {
 		const intAppId = parseInt(appId, 10);
 		const app = currentApps[intAppId];
-		const services = app.services || ([] as Service[]);
-		containerIds[intAppId] = services.reduce(
+		const services = app.services || [];
+		containerIds[intAppId] = services.reduce<Dictionary<string>>(
 			(ids, s) => ({
 				...ids,
 				...(s.serviceName &&
 					s.containerId && { [s.serviceName]: s.containerId }),
 			}),
-			{} as Dictionary<string>,
+			{},
 		);
 	});
 
@@ -885,13 +880,9 @@ export async function getLegacyState() {
 		if (!appId) {
 			continue;
 		}
-		if (apps[appId] == null) {
-			apps[appId] = {};
-		}
+		apps[appId] ??= {};
 		creationTimesAndReleases[appId] = {};
-		if (apps[appId].services == null) {
-			apps[appId].services = {};
-		}
+		apps[appId].services ??= {};
 		// We only send commit if all services have the same release, and it matches the target release
 		if (releaseId == null) {
 			({ releaseId } = service);
@@ -922,12 +913,8 @@ export async function getLegacyState() {
 
 	for (const image of images) {
 		const { appId } = image;
-		if (apps[appId] == null) {
-			apps[appId] = {};
-		}
-		if (apps[appId].services == null) {
-			apps[appId].services = {};
-		}
+		apps[appId] ??= {};
+		apps[appId].services ??= {};
 		if (apps[appId].services[image.imageId] == null) {
 			apps[appId].services[image.imageId] = _.pick(image, [
 				'status',
@@ -1094,7 +1081,7 @@ export async function getState(): Promise<AppsReport> {
 		) {
 			releases[commit].update_status = 'downloading';
 		} else if (
-			!['aborted', 'downloading'].includes(releases[commit].update_status!) &&
+			!['aborted', 'downloading'].includes(releases[commit].update_status) &&
 			(svc.download_progress === 100 || svc.status === 'Downloaded')
 		) {
 			releases[commit].update_status = 'downloaded';
@@ -1102,7 +1089,7 @@ export async function getState(): Promise<AppsReport> {
 			// The `applying changes` state has lower precedence over the aborted/downloading/downloaded
 			// state
 			!['aborted', 'downloading', 'downloaded'].includes(
-				releases[commit].update_status!,
+				releases[commit].update_status,
 			) &&
 			['installing', 'installed', 'awaiting handover'].includes(
 				svc.status.toLowerCase(),

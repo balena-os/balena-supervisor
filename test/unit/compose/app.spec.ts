@@ -2415,7 +2415,7 @@ describe('compose/app', () => {
 			expect(releaseLockStep).to.have.property('appId').that.equals(1);
 		});
 
-		it('should infer a releaseLock step when removing an app', async () => {
+		it('should infer a releaseLock step when removing an app', () => {
 			const current = createApp({
 				services: [],
 				networks: [],

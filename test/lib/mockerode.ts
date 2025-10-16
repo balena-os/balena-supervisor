@@ -1,3 +1,5 @@
+/* eslint @typescript-eslint/prefer-promise-reject-errors: 0 */
+
 import Dockerode from 'dockerode';
 import sinon from 'sinon';
 
@@ -166,7 +168,7 @@ export function createContainer(container: PartialContainerInspectInfo) {
 				Hostname: Id,
 				Labels: {},
 				Cmd: ['/usr/bin/sleep', 'infinity'],
-				Env: [] as string[],
+				Env: [],
 				Volumes: {},
 				Image: 'alpine:latest',
 				...Config, // User passed options
@@ -184,7 +186,7 @@ export function createContainer(container: PartialContainerInspectInfo) {
 				...NetworkSettings, // User passed options
 			},
 			Mounts: [
-				...(Mounts || []).map(({ Name, ...opts }) => ({
+				...(Mounts ?? []).map(({ Name, ...opts }) => ({
 					Name,
 					Type: 'volume',
 					Source: `/var/lib/docker/volumes/${Name}/_data`,
@@ -444,7 +446,10 @@ export function createImage(
 	const references = References.map((uri) => parseReference(uri));
 
 	// Generate image repo tags and digests for inspect
-	const { tags, digests } = references.reduce(
+	const { tags, digests } = references.reduce<{
+		tags: string[];
+		digests: string[];
+	}>(
 		(pairs, ref) => {
 			if (ref.tag) {
 				pairs.tags.push([ref.repository, ref.tag].join(':'));
@@ -456,7 +461,7 @@ export function createImage(
 
 			return pairs;
 		},
-		{ tags: [] as string[], digests: [] as string[] },
+		{ tags: [], digests: [] },
 	);
 
 	const inspectInfo = createImageInspectInfo({
@@ -762,7 +767,7 @@ export class MockEngine {
 	listVolumes() {
 		return Promise.resolve({
 			Volumes: Object.values(this.volumes).map((volume) => volume.inspectInfo),
-			Warnings: [] as string[],
+			Warnings: [],
 		});
 	}
 
@@ -932,12 +937,20 @@ export function createMockerode(engine: MockEngine) {
 		...dockerodeStubs,
 		...mockEngineStubs,
 		restore: () => {
-			Object.values(dockerodeStubs).forEach((stub) => stub.restore());
-			Object.values(mockEngineStubs).forEach((spy) => spy.restore());
+			Object.values(dockerodeStubs).forEach((stub) => {
+				stub.restore();
+			});
+			Object.values(mockEngineStubs).forEach((spy) => {
+				spy.restore();
+			});
 		},
 		resetHistory: () => {
-			Object.values(dockerodeStubs).forEach((stub) => stub.resetHistory());
-			Object.values(mockEngineStubs).forEach((spy) => spy.resetHistory());
+			Object.values(dockerodeStubs).forEach((stub) => {
+				stub.resetHistory();
+			});
+			Object.values(mockEngineStubs).forEach((spy) => {
+				spy.resetHistory();
+			});
 		},
 	};
 }

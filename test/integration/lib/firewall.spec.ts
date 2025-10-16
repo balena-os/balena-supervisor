@@ -34,7 +34,7 @@ describe('lib/firewall', function () {
 		listenPort = await config.get('listenPort');
 	});
 
-	after(async () => {
+	after(() => {
 		loggerSpy.restore();
 	});
 

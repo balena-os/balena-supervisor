@@ -27,7 +27,7 @@ export async function get({ name, appId }: VolumeNameOpts): Promise<Volume> {
 export async function getAll(): Promise<Volume[]> {
 	const volumes = await list();
 	// Normalize inspect information to Volume types and filter any that fail
-	return volumes.reduce((volumesList, volumeInfo) => {
+	return volumes.reduce<Volume[]>((volumesList, volumeInfo) => {
 		try {
 			const volume = Volume.fromDockerVolume(volumeInfo);
 			volumesList.push(volume);
@@ -39,7 +39,7 @@ export async function getAll(): Promise<Volume[]> {
 			}
 		}
 		return volumesList;
-	}, [] as Volume[]);
+	}, []);
 }
 
 export async function getAllByAppId(appId: number): Promise<Volume[]> {
@@ -125,7 +125,7 @@ export async function removeOrphanedVolumes(
 		.filter((m) => m.Type === 'volume')
 		// We know that the name must be set, if the mount is
 		// a volume
-		.map((m) => m.Name as string)
+		.map((m) => m.Name!)
 		.uniq()
 		.value();
 	const volumeNames = _.map(dockerVolumes.Volumes, 'Name');

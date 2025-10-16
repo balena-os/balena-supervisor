@@ -177,7 +177,7 @@ export function parseContract(contract: unknown): ContractObject {
 	}
 
 	const res = result.right;
-	for (const req of res.requires || []) {
+	for (const req of res.requires ?? []) {
 		if (!isValidRequirementType(req.type)) {
 			throw new Error(`${req.type} is not a valid contract requirement type`);
 		}

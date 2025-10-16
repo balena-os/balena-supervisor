@@ -9,7 +9,7 @@ export async function up(knex) {
 	const currentCommit = await knex('config')
 		.where({ key: 'currentCommit' })
 		.select('value');
-	if (currentCommit[0] != null && currentCommit[0].value != null) {
+	if (currentCommit[0]?.value != null) {
 		const apps = await knex('app').select(['appId']);
 
 		for (const app of apps) {
@@ -23,6 +23,6 @@ export async function up(knex) {
 	}
 }
 
-export async function down() {
+export function down() {
 	throw new Error('Not implemented');
 }
