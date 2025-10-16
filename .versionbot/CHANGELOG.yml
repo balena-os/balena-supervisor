@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update deep-object-diff to v1.1.9
+      hash: ca9457e75188ed11a2b0539b3e343fbb5a5aa0cc
+      body: |
+        Update deep-object-diff from 1.1.0 to 1.1.9
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.1.7
+  title: ""
+  date: 2025-10-16T20:30:17.955Z
+- commits:
     - subject: Add back python3 distutils with py3-setuptools
       hash: b2a0b84bc34e09c87ee38a2e2122f19c6e041f7c
       body: |
