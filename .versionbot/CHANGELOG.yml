@@ -1,4 +1,37 @@
 - commits:
+    - subject: "fix(2433): Fix redaction of secrets in env variables logging"
+      hash: 2952818cf3412fcb550fa981e178771678007fd8
+      body: >
+        The code was incorrectly casting the result of detailedDiff as
+        ServiceConfig,
+
+        which prevented environment variable redaction from working. This caused
+
+        sensitive environment variables (API keys, passwords, tokens) to be
+        logged
+
+        in plain text in debug logs.
+
+
+        Fixed by:
+
+        - Creating a proper DetailedDiff interface for the return type
+
+        - Correctly redacting environment variables from added/deleted/updated
+        sections
+
+        - Adding tests to verify environment variables are properly redacted
+      footer:
+        Change-Type: patch
+        change-type: patch
+        Signed-off-by: Tomas Mella <tomas@mytos.bio>
+        signed-off-by: Tomas Mella <tomas@mytos.bio>
+      author: Tomas Mella
+      nested: []
+  version: 17.1.5
+  title: ""
+  date: 2025-10-16T16:33:11.418Z
+- commits:
     - subject: Only publish + finalize arm64 & amd64 for staging
       hash: fcf101808c52e060aae12c1344551f0458c3a3bc
       body: >
