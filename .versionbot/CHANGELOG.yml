@@ -1,4 +1,18 @@
 - commits:
+    - subject: Do not block calls to dbus reboot/shutdown
+      hash: 4a463bcf290211824b4cab0503023c620950d825
+      body: |
+        This should give the supervisor API time to respond to queries before
+        the device goes down.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 17.1.8
+  title: ""
+  date: 2025-10-17T19:20:34.056Z
+- commits:
     - subject: Update deep-object-diff to v1.1.9
       hash: ca9457e75188ed11a2b0539b3e343fbb5a5aa0cc
       body: |
