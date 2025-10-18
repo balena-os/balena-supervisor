@@ -4,6 +4,11 @@ export const schema = {
 		mutable: false,
 		removeIfNull: false,
 	},
+	apiEndpointOverride: {
+		source: 'db',
+		mutable: false,
+		removeIfNull: false,
+	},
 	/**
 	 * The timeout for the supervisor's api
 	 */
@@ -17,6 +22,12 @@ export const schema = {
 		mutable: false,
 		removeIfNull: false,
 	},
+	listenPortOverride: {
+		source: 'db',
+		mutable: false,
+		removeIfNull: false,
+	},
+
 	deltaEndpoint: {
 		source: 'config.json',
 		mutable: false,
