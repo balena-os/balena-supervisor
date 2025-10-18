@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action action to v2.0.136
+      hash: 53495f433f336abbc5ee65571e50117adbe22a15
+      body: |
+        Update balena-io/deploy-to-balena-action from 2.0.92 to 2.0.136
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.1.9
+  title: ""
+  date: 2025-10-18T00:53:35.218Z
+- commits:
     - subject: Do not block calls to dbus reboot/shutdown
       hash: 4a463bcf290211824b4cab0503023c620950d825
       body: |
