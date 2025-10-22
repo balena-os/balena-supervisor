@@ -41,13 +41,21 @@ export class ExtraUEnv extends ConfigBackend {
 	private static bootConfigPath = hostUtils.pathOnBoot('extra_uEnv.txt');
 
 	private static entries: Record<EntryKey, Entry> = {
-		custom_fdt_file: { key: 'custom_fdt_file', collection: false },
-		extra_os_cmdline: { key: 'extra_os_cmdline', collection: true },
+		custom_fdt_file: {
+			key: 'custom_fdt_file',
+			collection: false,
+		},
+		extra_os_cmdline: {
+			key: 'extra_os_cmdline',
+			collection: true,
+		},
 	};
 
 	private static supportedConfigs: Dictionary<Entry> = {
 		fdt: ExtraUEnv.entries['custom_fdt_file'],
+		// @deprecated
 		isolcpus: ExtraUEnv.entries['extra_os_cmdline'],
+		extra_os_cmdline: ExtraUEnv.entries['extra_os_cmdline'],
 	};
 
 	public static bootConfigVarRegex = new RegExp(
@@ -116,34 +124,72 @@ export class ExtraUEnv extends ConfigBackend {
 		return `${ExtraUEnv.bootConfigVarPrefix}${configName}`;
 	}
 
+	public isEqual(target: ConfigOptions, current: ConfigOptions): boolean {
+		// Examples that should return true:
+		// 1. Exact same configs
+		// - target: { extra_os_cmdline: 'isolcpus=3,4 console=tty0 rootwait' }
+		// - current: { extra_os_cmdline: 'isolcpus=3,4 console=tty0 rootwait' }
+		// 2. Exact same configs but in a different order
+		// - target: { extra_os_cmdline: 'isolcpus=3,4 console=tty0 rootwait' }
+		// - current: { extra_os_cmdline: 'console=tty0 isolcpus=3,4 rootwait' }
+		// 3. Configs equivalent when combined between extra_os_cmdline & isolcpus
+		// - target: { isolcpus: '3,4', extra_os_cmdline: 'console=tty0 rootwait' }
+		// - current: { extra_os_cmdline: 'console=tty0 isolcpus=3,4 rootwait' }
+
+		// Convert to config map which normalizes legacy isolcpus into
+		// extra_os_cmdline collection and sorts collection values alphabetically.
+		const targetMap = ExtraUEnv.configToMap(target);
+		const currentMap = ExtraUEnv.configToMap(current);
+		if (targetMap.size !== currentMap.size) {
+			return false;
+		}
+		for (const [key, value] of targetMap) {
+			if (currentMap.get(key) !== value) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private static parseOptions(configFile: string): ConfigOptions {
 		// Exit early if configFile is empty
 		if (configFile.length === 0) {
 			return {};
 		}
-		// Split by line and filter any comments and empty lines
-		const lines = configFile.split(LINE_REGEX);
+		// Split by line and filter any empty lines
+		const lines = configFile
+			.split(LINE_REGEX)
+			.filter((line) => line.trim() !== '');
 		// Reduce lines to ConfigOptions
-		return lines.reduce((options: ConfigOptions, line: string) => {
-			const optionValues = line.match(OPTION_REGEX);
-			if (optionValues == null) {
-				log.warn(`Could not read extra_uEnv entry: ${line}`);
-				return options;
-			}
-			// Merge new option with existing options
-			return {
-				...ExtraUEnv.parseOption(optionValues),
-				...options,
-			};
-		}, {});
+		const configOptions = lines.reduce(
+			(options: ConfigOptions, line: string) => {
+				// Filter out lines that don't start with an EntryKey
+				const isSupported = Object.values(ExtraUEnv.supportedConfigs).some(
+					({ key }) => line.startsWith(key),
+				);
+
+				const optionValues = line.match(OPTION_REGEX);
+				if (optionValues == null || !isSupported) {
+					log.warn(`Unsupported or malformed extra_uEnv entry: ${line}`);
+					return options;
+				}
+				// Merge new option with existing options
+				return {
+					...ExtraUEnv.parseOption(optionValues),
+					...options,
+				};
+			},
+			{},
+		);
+		return configOptions;
 	}
 
 	private static parseOption(optionArray: string[]): ConfigOptions {
 		const [, KEY, VALUE] = optionArray;
 		// Check if this key's value is a collection
-		if (ExtraUEnv.entries[KEY as EntryKey]?.collection) {
-			// Return split collection of options
-			return ExtraUEnv.parseOptionCollection(VALUE);
+		if (ExtraUEnv.supportedConfigs[KEY as EntryKey]?.collection) {
+			// Return normalized collection of options
+			return { [KEY]: ExtraUEnv.normalizeOptionValue(VALUE) };
 		}
 		// Find the option that belongs to this entry
 		const optionKey = _.findKey(
@@ -158,30 +204,23 @@ export class ExtraUEnv extends ConfigBackend {
 		return { [optionKey]: VALUE };
 	}
 
-	private static parseOptionCollection(
-		collectionString: string,
-	): ConfigOptions {
+	private static normalizeOptionValue(
+		collectionValue: string | string[],
+	): string {
 		return (
-			collectionString
+			(
+				typeof collectionValue === 'string'
+					? collectionValue
+					: collectionValue.join(' ')
+			)
 				// Split collection into individual options
 				.split(' ')
-				// Reduce list of option strings into ConfigOptions object
-				.reduce((options: ConfigOptions, option: string) => {
-					// Match optionValues to key=value regex
-					const optionValues = option.match(OPTION_REGEX);
-					// Check if option is only a key
-					if (optionValues === null) {
-						if (option !== '') {
-							return { [option]: '', ...options };
-						} else {
-							log.warn(`Unable to set empty value option: ${option}`);
-							return options;
-						}
-					}
-					const [, KEY, VALUE] = optionValues;
-					// Merge new option with existing options
-					return { [KEY]: VALUE, ...options };
-				}, {})
+				// Filter out empty options
+				.filter((option) => option)
+				// Sort collection option by key
+				.sort((a, b) => a.split('=')[0].localeCompare(b.split('=')[0]))
+				// Join sorted options back into a string
+				.join(' ')
 		);
 	}
 
@@ -219,39 +258,53 @@ export class ExtraUEnv extends ConfigBackend {
 	private static configToMap(configs: ConfigOptions): Map<string, string> {
 		// Reduce ConfigOptions into a Map that joins collections
 		const configMap = new Map();
-		for (const [configKey, configValue] of Object.entries(configs)) {
-			const { key: ENTRY_KEY, collection: ENTRY_IS_COLLECTION } =
-				ExtraUEnv.supportedConfigs[configKey];
+		// Sort configs alphabetically such that config map will always return in the same order, with fdt always first
+		// This is important to ensure that the config string to be written and compared against is always the same
+		const sortedConfigs = Object.entries(configs).sort((a, b) => {
+			if (a[0] === 'fdt') {
+				return -1;
+			}
+			if (b[0] === 'fdt') {
+				return 1;
+			}
+			return a[0].localeCompare(b[0]);
+		});
+		for (const [configKey, configValue] of sortedConfigs) {
+			// If extra_os_cmdline is set, ignore legacy isolcpus
+			if (configKey === 'isolcpus' && 'extra_os_cmdline' in configs) {
+				continue;
+			}
+
+			const entry = ExtraUEnv.supportedConfigs[configKey];
+			if (!entry) {
+				// Unsupported config, skip
+				continue;
+			}
+			const ENTRY_KEY = entry.key;
+			const ENTRY_IS_COLLECTION = entry.collection;
+
 			// Check if we have to build the value for the entry
 			if (ENTRY_IS_COLLECTION) {
-				configMap.set(
-					ENTRY_KEY,
-					ExtraUEnv.appendToCollection(
-						configMap.get(ENTRY_KEY),
-						configKey,
-						configValue,
-					),
-				);
+				if (configKey === ENTRY_KEY) {
+					// When setting extra_os_cmdline directly, normalize and set the full value
+					configMap.set(ENTRY_KEY, ExtraUEnv.normalizeOptionValue(configValue));
+				} else if (!configMap.get(ENTRY_KEY)) {
+					// extra_os_cmdline doesn't yet exist, set sub-option directly
+					configMap.set(ENTRY_KEY, `${configKey}=${configValue}`);
+				} else if (!configMap.get(ENTRY_KEY).includes(configKey)) {
+					// extra_os_cmdline already exists, only add sub-option if not already set
+					configMap.set(
+						ENTRY_KEY,
+						ExtraUEnv.normalizeOptionValue(
+							`${configMap.get(ENTRY_KEY)} ${configKey}=${configValue}`,
+						),
+					);
+				}
 			} else {
 				// Set the value of this config
 				configMap.set(ENTRY_KEY, `${configValue}`);
 			}
 		}
 		return configMap;
-	}
-
-	private static appendToCollection(
-		collection = '',
-		key: string,
-		value: string | string[],
-	) {
-		return (
-			// Start with existing collection and add a space
-			(collection !== '' ? `${collection} ` : '') +
-			// Append new key
-			key +
-			// Append value it's if not empty string
-			(value !== '' ? `=${value}` : '')
-		);
 	}
 }

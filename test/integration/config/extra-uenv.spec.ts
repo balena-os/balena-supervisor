@@ -7,59 +7,31 @@ import * as hostUtils from '~/lib/host-utils';
 import log from '~/lib/supervisor-console';
 import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
 
-describe('config/extra-uEnv', () => {
+describe('config/extra_uEnv', () => {
 	const backend = new ExtraUEnv();
 
-	it('should parse extra_uEnv string', () => {
-		const fileContents = stripIndent`\
-      custom_fdt_file=mycustom.dtb
-      extra_os_cmdline=isolcpus=3,4 splash console=tty0
-		`;
-		// @ts-expect-error accessing private method
-		const parsed = ExtraUEnv.parseOptions(fileContents);
-		expect(parsed).to.deep.equal({
-			fdt: 'mycustom.dtb',
-			isolcpus: '3,4',
-			splash: '',
-			console: 'tty0',
+	it('should parse all configuration options from bootConfigPath', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]:
+				'custom_fdt_file=/path/to/mycustom.dtb\n' +
+				'\t\textra_os_cmdline=isolcpus=3,4 console=tty0 splash\n',
+		}).enable();
+
+		await expect(backend.getBootConfig()).to.eventually.deep.equal({
+			fdt: '/path/to/mycustom.dtb',
+			// extra_os_cmdline should be sorted alphabetically
+			extra_os_cmdline: 'console=tty0 isolcpus=3,4 splash',
 		});
+
+		await tfs.restore();
 	});
 
-	it('should only parse supported configuration options from bootConfigPath', async () => {
-		let tfs = await testfs({
-			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
-	    	custom_fdt_file=mycustom.dtb
-      	extra_os_cmdline=isolcpus=3,4
-			`,
-		}).enable();
-
-		await expect(backend.getBootConfig()).to.eventually.deep.equal({
-			fdt: 'mycustom.dtb',
-			isolcpus: '3,4',
-		});
-
-		await tfs.restore();
-
-		// Add other options that will get filtered out because they aren't supported
-		tfs = await testfs({
-			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
-	    	custom_fdt_file=mycustom.dtb
-        extra_os_cmdline=isolcpus=3,4 console=tty0 splash
-			`,
-		}).enable();
-
-		await expect(backend.getBootConfig()).to.eventually.deep.equal({
-			fdt: 'mycustom.dtb',
-			isolcpus: '3,4',
-		});
-
-		await tfs.restore();
-
+	it('should ignore configs with unsupported values from bootConfigPath', async () => {
 		// Configuration with no supported values
-		tfs = await testfs({
+		const tfs = await testfs({
 			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	    	fdt=something_else
-			 	isolcpus
+			 	isolcpus=3,4
 				123.12=5
 			`,
 		}).enable();
@@ -142,72 +114,96 @@ describe('config/extra-uEnv', () => {
 		}
 	});
 
-	it('sets new config values', async () => {
+	it('sets new config values with legacy isolcpus which erases other values in extra_os_cmdline', async () => {
 		const tfs = await testfs({
 			// This config contains a value set from something else
 			// We to make sure the Supervisor is enforcing the source of truth (the cloud)
-			// So after setting new values this unsupported/not set value should be gone
+			// So after setting new values, unsupported lines should be gone
 			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	    	extra_os_cmdline=rootwait isolcpus=3,4
-	     other_service=set_this_value
+	     other_service=remove_this_value
 			`,
 		}).enable();
 
-		// Sets config with mix of supported and not supported values
 		await backend.setBootConfig({
 			fdt: '/boot/mycustomdtb.dtb',
-			isolcpus: '2',
-			console: 'tty0', // not supported so won't be set
+			isolcpus: '2,4',
 		});
 
 		// Confirm that the file was written correctly
 		await expect(
 			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
 		).to.eventually.equal(
-			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2\n',
-		);
-
-		expect(log.warn).to.have.been.calledWith(
-			'Not setting unsupported value: { console: tty0 }',
+			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2,4\n',
 		);
 
 		await tfs.restore();
 	});
 
-	it('sets new config values containing collections', async () => {
-		// @ts-expect-error accessing private value
-		const previousSupportedConfigs = ExtraUEnv.supportedConfigs;
-		// Stub isSupportedConfig so we can confirm collections work
-		// @ts-expect-error accessing private value
-		ExtraUEnv.supportedConfigs = {
-			fdt: { key: 'custom_fdt_file', collection: false },
-			isolcpus: { key: 'extra_os_cmdline', collection: true },
-			console: { key: 'extra_os_cmdline', collection: true },
-			splash: { key: 'extra_os_cmdline', collection: true },
-		};
-
+	it('sets new config values with extra_os_cmdline', async () => {
 		const tfs = await testfs({
 			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
-	     	other_service=set_this_value
+	    	extra_os_cmdline=rootwait isolcpus=3,4
+	     other_service=remove_this_value
 			`,
 		}).enable();
 
-		// Set config again
 		await backend.setBootConfig({
 			fdt: '/boot/mycustomdtb.dtb',
-			isolcpus: '2', // collection entry so should be concatted to other collections of this entry
-			console: 'tty0', // collection entry so should be concatted to other collections of this entry
-			splash: '', // collection entry so should be concatted to other collections of this entry
+			extra_os_cmdline: 'console=tty0 rootwait isolcpus=1,2',
 		});
 
 		await expect(
 			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
 		).to.eventually.equal(
-			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2 console=tty0 splash\n',
+			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=console=tty0 isolcpus=1,2 rootwait\n',
 		);
 
-		// @ts-expect-error accessing private value
-		ExtraUEnv.supportedConfigs = previousSupportedConfigs;
+		await tfs.restore();
+	});
+
+	it('sets new config values with extra_os_cmdline while overwriting current legacy isolcpus', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
+	    	extra_os_cmdline=isolcpus=3,4
+	     other_service=remove_this_value
+			`,
+		}).enable();
+
+		await backend.setBootConfig({
+			fdt: '/boot/mycustomdtb.dtb',
+			// No isolcpus value in target state
+			extra_os_cmdline: 'splash console=tty0 rootwait',
+		});
+
+		await expect(
+			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
+		).to.eventually.equal(
+			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=console=tty0 rootwait splash\n',
+		);
+
+		await tfs.restore();
+	});
+
+	it('sets new config values with extra_os_cmdline taking precedence over legacy isolcpus if values differ', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
+	    	extra_os_cmdline=rootwait isolcpus=3,4
+	     other_service=remove_this_value
+			`,
+		}).enable();
+
+		await backend.setBootConfig({
+			fdt: '/boot/mycustomdtb.dtb',
+			isolcpus: '2,4',
+			extra_os_cmdline: 'splash console=tty0 rootwait isolcpus=1,2',
+		});
+
+		await expect(
+			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
+		).to.eventually.equal(
+			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=console=tty0 isolcpus=1,2 rootwait splash\n',
+		);
 
 		await tfs.restore();
 	});
@@ -220,7 +216,15 @@ const MALFORMED_CONFIGS = [
       extra_os_cmdline=isolcpus=3,4
       another_value
     `,
-		reason: 'Could not read extra_uEnv entry: another_value',
+		reason: 'Unsupported or malformed extra_uEnv entry: another_value',
+	},
+	{
+		contents: stripIndent`
+      custom_fdt_file=mycustom.dtb
+      extra_os_cmdline=isolcpus=3,4
+      foo=bar
+    `,
+		reason: 'Unsupported or malformed extra_uEnv entry: foo=bar',
 	},
 ];
 
