@@ -68,7 +68,7 @@ describe('config/extra-uEnv', () => {
 		await tfs.restore();
 	});
 
-	it('only matches supported devices', async () => {
+	it('matches all devices', async () => {
 		// The file exists before
 		const tfs = await testfs({
 			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
@@ -76,35 +76,55 @@ describe('config/extra-uEnv', () => {
       	extra_os_cmdline=isolcpus=3,4
 			`,
 		}).enable();
-		for (const device of MATCH_TESTS) {
-			// Test device that has extra_uEnv.txt
-			await expect(backend.matches(device.type)).to.eventually.equal(
-				device.supported,
-			);
-		}
+		// Test device that has extra_uEnv.txt
+		await Promise.all(
+			MATCH_TESTS.map(async () => {
+				await expect(backend.matches()).to.eventually.be.true;
+			}),
+		);
 
 		await tfs.restore();
 
-		// The file no longer exists
+		// The file doesn't exist before
 		await expect(
 			fs.access(hostUtils.pathOnBoot('extra_uEnv.txt')),
 			'extra_uEnv.txt does not exist before the test',
 		).to.be.rejected;
-		for (const device of MATCH_TESTS) {
-			// Test same device but without extra_uEnv.txt
-			await expect(backend.matches(device.type)).to.eventually.be.false;
-		}
+		// Test same device but without extra_uEnv.txt
+		await Promise.all(
+			MATCH_TESTS.map(async () => {
+				await expect(backend.matches()).to.eventually.be.true;
+			}),
+		);
 	});
 
-	it('errors when cannot find extra_uEnv.txt', async () => {
-		// The file no longer exists
+	it('creates extra_uEnv.txt if it does not exist', async () => {
+		// FIXME: If test-fs is initiated while a file doesn't exist but
+		// the file is created during tests, it will be created in the real fs
+		// and won't be cleaned up with testfs.restore().
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: 'foo',
+		}).enable();
+		await fs.unlink(hostUtils.pathOnBoot('extra_uEnv.txt'));
+
 		await expect(
 			fs.access(hostUtils.pathOnBoot('extra_uEnv.txt')),
 			'extra_uEnv.txt does not exist before the test',
 		).to.be.rejected;
-		await expect(backend.getBootConfig()).to.eventually.be.rejectedWith(
-			'Could not find extra_uEnv file. Device is possibly bricked',
-		);
+
+		// This should create the file
+		await expect(backend.getBootConfig()).to.eventually.deep.equal({});
+
+		await expect(
+			fs.access(hostUtils.pathOnBoot('extra_uEnv.txt')),
+			'extra_uEnv.txt should have been created',
+		).to.be.fulfilled;
+
+		await tfs.restore();
+
+		// No file leftover after testfs cleanup
+		await expect(fs.access(hostUtils.pathOnBoot('extra_uEnv.txt'))).to.be
+			.rejected;
 	});
 
 	it('logs warning for malformed extra_uEnv.txt', async () => {
@@ -217,30 +237,30 @@ const MATCH_TESTS = [
 	{ type: 'jetson-nano-emmc', supported: true },
 	{ type: 'jn30b-nano', supported: true },
 	{ type: 'photon-nano', supported: true },
-	{ type: 'intel-nuc', supported: false },
-	{ type: 'raspberry', supported: false },
-	{ type: 'fincm3', supported: false },
-	{ type: 'asus-tinker-board', supported: false },
-	{ type: 'nano-board', supported: false },
+	{ type: 'intel-nuc', supported: true },
+	{ type: 'raspberry', supported: true },
+	{ type: 'fincm3', supported: true },
+	{ type: 'asus-tinker-board', supported: true },
+	{ type: 'nano-board', supported: true },
 	{ type: 'jetson-nano-2gb-devkit', supported: true },
-	{ type: 'jetson-nano-2gb-devkit-emmc', supported: false },
-	{ type: 'tx2-tx2-device', supported: false },
+	{ type: 'jetson-nano-2gb-devkit-emmc', supported: true },
+	{ type: 'tx2-tx2-device', supported: true },
 	{ type: 'jetson-tx2-nx-devkit', supported: true },
 	{ type: 'photon-tx2-nx', supported: true },
-	{ type: 'jetson-xavier-nx-devkit', supported: false },
+	{ type: 'jetson-xavier-nx-devkit', supported: true },
 	{ type: 'jetson-agx-orin-devkit', supported: true },
-	{ type: 'jetson-agx-orin', supported: false },
+	{ type: 'jetson-agx-orin', supported: true },
 	{ type: 'jetson-orin-nx-xavier-nx-devkit', supported: true },
 	{ type: 'cti-orin-nx-custom-carrier', supported: true },
-	{ type: 'jetson-orin-agx-nx-xavier-nx-devkit', supported: false },
+	{ type: 'jetson-orin-agx-nx-xavier-nx-devkit', supported: true },
 	{ type: 'jetson-orin-nano-devkit-nvme', supported: true },
-	{ type: 'jetson-orin-agx-nano-devkit-nvme', supported: false },
-	{ type: 'photon-xavier-nx', supported: false },
+	{ type: 'jetson-orin-agx-nano-devkit-nvme', supported: true },
+	{ type: 'photon-xavier-nx', supported: true },
 	{ type: 'imx8m-var-dart', supported: true },
 	{ type: 'imx8mm-var-dart', supported: true },
 	{ type: 'imx8mm-var-dart-nrt', supported: true },
 	{ type: 'imx8mm-var-dart-plt', supported: true },
 	{ type: 'imx8mm-var-som', supported: true },
-	{ type: 'imx8m-var-som', supported: false },
-	{ type: 'imx6ul-var-dart', supported: false },
+	{ type: 'imx8m-var-som', supported: true },
+	{ type: 'imx6ul-var-dart', supported: true },
 ];

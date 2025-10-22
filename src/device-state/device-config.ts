@@ -379,7 +379,7 @@ export function bootConfigChangeRequired(
 	});
 
 	if (!_.isEqual(currentBootConfig, targetBootConfig)) {
-		// Check if the only difference is the targetBootConfig not containing a special case
+		// Check if the only difference is a special case not being in target
 		const SPECIAL_CASE = 'configuration'; // ODMDATA Mode for TX2 devices
 		if (!(SPECIAL_CASE in targetBootConfig)) {
 			// Create a copy to modify
@@ -395,11 +395,10 @@ export function bootConfigChangeRequired(
 			}
 		}
 		// Change is required because configs do not match
-		return true;
+		return true; // Change is required
 	}
 
-	// Return false (no change is required)
-	return false;
+	return false; // No change required
 }
 
 function getConfigSteps(

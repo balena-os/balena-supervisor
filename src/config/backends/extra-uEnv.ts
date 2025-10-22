@@ -5,7 +5,6 @@ import { ConfigBackend } from './backend';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { ExtraUEnvError } from '../../lib/errors';
-import { exists } from '../../lib/fs-utils';
 import * as hostUtils from '../../lib/host-utils';
 
 /**
@@ -55,20 +54,9 @@ export class ExtraUEnv extends ConfigBackend {
 		'(?:' + _.escapeRegExp(ExtraUEnv.bootConfigVarPrefix) + ')(.+)',
 	);
 
-	public async matches(deviceType: string): Promise<boolean> {
-		return (
-			(deviceType.endsWith('-nano') ||
-				deviceType.endsWith('-nano-emmc') ||
-				deviceType.endsWith('-nano-2gb-devkit') ||
-				deviceType.endsWith('-tx2') ||
-				deviceType.includes('-tx2-nx') ||
-				deviceType.includes('-agx-orin-') ||
-				deviceType.includes('-orin-nx-') ||
-				deviceType.includes('-orin-nano-') ||
-				deviceType.includes('imx8mm-var-som') ||
-				/imx8mm?-var-dart/.test(deviceType)) &&
-			(await exists(ExtraUEnv.bootConfigPath))
-		);
+	// extra_uEnv is supported on all devices
+	public async matches(): Promise<boolean> {
+		return Promise.resolve(true);
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {
@@ -200,14 +188,18 @@ export class ExtraUEnv extends ConfigBackend {
 	private static async readBootConfigPath(): Promise<string> {
 		try {
 			return await hostUtils.readFromBoot(ExtraUEnv.bootConfigPath, 'utf-8');
-		} catch {
-			// In the rare case where the user might have deleted extra_uEnv conf file between linux boot and supervisor boot
-			// We do not have any backup to fallback too; warn the user of a possible brick
+		} catch (e) {
+			if ((e as hostUtils.CodedError).code === 'ENOENT') {
+				// File doesn't exist, so we need to create it
+				await hostUtils.writeToBoot(ExtraUEnv.bootConfigPath, '');
+				return '';
+			}
+			// For other cases where file exists but is corrupted in some way, warn the user
 			log.error(
-				`Unable to read extra_uEnv file at: ${ExtraUEnv.bootConfigPath}`,
+				`Unable to find extra_uEnv file at: ${ExtraUEnv.bootConfigPath}`,
 			);
 			throw new ExtraUEnvError(
-				'Could not find extra_uEnv file. Device is possibly bricked',
+				'Could not read extra_uEnv file. Device is possibly bricked',
 			);
 		}
 	}
