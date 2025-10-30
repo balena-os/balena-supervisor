@@ -1,4 +1,24 @@
 - commits:
+    - subject: Stream logs from host os-update.service
+      hash: a80ca2546a5721258395a79fdbbd74859d2413c8
+      body: >
+        This service logs the status of HUP and update-balena-supervisor
+
+        host services. The commit streams the logs from this service to the
+        cloud
+
+        when an OS / SV update is triggered.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.1.10
+  title: ""
+  date: 2025-10-30T14:41:44.578Z
+- commits:
     - subject: Update balena-io/deploy-to-balena-action action to v2.0.136
       hash: 53495f433f336abbc5ee65571e50117adbe22a15
       body: |
