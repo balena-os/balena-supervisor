@@ -1,4 +1,25 @@
 - commits:
+    - subject: Support io.balena.features.host-os.board-rev feature label
+      hash: a813e246ee450d7f9730e466e14d1b8704d5ab58
+      body: |
+        When io.balena.features.host-os.board-rev feature label
+        is specified, adds (RESIN_|BALENA_)HOST_OS_BOARD_REV env var
+        to containers that specified the label.
+
+        This label will be used by Helios for Supervisor-managed OS updates.
+      footer:
+        See: https://balena.fibery.io/Work/Improvement/Add-io.balena.features.host-os.board-rev-label-on-supervisor-3203
+        see: https://balena.fibery.io/Work/Improvement/Add-io.balena.features.host-os.board-rev-label-on-supervisor-3203
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.2.0
+  title: ""
+  date: 2025-11-03T18:11:19.155Z
+- commits:
     - subject: Stream logs from host os-update.service
       hash: a80ca2546a5721258395a79fdbbd74859d2413c8
       body: >
