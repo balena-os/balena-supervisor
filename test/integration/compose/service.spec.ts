@@ -64,5 +64,50 @@ describe('compose/service: integration tests', () => {
 				).to.be.equal(mykey);
 			});
 		});
+
+		describe('io.balena.features.host-os.board-rev', () => {
+			it('should set BALENA_HOST_OS_BOARD_REV environment variable when the feature is enabled', async () => {
+				const s = await Service.fromComposeObject(
+					{
+						appId: 123,
+						serviceId: 123,
+						serviceName: 'test',
+						labels: {
+							'io.balena.features.host-os.board-rev': '1',
+						},
+					},
+					{ appName: 'test' } as any,
+				);
+
+				expect(s.config.environment).to.have.property(
+					'BALENA_HOST_OS_BOARD_REV',
+				);
+				expect(s.config.environment).to.have.property(
+					'RESIN_HOST_OS_BOARD_REV',
+				);
+				expect(s.config.environment['BALENA_HOST_OS_BOARD_REV']).to.equal(
+					'a21c12f4',
+				);
+			});
+
+			it('should not set BALENA_HOST_OS_BOARD_REV when the feature is not enabled', async () => {
+				const s = await Service.fromComposeObject(
+					{
+						appId: 123,
+						serviceId: 123,
+						serviceName: 'test',
+						labels: {},
+					},
+					{ appName: 'test' } as any,
+				);
+
+				expect(s.config.environment).to.not.have.property(
+					'BALENA_HOST_OS_BOARD_REV',
+				);
+				expect(s.config.environment).to.not.have.property(
+					'RESIN_HOST_OS_BOARD_REV',
+				);
+			});
+		});
 	});
 });
