@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Response, NextFunction } from 'express';
 import _ from 'lodash';
+import { pipeline } from 'stream/promises';
 
 import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';
@@ -543,7 +544,22 @@ router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res) => {
 	});
 });
 
+async function* splitStream(chunkIterable: AsyncIterable<any>) {
+	let previous = '';
+	for await (const chunk of chunkIterable) {
+		previous += chunk;
+		const lines = previous.split(/\r?\n/);
+		previous = lines.pop() ?? '';
+		yield* lines;
+	}
+
+	if (previous.length > 0) {
+		yield previous;
+	}
+}
+
 router.post('/v2/journal-logs', (req, res) => {
+	console.log(req.body);
 	const all = checkTruthy(req.body.all);
 	const follow = checkTruthy(req.body.follow);
 	const count = checkInt(req.body.count, { positive: true }) ?? undefined;
@@ -563,14 +579,34 @@ router.post('/v2/journal-logs', (req, res) => {
 		since,
 		until,
 	});
-	res.status(200);
+	res.writeHead(200, {
+		'Content-Type': 'text/plain; charset=UTF-8',
+		'Cache-Control': 'no-cache',
+		'Content-Encoding': 'none',
+	});
+
+	const ac = new AbortController();
+	const signal = ac.signal;
+
+	// This pipeline is overkill probably but it helps with testing
+	void pipeline(
+		journald.stdout!,
+		splitStream,
+		async function (lines) {
+			for await (const line of lines) {
+				res.write(line + '\n');
+			}
+		},
+		{ signal },
+	);
+
 	// We know stdout will be present
-	journald.stdout!.pipe(res);
+	// journald.stdout!.pipe(res);
 	res.on('close', () => {
 		journald.kill('SIGKILL');
 	});
 	journald.on('exit', () => {
-		journald.stdout!.unpipe();
+		ac.abort();
 		res.end();
 	});
 });
