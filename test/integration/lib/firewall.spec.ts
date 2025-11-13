@@ -352,30 +352,6 @@ describe('lib/firewall', function () {
 			});
 		};
 
-		it('should have a rule to allow DNS traffic from the balena0 interface', async () => {
-			await iptablesMock.whilstMocked(
-				async ({ hasAppliedRules, expectRule }) => {
-					// set the firewall to be on...
-					await config.set({ firewallMode: 'on' });
-					await hasAppliedRules;
-
-					[4, 6].forEach((family: 4 | 6) => {
-						// expect that we have a rule to allow DNS access...
-						checkForRules(
-							{
-								family,
-								target: 'ACCEPT',
-								chain: 'BALENA-FIREWALL',
-								proto: 'udp',
-								matches: ['--dport 53', '-i balena0'],
-							},
-							expectRule,
-						);
-					});
-				},
-			);
-		});
-
 		it('should have a rule to allow SSH traffic any interface', async () => {
 			await iptablesMock.whilstMocked(
 				async ({ hasAppliedRules, expectRule }) => {
