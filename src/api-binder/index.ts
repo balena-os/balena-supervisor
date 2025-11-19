@@ -413,16 +413,18 @@ async function provision() {
 }
 
 async function provisionOrRetry(retryDelay: number): Promise<void> {
-	eventTracker.track('Device bootstrap');
-	try {
-		await provision();
-	} catch (e) {
-		eventTracker.track(`Device bootstrap failed, retrying`, {
-			error: e,
-			delay: retryDelay,
-		});
-		await setTimeout(retryDelay);
-		void provisionOrRetry(retryDelay);
+	while (true) {
+		eventTracker.track('Device bootstrap');
+		try {
+			await provision();
+			return;
+		} catch (e) {
+			eventTracker.track(`Device bootstrap failed, retrying`, {
+				error: e,
+				delay: retryDelay,
+			});
+			await setTimeout(retryDelay);
+		}
 	}
 }
 
