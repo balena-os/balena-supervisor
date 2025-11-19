@@ -1,4 +1,33 @@
 - commits:
+    - subject: Fix state engine tests failing with newer version of docker
+      hash: a7e0eb63fd723b09620a49269b6e48e776ff38b9
+      body: >
+        It seems that inspecting a network now shows `IPRange: ""` as part of
+        the IPAM config
+
+        even if not set. This was interfering with integration testing.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: felipe
+      nested: []
+    - subject: Await provisioning on error before continuing
+      hash: d0f990959f0ef70b4d2725e3f904f6622735995e
+      body: |
+        The `provisionOrRetry` call was not being awaited to avoid memory leaks
+        due to the recursion, however that can cause other issues if the
+        api-binder is started without properly provisioning.
+
+        This re-adds the await, but now using a loop to avoid the memory leak.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: felipe
+      nested: []
+  version: 17.2.1
+  title: ""
+  date: 2025-11-19T12:02:29.113Z
+- commits:
     - subject: Support io.balena.features.host-os.board-rev feature label
       hash: a813e246ee450d7f9730e466e14d1b8704d5ab58
       body: |
