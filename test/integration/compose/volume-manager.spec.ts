@@ -4,6 +4,7 @@ import * as sinon from 'sinon';
 import * as volumeManager from '~/src/compose/volume-manager';
 import { Volume } from '~/src/compose/volume';
 import { createDockerImage } from '~/test-lib/docker-helper';
+import * as extraFirmware from '~/lib/extra-firmware';
 
 import Docker from 'dockerode';
 
@@ -97,6 +98,29 @@ describe('compose/volume-manager', () => {
 		it('can parse null Volumes', async () => {
 			// Perform test with no volumes
 			await expect(volumeManager.getAll()).to.eventually.deep.equal([]);
+		});
+
+		it('should skip extra-firmware volume without throwing', async () => {
+			// Setup volume data - include extra-firmware volume
+			await Promise.all([
+				docker.createVolume({
+					Name: Volume.generateDockerName(1, 'redis'),
+					Labels: { 'io.balena.supervised': '1' },
+				}),
+				// Extra firmware volume should be skipped
+				extraFirmware.create(),
+			]);
+
+			// getAll should not throw and should only return the supervised volume
+			const volumes = await volumeManager.getAll();
+			expect(volumes).to.have.lengthOf(1);
+			expect(volumes[0]).to.have.property('name', 'redis');
+
+			// Cleanup volumes
+			await Promise.all([
+				docker.getVolume(Volume.generateDockerName(1, 'redis')).remove(),
+				extraFirmware.remove(),
+			]);
 		});
 
 		it('gets the volume for specific application', async () => {

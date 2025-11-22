@@ -15,7 +15,6 @@ import * as FnSchema from './functions';
 import * as Schema from './schema';
 import type { SchemaReturn, SchemaTypeKey } from './schema-type';
 import { schemaTypes } from './schema-type';
-
 import * as db from '../db';
 import {
 	ConfigurationValidationError,

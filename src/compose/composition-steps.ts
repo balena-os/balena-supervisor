@@ -10,6 +10,7 @@ import { setRebootBreadcrumb } from '../lib/reboot';
 import type { DeviceLegacyReport } from '../types/state';
 import type { CompositionStepAction, CompositionStepT } from './types';
 import type { Lock } from '../lib/update-lock';
+import * as extraFirmware from '../lib/extra-firmware';
 
 export type {
 	CompositionStep,
@@ -161,6 +162,9 @@ export function getExecutors(app: { callbacks: CompositionCallbacks }) {
 		},
 		requireReboot: async (step) => {
 			await setRebootBreadcrumb({ serviceName: step.serviceName });
+		},
+		ensureExtraFirmwareVolume: async () => {
+			await extraFirmware.initialize(config.configJsonBackend);
 		},
 	};
 
