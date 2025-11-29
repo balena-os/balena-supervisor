@@ -137,7 +137,7 @@ For a balena device on a different network:
 
 ```bash
 # Open tunnel using the device uuid
-balena tunnel <uuid> -p 22222
+balena device tunnel <uuid> -p 22222
 # Tunnel device ports to the local machine
 ssh -ACN -p 22222 \
 -L 2375:/var/run/balena-engine.sock \
