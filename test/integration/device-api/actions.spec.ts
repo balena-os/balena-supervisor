@@ -20,6 +20,7 @@ import * as lockfile from '~/lib/lockfile';
 import { cleanupDocker } from '~/test-lib/docker-helper';
 import { getBlink } from '~/lib/blink';
 import type { Blink } from '~/lib/blink';
+import { EXTRA_FIRMWARE_VOLUME_NAME } from '~/lib/extra-firmware';
 
 export async function dbusSend(
 	dest: string,
@@ -730,6 +731,15 @@ describe('manages application lifecycle', () => {
 			// CreatedAt is a valid key but isn't typed properly
 			const createdAt = (volume as any).CreatedAt;
 
+			// Get extra-firmware volume metadata to verify it is also purged
+			const extraFirmwareVolume = (await docker.listVolumes()).Volumes.find(
+				(vol) => vol.Name === EXTRA_FIRMWARE_VOLUME_NAME,
+			);
+			if (!extraFirmwareVolume) {
+				expect.fail('Expected extra-firmware volume to exist');
+			}
+			const extraFirmwareCreatedAt = (extraFirmwareVolume as any).CreatedAt;
+
 			// Calling actions.doPurge won't work as intended because purge relies on
 			// setting and applying intermediate state before applying target state again,
 			// but target state is set in the balena-supervisor container instead of sut.
@@ -762,6 +772,17 @@ describe('manages application lifecycle', () => {
 				expect.fail('Expected recreated volume with name matching "data"');
 			}
 			expect((newVolume as any).CreatedAt).to.not.equal(createdAt);
+
+			// Extra-firmware volume should also be recreated
+			const newExtraFirmwareVolume = (await docker.listVolumes()).Volumes.find(
+				(vol) => vol.Name === EXTRA_FIRMWARE_VOLUME_NAME,
+			);
+			if (!newExtraFirmwareVolume) {
+				expect.fail('Expected extra-firmware volume to exist after purge');
+			}
+			expect((newExtraFirmwareVolume as any).CreatedAt).to.not.equal(
+				extraFirmwareCreatedAt,
+			);
 		});
 	});
 
@@ -1184,6 +1205,15 @@ describe('manages application lifecycle', () => {
 			// CreatedAt is a valid key but isn't typed properly
 			const createdAt = (volume as any).CreatedAt;
 
+			// Get extra-firmware volume metadata to verify it is also purged
+			const extraFirmwareVolume = (await docker.listVolumes()).Volumes.find(
+				(vol) => vol.Name === EXTRA_FIRMWARE_VOLUME_NAME,
+			);
+			if (!extraFirmwareVolume) {
+				expect.fail('Expected extra-firmware volume to exist');
+			}
+			const extraFirmwareCreatedAt = (extraFirmwareVolume as any).CreatedAt;
+
 			// Calling actions.doPurge won't work as intended because purge relies on
 			// setting and applying intermediate state before applying target state again,
 			// but target state is set in the balena-supervisor container instead of sut.
@@ -1216,6 +1246,17 @@ describe('manages application lifecycle', () => {
 				expect.fail('Expected recreated volume with name matching "data"');
 			}
 			expect((newVolume as any).CreatedAt).to.not.equal(createdAt);
+
+			// Extra-firmware volume should also be recreated
+			const newExtraFirmwareVolume = (await docker.listVolumes()).Volumes.find(
+				(vol) => vol.Name === EXTRA_FIRMWARE_VOLUME_NAME,
+			);
+			if (!newExtraFirmwareVolume) {
+				expect.fail('Expected extra-firmware volume to exist after purge');
+			}
+			expect((newExtraFirmwareVolume as any).CreatedAt).to.not.equal(
+				extraFirmwareCreatedAt,
+			);
 		});
 	});
 });
