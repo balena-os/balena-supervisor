@@ -410,6 +410,13 @@ export async function addFeaturesFromLabels(
 				setEnvVariables('HOST_OS_BOARD_REV', osBoardRev);
 			}
 		},
+		'io.balena.features.extra-firmware': () => {
+			service.config.volumes.push({
+				type: 'volume',
+				source: 'extra-firmware',
+				target: '/extra-firmware',
+			} as LongDefinition);
+		},
 	};
 
 	for (const feature of Object.keys(features) as [keyof typeof features]) {
