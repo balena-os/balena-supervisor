@@ -2,16 +2,15 @@ import _ from 'lodash';
 import path from 'path';
 import type { VolumeInspectInfo } from 'dockerode';
 
-import { isNotFoundError, InternalInconsistencyError } from '../lib/errors';
+import { isNotFoundError } from '../lib/errors';
 import { safeRename } from '../lib/fs-utils';
 import { pathOnData } from '../lib/host-utils';
 import { docker } from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
-import log from '../lib/supervisor-console';
 import * as logger from '../logging';
 import { ResourceRecreationAttemptError } from './errors';
 import type { VolumeConfig } from './types';
-import { Volume } from './volume';
+import { Volume, VolumeNameParsingError } from './volume';
 
 export interface VolumeNameOpts {
 	name: string;
@@ -32,8 +31,9 @@ export async function getAll(): Promise<Volume[]> {
 			const volume = Volume.fromDockerVolume(volumeInfo);
 			volumesList.push(volume);
 		} catch (err) {
-			if (err instanceof InternalInconsistencyError) {
-				log.debug(`Found unmanaged or anonymous Volume: ${volumeInfo.Name}`);
+			if (err instanceof VolumeNameParsingError) {
+				// Ignore volume as it's an unmanaged (not part of an app that's managed by the Supervisor),
+				// an anonymous volume (a volume declared via VOLUME directive in Dockerfile), or the extra firmware volume.
 			} else {
 				throw err;
 			}

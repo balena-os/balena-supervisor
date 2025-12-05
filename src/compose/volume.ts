@@ -1,10 +1,10 @@
 import type Docker from 'dockerode';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
+import { TypedError } from 'typed-error';
 
 import * as constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';
-import { InternalInconsistencyError } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import type { LabelObject } from '../types';
 import * as logger from '../logging';
@@ -17,6 +17,8 @@ import type {
 } from './types';
 
 export type Volume = VolumeIface;
+
+export class VolumeNameParsingError extends TypedError {}
 
 class VolumeImpl implements Volume {
 	private constructor(
@@ -124,14 +126,14 @@ class VolumeImpl implements Volume {
 	} {
 		const match = name.match(/(\d+)_(\S+)/);
 		if (match == null) {
-			throw new InternalInconsistencyError(
+			throw new VolumeNameParsingError(
 				`Could not detect volume data from docker name: ${name}`,
 			);
 		}
 
 		const appId = parseInt(match[1], 10);
 		if (isNaN(appId)) {
-			throw new InternalInconsistencyError(
+			throw new VolumeNameParsingError(
 				`Could not detect application id from docker name: ${match[1]}`,
 			);
 		}
