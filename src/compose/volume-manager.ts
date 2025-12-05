@@ -8,6 +8,7 @@ import { pathOnData } from '../lib/host-utils';
 import { docker } from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
 import log from '../lib/supervisor-console';
+import { EXTRA_FIRMWARE_VOLUME_NAME } from '../lib/extra-firmware';
 import * as logger from '../logging';
 import { ResourceRecreationAttemptError } from './errors';
 import type { VolumeConfig } from './types';
@@ -33,7 +34,11 @@ export async function getAll(): Promise<Volume[]> {
 			volumesList.push(volume);
 		} catch (err) {
 			if (err instanceof InternalInconsistencyError) {
-				log.debug(`Found unmanaged or anonymous Volume: ${volumeInfo.Name}`);
+				// Only log unmanaged or anonymous volumes that
+				// aren't the extra firmware volume to avoid confusion
+				if (volumeInfo.Name !== EXTRA_FIRMWARE_VOLUME_NAME) {
+					log.debug(`Found unmanaged or anonymous Volume: ${volumeInfo.Name}`);
+				}
 			} else {
 				throw err;
 			}
