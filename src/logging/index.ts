@@ -1,10 +1,8 @@
-import Bluebird from 'bluebird';
 import _ from 'lodash';
 
 import * as config from '../config';
 import * as eventTracker from '../event-tracker';
 import type { LogType } from '../lib/log-types';
-import { takeGlobalLockRW } from '../lib/process-lock';
 import { BalenaLogBackend } from './balena-backend';
 import { LocalLogBackend } from './local-backend';
 import type { LogBackend } from './log-backend';
@@ -128,28 +126,19 @@ export function logSystemMessage(
 	}
 }
 
-function lock(containerId: string): Bluebird.Disposer<() => void> {
-	return takeGlobalLockRW(containerId).disposer((release) => {
-		release();
-	});
-}
-
 type ServiceInfo = { serviceId: number };
-export async function attach(
-	containerId: string,
-	{ serviceId }: ServiceInfo,
-): Promise<void> {
+export function attach(containerId: string, { serviceId }: ServiceInfo): void {
 	// First detect if we already have an attached log stream
 	// for this container
 	if (logMonitor.isAttached(containerId)) {
 		return;
 	}
 
-	return Bluebird.using(lock(containerId), async () => {
-		logMonitor.attach(containerId, async (message) => {
-			await log({ ...message, serviceId });
-		});
-		return Promise.resolve();
+	// We do not grab a container lock here as we are only adding it to the list of container ids to monitor
+	// and not directly affecting the container itself, and grabbing the lock can cause a delay which means
+	// that early messages logged from the container are missed and never sent to the backend.
+	logMonitor.attach(containerId, async (message) => {
+		await log({ ...message, serviceId });
 	});
 }
 
