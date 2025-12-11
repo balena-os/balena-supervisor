@@ -779,8 +779,8 @@ class AppImpl implements App {
 		rebootBreadcrumbSet: boolean,
 		bootTime: Date,
 	): CompositionStep[] {
-		// Update container metadata if service release has changed
-		if (current.commit !== target.commit) {
+		// Update container metadata if container name has changed
+		if (current.containerName !== target.containerName) {
 			if (servicesLocked) {
 				return [generateStep('updateMetadata', { current, target })];
 			} else {
