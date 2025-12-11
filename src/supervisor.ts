@@ -15,6 +15,7 @@ import log from './lib/supervisor-console';
 import version from './lib/supervisor-version';
 import * as avahi from './lib/avahi';
 import * as firewall from './lib/firewall';
+import * as constants from './lib/constants';
 
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
@@ -46,6 +47,8 @@ export class Supervisor {
 			supervisorVersion: version,
 			deviceType: await config.get('deviceType'),
 			deviceArch: await config.get('deviceArch'),
+			osVersion: await osRelease.getOSSemver(constants.hostOSVersionPath),
+			osSlug: await osRelease.getOSSlug(constants.hostOSVersionPath),
 			l4tVersion: await osRelease.getL4tVersion(),
 		});
 

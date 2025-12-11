@@ -57,7 +57,7 @@ export async function getOSVersion(path: string): Promise<string | undefined> {
 }
 
 /**
- * Returns the OS variant information from /etc/release
+ * Returns the OS variant information from /etc/os-release
  *
  * OS variants no longer exist and this function only exists for legacy reasons
  *
@@ -80,6 +80,10 @@ export async function getMetaOSRelease(
 	path: string,
 ): Promise<string | undefined> {
 	return getOSReleaseField(path, 'META_BALENA_VERSION');
+}
+
+export async function getOSSlug(path: string): Promise<string | undefined> {
+	return getOSReleaseField(path, 'ID');
 }
 
 const L4T_REGEX = /^.*-l4t-r(\d+\.\d+(\.?\d+)?).*$/;

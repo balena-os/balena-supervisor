@@ -10,12 +10,15 @@ import * as fsUtils from '~/lib/fs-utils';
 describe('lib/contracts', () => {
 	type Contracts = typeof import('~/src/lib/contracts');
 	const contracts = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
+	const OS_VERSION = '5.5.5+rev3';
 	before(() => {
 		contracts.initializeContractRequirements({
 			supervisorVersion,
 			deviceType: 'intel-nuc',
 			deviceArch: 'amd64',
 			l4tVersion: '32.2',
+			osVersion: OS_VERSION,
+			osSlug: 'balena-os',
 		});
 	});
 
@@ -60,6 +63,7 @@ describe('lib/contracts', () => {
 						},
 						{ type: 'hw.device-type', slug: 'raspberrypi3' },
 						{ type: 'arch.sw', slug: 'aarch64' },
+						{ type: 'sw.os' },
 					],
 				}),
 			).to.not.throw();
@@ -306,9 +310,9 @@ describe('lib/contracts', () => {
 							name: 'user-container1',
 							slug: 'user-container1',
 							requires: [
-								// sw.os is not provided by the device contract so it should not be validated
+								// sw.blah is not provided by the device contract so it shouldn't be validated
 								{
-									type: 'sw.os',
+									type: 'sw.blah',
 									version: '<3.0.0',
 								},
 							],
@@ -606,6 +610,148 @@ describe('lib/contracts', () => {
 					commit: 'd0',
 				});
 			});
+		});
+	});
+
+	describe('OS version and slug resolution', () => {
+		const fulfillableVersionStrings = [
+			`>=${OS_VERSION}`,
+			`<=${OS_VERSION}`,
+			`${semver.major(OS_VERSION)}`,
+			`${semver.major(OS_VERSION)}.*`,
+			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}`,
+			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}.*`,
+			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}.${semver.patch(OS_VERSION)}`,
+			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}.${semver.patch(OS_VERSION)}+rev*`,
+			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}.${semver.patch(OS_VERSION)}+rev420`,
+			`>${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION) - 1}.${semver.patch(OS_VERSION)}`,
+			`<${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION) + 1}.${semver.patch(OS_VERSION)}`,
+		];
+		const unfulfillableVersionStrings = [
+			`<=2.0.0`,
+			`>=420.0.0`,
+			`>${OS_VERSION}`,
+			`<${OS_VERSION}`,
+			`${semver.major(OS_VERSION) + 1}.*`,
+			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}.${semver.patch(OS_VERSION) + 1}`,
+		];
+
+		it('should fulfill OS version requirements', () => {
+			for (const version of fulfillableVersionStrings) {
+				expect(
+					contracts.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service',
+							contract: {
+								type: 'sw.container',
+								name: 'user-container',
+								slug: 'user-container',
+								requires: [{ type: 'sw.os', version, slug: 'balena-os' }],
+							},
+							optional: false,
+						},
+					]),
+				)
+					.to.have.property('valid')
+					.that.equals(true);
+			}
+		});
+
+		it('should reject OS version requirements which are not fulfillable', () => {
+			for (const version of unfulfillableVersionStrings) {
+				expect(
+					contracts.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service',
+							contract: {
+								type: 'sw.container',
+								name: 'user-container',
+								slug: 'user-container',
+								requires: [{ type: 'sw.os', version, slug: 'balena-os' }],
+							},
+							optional: false,
+						},
+					]),
+				)
+					.to.have.property('valid')
+					.that.equals(false);
+			}
+		});
+
+		const fulfillableSlugStrings = ['balena-os'];
+		const unfulfillableSlugStrings = ['ubuntu'];
+
+		it('should fulfill OS slug requirements', () => {
+			for (const slug of fulfillableSlugStrings) {
+				expect(
+					contracts.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service',
+							contract: {
+								type: 'sw.container',
+								name: 'user-container',
+								slug: 'user-container',
+								requires: [{ type: 'sw.os', slug, version: OS_VERSION }],
+							},
+							optional: false,
+						},
+					]),
+				)
+					.to.have.property('valid')
+					.that.equals(true);
+			}
+		});
+
+		it('should reject OS slug requirements which are not fulfillable', () => {
+			for (const slug of unfulfillableSlugStrings) {
+				expect(
+					contracts.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service',
+							contract: {
+								type: 'sw.container',
+								name: 'user-container',
+								slug: 'user-container',
+								requires: [{ type: 'sw.os', slug, version: OS_VERSION }],
+							},
+							optional: false,
+						},
+					]),
+				)
+					.to.have.property('valid')
+					.that.equals(false);
+			}
+		});
+
+		it('should fulfill one of multiple sw.os requirements given one of them is valid', () => {
+			expect(
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
+						contract: {
+							type: 'sw.container',
+							name: 'user-container',
+							slug: 'user-container',
+							requires: [
+								{
+									or: [
+										{ type: 'sw.os', slug: 'balena-os', version: OS_VERSION },
+										{ type: 'sw.os', slug: 'ubuntu', version: '20.04' },
+									],
+								},
+							],
+						},
+						optional: false,
+					},
+				]),
+			)
+				.to.have.property('valid')
+				.that.equals(true);
 		});
 	});
 
