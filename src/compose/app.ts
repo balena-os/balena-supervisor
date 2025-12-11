@@ -682,6 +682,12 @@ class AppImpl implements App {
 				context.networkPairs,
 				context.volumePairs,
 			);
+
+			const dependenciesMetForKill = this.dependenciesMetForServiceKill(
+				context.targetApp,
+				context.availableImages,
+			);
+
 			if (
 				!needsSpecialKill &&
 				target != null &&
@@ -694,6 +700,7 @@ class AppImpl implements App {
 					context.appsToLock,
 					context.targetApp.services,
 					servicesLocked,
+					dependenciesMetForKill,
 					context.rebootBreadcrumbSet,
 					context.bootTime,
 				);
@@ -715,11 +722,6 @@ class AppImpl implements App {
 				strategy = getStrategyFromService(current);
 				dependenciesMetForStart = false;
 			}
-
-			const dependenciesMetForKill = this.dependenciesMetForServiceKill(
-				context.targetApp,
-				context.availableImages,
-			);
 
 			return getStepsFromStrategy(strategy, {
 				current,
@@ -776,11 +778,18 @@ class AppImpl implements App {
 		appsToLock: AppsToLockMap,
 		targetServices: Service[],
 		servicesLocked: boolean,
+		dependenciesMetForKill: boolean,
 		rebootBreadcrumbSet: boolean,
 		bootTime: Date,
 	): CompositionStep[] {
 		// Update container metadata if service release has changed
 		if (current.commit !== target.commit) {
+			// Only take locks once all target images are downloaded,
+			// to respect the download-then-kill strategy.
+			// Otherwise we can hoard the lock during download of other service images.
+			if (!dependenciesMetForKill) {
+				return [generateStep('noop', {})];
+			}
 			if (servicesLocked) {
 				return [generateStep('updateMetadata', { current, target })];
 			} else {
