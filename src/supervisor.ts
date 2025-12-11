@@ -19,6 +19,7 @@ import * as firewall from './lib/firewall';
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
 	'listenPort',
+	'listenPortOverride',
 	'apiEndpoint',
 	'apiTimeout',
 	'unmanaged',
@@ -64,6 +65,9 @@ export class Supervisor {
 			await normaliseLegacyDatabase();
 		}
 
+		// Listen on the override port if set
+		const listenPort = conf.listenPortOverride ?? conf.listenPort;
+
 		// Start the state engine, the device API and API binder in parallel
 		await Promise.all([
 			deviceState.loadInitialState(),
@@ -74,7 +78,7 @@ export class Supervisor {
 					healthchecks: [apiBinder.healthcheck, deviceState.healthcheck],
 				});
 				deviceState.on('shutdown', () => this.api.stop());
-				return this.api.listen(conf.listenPort, conf.apiTimeout);
+				return this.api.listen(listenPort, conf.apiTimeout);
 			})(),
 			apiBinder.start(),
 		]);
