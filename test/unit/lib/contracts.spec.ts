@@ -1,11 +1,7 @@
 import { expect } from 'chai';
 import * as semver from 'semver';
-import type { SinonStub } from 'sinon';
-import { stub } from 'sinon';
 
-import * as osRelease from '~/lib/os-release';
 import supervisorVersion from '~/lib/supervisor-version';
-import * as fsUtils from '~/lib/fs-utils';
 
 describe('lib/contracts', () => {
 	type Contracts = typeof import('~/src/lib/contracts');
@@ -755,60 +751,196 @@ describe('lib/contracts', () => {
 		});
 	});
 
-	describe('L4T version detection', () => {
-		let execStub: SinonStub;
-
-		const seedExec = (version: string) => {
-			execStub = stub(fsUtils, 'exec').resolves({
-				stdout: Buffer.from(version),
-				stderr: Buffer.from(''),
+	describe('L4T version resolution', () => {
+		const seedEngine = (version: string) => {
+			const engine = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
+			engine.initializeContractRequirements({
+				supervisorVersion,
+				deviceType: 'intel-nuc',
+				deviceArch: 'amd64',
+				l4tVersion: version,
 			});
+
+			return engine;
 		};
 
-		afterEach(() => {
-			execStub.restore();
+		it('should allow semver matching even when l4t does not fulfill semver', () => {
+			const engine = seedEngine('31.0.0');
+			expect(
+				engine.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.l4t',
+									version: '>=31.0.0',
+								},
+							],
+						},
+						optional: false,
+					},
+				]),
+			)
+				.to.have.property('valid')
+				.that.equals(true);
+
+			expect(
+				engine.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.l4t',
+									version: '<31.0.0',
+								},
+							],
+						},
+						optional: false,
+					},
+				]),
+			)
+				.to.have.property('valid')
+				.that.equals(false);
 		});
 
-		it('should correctly parse L4T version strings', async () => {
-			seedExec('4.9.140-l4t-r32.2+g3dcbed5');
-			expect(await osRelease.getL4tVersion()).to.equal('32.2.0');
-			expect(execStub.callCount).to.equal(1);
-			execStub.restore();
+		it('should allow semver matching when l4t does fulfill semver', () => {
+			const engine = seedEngine('31.0.1');
 
-			seedExec('4.4.38-l4t-r28.2+g174510d');
-			expect(await osRelease.getL4tVersion()).to.equal('28.2.0');
-			expect(execStub.callCount).to.equal(1);
+			expect(
+				engine.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.l4t',
+									version: '>=31.0.0',
+								},
+							],
+						},
+						optional: false,
+					},
+				]),
+			)
+				.to.have.property('valid')
+				.that.equals(true);
+
+			expect(
+				engine.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.l4t',
+									version: '<31.0.0',
+								},
+							],
+						},
+						optional: false,
+					},
+				]),
+			)
+				.to.have.property('valid')
+				.that.equals(false);
+		});
+	});
+
+	describe('Kernel version and slug resolution', () => {
+		const seedEngine = (version: string, slug: string) => {
+			const engine = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
+			engine.initializeContractRequirements({
+				supervisorVersion,
+				deviceType: 'intel-nuc',
+				deviceArch: 'amd64',
+				kernelVersion: version,
+				kernelSlug: slug,
+			});
+			return engine;
+		};
+		const KERNEL_VERSION = '5.15.150';
+		const KERNEL_SLUG = 'linux';
+		const engine = seedEngine(KERNEL_VERSION, KERNEL_SLUG);
+
+		const fulfillableKernelVersionStrings = [
+			`>=${KERNEL_VERSION}`,
+			`<=${KERNEL_VERSION}`,
+			`${semver.major(KERNEL_VERSION)}`,
+			`${semver.major(KERNEL_VERSION)}.*`,
+			`${semver.major(KERNEL_VERSION)}.${semver.minor(KERNEL_VERSION)}`,
+			`${semver.major(KERNEL_VERSION)}.${semver.minor(KERNEL_VERSION)}.*`,
+		];
+		const unfulfillableKernelVersionStrings = [
+			`<=2.0.0`,
+			`>=420.0.0`,
+			`>${KERNEL_VERSION}`,
+			`<${KERNEL_VERSION}`,
+			`${semver.major(KERNEL_VERSION) + 1}.*`,
+			`${semver.major(KERNEL_VERSION)}.${semver.minor(KERNEL_VERSION)}.${semver.patch(KERNEL_VERSION) + 1}`,
+			'invalid-version',
+		];
+
+		it('should fulfill kernel version requirements', () => {
+			for (const version of fulfillableKernelVersionStrings) {
+				expect(
+					engine.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service',
+							contract: {
+								type: 'sw.container',
+								slug: 'user-container',
+								requires: [{ type: 'sw.kernel', version, slug: KERNEL_SLUG }],
+							},
+							optional: false,
+						},
+					]),
+				)
+					.to.have.property('valid')
+					.that.equals(true);
+			}
 		});
 
-		it('should correctly handle l4t versions which contain three numbers', async () => {
-			seedExec('4.4.38-l4t-r32.3.1+g174510d');
-			expect(await osRelease.getL4tVersion()).to.equal('32.3.1');
-			expect(execStub.callCount).to.equal(1);
+		it('should reject kernel version requirements which are not fulfillable', () => {
+			for (const version of unfulfillableKernelVersionStrings) {
+				expect(
+					engine.containerContractsFulfilled([
+						{
+							commit: 'd0',
+							serviceName: 'service',
+							contract: {
+								type: 'sw.container',
+								slug: 'user-container',
+								requires: [{ type: 'sw.kernel', version, slug: KERNEL_SLUG }],
+							},
+							optional: false,
+						},
+					]),
+				)
+					.to.have.property('valid')
+					.that.equals(false);
+			}
 		});
 
-		it('should return undefined when there is no l4t string in uname', async () => {
-			seedExec('4.18.14-yocto-standard');
-			expect(await osRelease.getL4tVersion()).to.be.undefined;
-		});
+		const fulfillableSlugStrings = ['linux'];
+		const unfulfillableSlugStrings = ['darwin', 'freebsd'];
 
-		describe('L4T comparison', () => {
-			const seedEngine = async (version: string) => {
-				const engine = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
-
-				seedExec(version);
-				engine.initializeContractRequirements({
-					supervisorVersion,
-					deviceType: 'intel-nuc',
-					deviceArch: 'amd64',
-					l4tVersion: await osRelease.getL4tVersion(),
-				});
-
-				return engine;
-			};
-
-			it('should allow semver matching even when l4t does not fulfill semver', async () => {
-				const engine = await seedEngine('4.4.38-l4t-r31.0');
-
+		it('should fulfill kernel slug requirements', () => {
+			for (const slug of fulfillableSlugStrings) {
 				expect(
 					engine.containerContractsFulfilled([
 						{
@@ -818,10 +950,7 @@ describe('lib/contracts', () => {
 								type: 'sw.container',
 								slug: 'user-container',
 								requires: [
-									{
-										type: 'sw.l4t',
-										version: '>=31.0.0',
-									},
+									{ type: 'sw.kernel', slug, version: KERNEL_VERSION },
 								],
 							},
 							optional: false,
@@ -830,7 +959,11 @@ describe('lib/contracts', () => {
 				)
 					.to.have.property('valid')
 					.that.equals(true);
+			}
+		});
 
+		it('should reject kernel slug requirements which are not fulfillable', () => {
+			for (const slug of unfulfillableSlugStrings) {
 				expect(
 					engine.containerContractsFulfilled([
 						{
@@ -840,10 +973,7 @@ describe('lib/contracts', () => {
 								type: 'sw.container',
 								slug: 'user-container',
 								requires: [
-									{
-										type: 'sw.l4t',
-										version: '<31.0.0',
-									},
+									{ type: 'sw.kernel', slug, version: KERNEL_VERSION },
 								],
 							},
 							optional: false,
@@ -852,55 +982,38 @@ describe('lib/contracts', () => {
 				)
 					.to.have.property('valid')
 					.that.equals(false);
-			});
+			}
+		});
 
-			it('should allow semver matching when l4t does fulfill semver', async () => {
-				const engine = await seedEngine('4.4.38-l4t-r31.0.1');
-
-				expect(
-					engine.containerContractsFulfilled([
-						{
-							commit: 'd0',
-							serviceName: 'service',
-							contract: {
-								type: 'sw.container',
-								slug: 'user-container',
-								requires: [
-									{
-										type: 'sw.l4t',
-										version: '>=31.0.0',
-									},
-								],
-							},
-							optional: false,
+		it('should fulfill one of multiple sw.kernel requirements given one of them is valid', () => {
+			expect(
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
+						contract: {
+							type: 'sw.container',
+							name: 'user-container',
+							slug: 'user-container',
+							requires: [
+								{
+									or: [
+										{
+											type: 'sw.kernel',
+											slug: 'linux',
+											version: KERNEL_VERSION,
+										},
+										{ type: 'sw.kernel', slug: 'darwin', version: '1.2.3' },
+									],
+								},
+							],
 						},
-					]),
-				)
-					.to.have.property('valid')
-					.that.equals(true);
-
-				expect(
-					engine.containerContractsFulfilled([
-						{
-							commit: 'd0',
-							serviceName: 'service',
-							contract: {
-								type: 'sw.container',
-								slug: 'user-container',
-								requires: [
-									{
-										type: 'sw.l4t',
-										version: '<31.0.0',
-									},
-								],
-							},
-							optional: false,
-						},
-					]),
-				)
-					.to.have.property('valid')
-					.that.equals(false);
-			});
+						optional: false,
+					},
+				]),
+			)
+				.to.have.property('valid')
+				.that.equals(true);
 		});
 	});
 });

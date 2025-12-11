@@ -16,6 +16,7 @@ import version from './lib/supervisor-version';
 import * as avahi from './lib/avahi';
 import * as firewall from './lib/firewall';
 import * as constants from './lib/constants';
+import * as uname from './lib/uname';
 
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
@@ -43,13 +44,20 @@ export class Supervisor {
 
 		const conf = await config.getMany(startupConfigFields);
 
+		// These could fail, but if so, the device has much bigger problems
+		const [unameR, unameS] = await Promise.all([
+			uname.get('-r'),
+			uname.get('-s'),
+		]);
 		initializeContractRequirements({
 			supervisorVersion: version,
 			deviceType: await config.get('deviceType'),
 			deviceArch: await config.get('deviceArch'),
+			kernelVersion: uname.parseKernelVersion(unameR),
+			kernelSlug: uname.parseKernelSlug(unameS),
 			osVersion: await osRelease.getOSSemver(constants.hostOSVersionPath),
 			osSlug: await osRelease.getOSSlug(constants.hostOSVersionPath),
-			l4tVersion: await osRelease.getL4tVersion(),
+			l4tVersion: uname.parseL4tVersion(unameR),
 		});
 
 		log.info('Starting firewall');

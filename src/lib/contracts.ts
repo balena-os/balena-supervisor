@@ -66,6 +66,7 @@ const validRequirementTypes = [
 	'sw.supervisor',
 	'sw.l4t',
 	'sw.os',
+	'sw.kernel',
 	'hw.device-type',
 	'arch.sw',
 ];
@@ -75,6 +76,8 @@ export function initializeContractRequirements(opts: {
 	supervisorVersion: string;
 	deviceType: string;
 	deviceArch: string;
+	kernelVersion?: string;
+	kernelSlug?: string;
 	l4tVersion?: string;
 	osVersion?: string;
 	osSlug?: string;
@@ -114,6 +117,16 @@ export function initializeContractRequirements(opts: {
 				type: 'sw.os',
 				slug: opts.osSlug,
 				version: opts.osVersion,
+			}),
+		);
+	}
+
+	if (opts.kernelVersion && opts.kernelSlug) {
+		deviceContract.addChild(
+			new Contract({
+				type: 'sw.kernel',
+				version: opts.kernelVersion,
+				slug: opts.kernelSlug,
 			}),
 		);
 	}
