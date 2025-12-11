@@ -194,11 +194,9 @@ class LogMonitor {
 	}
 
 	public attach(containerId: string, hook: MonitorHook) {
-		if (!this.containers[containerId]) {
-			this.containers[containerId] = {
-				hook,
-			};
-		}
+		this.containers[containerId] ??= {
+			hook,
+		};
 	}
 
 	public detach(containerId: string) {
