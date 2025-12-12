@@ -27,6 +27,7 @@ import {
 	BadRequestError,
 } from '../lib/errors';
 import { withLock } from '../lib/update-lock';
+import * as extraFirmware from '../lib/extra-firmware';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -121,6 +122,7 @@ export const doRestart = async (appId: number, force = false) => {
 
 /**
  * Purges volumes for an application.
+ * Also purges the extra-firmware system volume.
  * Used by:
  * - POST /v1/purge
  * - POST /v2/applications/:appId/purge
@@ -151,6 +153,12 @@ export const doPurge = async (appId: number, force = false) => {
 			keepVolumes: false,
 			force,
 		});
+
+		// Purge the extra-firmware system volume
+		log.info('Purging extra-firmware volume');
+		await extraFirmware.remove();
+		await extraFirmware.create();
+
 		// Restore user app after purge
 		currentState.local.apps[appId] = app;
 		await deviceState.applyIntermediateTarget(currentState);

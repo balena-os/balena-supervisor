@@ -42,6 +42,7 @@ import type {
 } from './types';
 import { isRebootBreadcrumbSet } from '../lib/reboot';
 import { getBootTime } from '../lib/fs-utils';
+import * as extraFirmware from '../lib/extra-firmware';
 
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
@@ -213,6 +214,8 @@ export async function inferNextSteps(
 		} else {
 			steps.push({ action: 'ensureSupervisorNetwork' });
 		}
+	} else if (!(await extraFirmware.isInitialized(config.configJsonBackend))) {
+		steps.push({ action: 'ensureExtraFirmwareVolume' });
 	} else {
 		if (downloading.length === 0) {
 			// Avoid cleaning up dangling images while purging

@@ -19,6 +19,7 @@ import {
 	expectNoStep,
 } from '~/test-lib/state-helper';
 import type { InstancedAppState } from '~/src/compose/types';
+import * as extraFirmware from '~/lib/extra-firmware';
 
 // TODO: application manager inferNextSteps still queries some stuff from
 // the engine instead of receiving that information as parameter. Refactoring
@@ -39,6 +40,8 @@ describe('compose/application-manager', () => {
 	beforeEach(async () => {
 		// Set up network by default
 		await networkManager.ensureSupervisorNetwork();
+		// Create extra firmware volume
+		await extraFirmware.initialize(config.configJsonBackend);
 	});
 
 	afterEach(async () => {
@@ -1341,6 +1344,31 @@ describe('compose/application-manager', () => {
 		);
 
 		expect(steps.filter((s) => s.action === 'removeVolume')).to.be.empty;
+	});
+
+	it('should infer to configure extra firmware volume if it is not configured', async () => {
+		const docker = new Docker();
+		await docker.getVolume('extra-firmware').remove();
+
+		const targetApps = createApps({ networks: [DEFAULT_NETWORK] }, true);
+		const { currentApps, availableImages, downloading, containerIdsByAppId } =
+			createCurrentState({
+				services: [],
+				networks: [DEFAULT_NETWORK],
+			});
+
+		const [createExtraFirmwareVolumeStep, ...nextSteps] =
+			await applicationManager.inferNextSteps(currentApps, targetApps, {
+				downloading,
+				availableImages,
+				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
+			});
+
+		expect(createExtraFirmwareVolumeStep).to.deep.include({
+			action: 'ensureExtraFirmwareVolume',
+		});
+		expect(nextSteps).to.have.lengthOf(0);
 	});
 
 	it('should infer that we need to create the supervisor network if it does not exist', async () => {
