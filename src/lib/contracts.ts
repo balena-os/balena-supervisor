@@ -65,6 +65,8 @@ interface ServiceWithContract extends ServiceCtx {
 const validRequirementTypes = [
 	'sw.supervisor',
 	'sw.l4t',
+	'sw.os',
+	'sw.kernel',
 	'hw.device-type',
 	'arch.sw',
 ];
@@ -74,7 +76,11 @@ export function initializeContractRequirements(opts: {
 	supervisorVersion: string;
 	deviceType: string;
 	deviceArch: string;
+	kernelVersion?: string;
+	kernelSlug?: string;
 	l4tVersion?: string;
+	osSemver?: string;
+	osSlug?: string;
 }) {
 	deviceContract.addChildren([
 		new Contract({
@@ -85,6 +91,10 @@ export function initializeContractRequirements(opts: {
 			type: 'sw.application',
 			slug: 'balena-supervisor',
 			version: opts.supervisorVersion,
+		}),
+		new Contract({
+			type: 'sw.kernel',
+			version: opts.kernelVersion,
 		}),
 		new Contract({
 			type: 'hw.device-type',
@@ -101,6 +111,26 @@ export function initializeContractRequirements(opts: {
 			new Contract({
 				type: 'sw.l4t',
 				version: opts.l4tVersion,
+			}),
+		);
+	}
+
+	if (opts.osSemver && opts.osSlug) {
+		deviceContract.addChild(
+			new Contract({
+				type: 'sw.os',
+				slug: opts.osSlug,
+				version: opts.osSemver,
+			}),
+		);
+	}
+
+	if (opts.kernelVersion && opts.kernelSlug) {
+		deviceContract.addChild(
+			new Contract({
+				type: 'sw.kernel',
+				version: opts.kernelVersion,
+				slug: opts.kernelSlug,
 			}),
 		);
 	}
