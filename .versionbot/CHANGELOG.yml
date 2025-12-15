@@ -1,4 +1,18 @@
 - commits:
+    - subject: Remove unused direct dependency on pinejs-client-core
+      hash: a1b2309e652b63f3e1ac4a0cdf9ff2ed81d98108
+      body: |
+        This also conflicts with the version pinejs-client-request depends on
+        and as such could potentially cause weird interactions.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.3.1
+  title: ""
+  date: 2025-12-15T21:45:51.148Z
+- commits:
     - subject: Purge extra-firmware system volume with purge action
       hash: b056ec6b48b8f14fb858ce9e62855f1f9fe1bf66
       body: ""
