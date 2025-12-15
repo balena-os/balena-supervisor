@@ -946,6 +946,46 @@ describe('compose/service: unit tests', () => {
 					.that.deep.equals([gpuDeviceRequest]);
 			});
 		});
+
+		describe('io.balena.features.extra-firmware', () => {
+			it('should add extra-firmware volume mount when the feature is set', async () => {
+				const s = await Service.fromComposeObject(
+					{
+						appId: 123,
+						serviceId: 123,
+						serviceName: 'test',
+						labels: {
+							'io.balena.features.extra-firmware': '1',
+						},
+					},
+					{ appName: 'test' } as any,
+				);
+
+				expect(s.config.volumes).to.deep.include({
+					type: 'volume',
+					source: 'extra-firmware',
+					target: '/extra-firmware',
+				});
+			});
+
+			it('should not add extra-firmware volume mount when the feature is not set', async () => {
+				const s = await Service.fromComposeObject(
+					{
+						appId: 123,
+						serviceId: 123,
+						serviceName: 'test',
+						labels: {},
+					},
+					{ appName: 'test' } as any,
+				);
+
+				expect(s.config.volumes).to.not.deep.include({
+					type: 'volume',
+					source: 'extra-firmware',
+					target: '/extra-firmware',
+				});
+			});
+		});
 	});
 
 	describe('Creating service instances from docker configuration', () => {
