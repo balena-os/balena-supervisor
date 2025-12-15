@@ -1,4 +1,40 @@
 - commits:
+    - subject: Purge extra-firmware system volume with purge action
+      hash: b056ec6b48b8f14fb858ce9e62855f1f9fe1bf66
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Configure services to use extra-firmware volume if feature label present
+      hash: a024c6d968dc8aba32d1d825415dc9393289b24c
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Create extra firmware volume on startup and write volume to config.json
+      hash: 005fd1ba35a3a24b0453b977620f63584462fdaf
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+        See: https://balena.fibery.io/Work/Project/linux-firmware-updates-1840/Specification-RFC-Extra-Firmware-Volume-4254
+        see: https://balena.fibery.io/Work/Project/linux-firmware-updates-1840/Specification-RFC-Extra-Firmware-Volume-4254
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.3.0
+  title: ""
+  date: 2025-12-15T19:47:28.986Z
+- commits:
     - subject: Update lint-staged to v16
       hash: 904a945fe124ccc32a302b5f277074539ccf52d8
       body: |
