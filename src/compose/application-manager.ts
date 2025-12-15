@@ -330,7 +330,7 @@ export async function inferNextSteps(
 		// application, as we want to download all images then
 		// Otherwise we want to limit the downloading of
 		// deltas to constants.maxDeltaDownloads
-		const appImages = _.groupBy(availableImages, 'appId');
+		const appImages = Object.groupBy(availableImages, ({ appId }) => appId);
 		let downloadsToBlock =
 			downloading.length + newDownloads - constants.maxDeltaDownloads;
 
@@ -501,19 +501,19 @@ function groupComponents(
 		// Otherwise group them by appId and let the state engine match them later.
 		// This will only happen once, as every target state going forward will
 		// contain UUIDs, we just need to handle the initial upgrade
-		const appSvcs = _.groupBy(services, 'appId');
-		const appVols = _.groupBy(volumes, 'appId');
-		const appNets = _.groupBy(networks, 'appId');
+		const appSvcs = Object.groupBy(services, ({ appId }) => appId);
+		const appVols = Object.groupBy(volumes, ({ appId }) => appId);
+		const appNets = Object.groupBy(networks, ({ appId }) => appId);
 
 		_.uniq(allAppIds).forEach((appId) => {
 			grouping[appId].services = grouping[appId].services.concat(
-				appSvcs[appId] || [],
+				appSvcs[appId] ?? [],
 			);
 			grouping[appId].networks = grouping[appId].networks.concat(
-				appNets[appId] || [],
+				appNets[appId] ?? [],
 			);
 			grouping[appId].volumes = grouping[appId].volumes.concat(
-				appVols[appId] || [],
+				appVols[appId] ?? [],
 			);
 		});
 	}
