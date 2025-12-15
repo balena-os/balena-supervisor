@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update @balena/compose to v7
+      hash: 3bda9dc0bdfce0372b9d165d65e5f58f07bba7b6
+      body: |
+        Update @balena/compose from 6.0.0 to 7.2.1
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.2.3
+  title: ""
+  date: 2025-12-15T16:24:05.170Z
+- commits:
     - subject: Improve issue of very early container logs potentially being dropped
       hash: b97dc2bba2ca7c560a88b497ce5a78e1ec77bb61
       body: |
