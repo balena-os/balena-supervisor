@@ -1346,3 +1346,18 @@ describe('patches host config', () => {
 		expect(hostConfigPatch).to.have.been.calledWith(conf, true);
 	});
 });
+
+describe('gets metrics', () => {
+	it('gets system metrics and checks', async () => {
+		const metrics = await actions.getMetrics();
+		expect(metrics).to.have.property('cpu_usage');
+		expect(metrics).to.have.property('memory_usage');
+		expect(metrics).to.have.property('memory_total');
+		expect(metrics).to.have.property('storage_usage');
+		expect(metrics).to.have.property('storage_total');
+		expect(metrics).to.have.property('storage_block_device');
+		expect(metrics).to.have.property('cpu_temp');
+		expect(metrics).to.have.property('cpu_id');
+		expect(metrics).to.have.property('is_undervolted');
+	});
+});
