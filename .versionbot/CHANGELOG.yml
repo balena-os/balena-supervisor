@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update lint-staged to v16
+      hash: 904a945fe124ccc32a302b5f277074539ccf52d8
+      body: |
+        Update lint-staged from 15.4.3 to 16.2.7
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.2.5
+  title: ""
+  date: 2025-12-15T17:32:27.688Z
+- commits:
     - subject: Update @types/sinon to v21
       hash: 788852b01359c5983554ccd742b7f1a9b3a5ab63
       body: |
