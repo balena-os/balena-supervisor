@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update @types/sinon to v21
+      hash: 788852b01359c5983554ccd742b7f1a9b3a5ab63
+      body: |
+        Update @types/sinon from 17.0.4 to 21.0.0
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.2.4
+  title: ""
+  date: 2025-12-15T16:42:40.944Z
+- commits:
     - subject: Update @balena/compose to v7
       hash: 3bda9dc0bdfce0372b9d165d65e5f58f07bba7b6
       body: |
