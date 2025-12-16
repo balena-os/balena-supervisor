@@ -74,17 +74,14 @@ export function convertToRestoreRulesFormat(rules: Rule[]): string {
 	const iptablesRestore = ['# iptables-restore -- Balena Firewall'];
 
 	// build rules for each table we have rules for...
-	const tables = _(rules)
-		.groupBy((rule) => rule.table ?? 'filter')
-		.value();
+	const tables = Object.groupBy(rules, (rule) => rule.table ?? 'filter');
 
 	// for each table, build the rules...
 	for (const table of Object.keys(tables)) {
 		iptablesRestore.push(`*${table}`);
 
 		// define our chains for this table...
-		tables[table]
-			.map((rule) => rule.chain)
+		tables[table]!.map((rule) => rule.chain)
 			.filter((chain, index, self) => {
 				if (
 					chain === undefined ||
@@ -100,42 +97,40 @@ export function convertToRestoreRulesFormat(rules: Rule[]): string {
 			});
 
 		// add the rules...
-		tables[table]
-			.map((rule) => {
-				const args: string[] = [];
+		tables[table]!.map((rule) => {
+			const args: string[] = [];
 
-				if (rule.action) {
-					args.push(rule.action);
+			if (rule.action) {
+				args.push(rule.action);
+			}
+			if (rule.chain) {
+				args.push(rule.chain);
+				// Optionally push a rule to a specific position in the chain
+				if (
+					(rule.action === RuleAction.Insert ||
+						rule.action === RuleAction.Delete) &&
+					rule.id
+				) {
+					args.push(rule.id?.toString() ?? '1');
 				}
-				if (rule.chain) {
-					args.push(rule.chain);
-					// Optionally push a rule to a specific position in the chain
-					if (
-						(rule.action === RuleAction.Insert ||
-							rule.action === RuleAction.Delete) &&
-						rule.id
-					) {
-						args.push(rule.id?.toString() ?? '1');
-					}
-				}
-				if (rule.proto) {
-					args.push(`-p ${rule.proto}`);
-				}
-				if (rule.matches) {
-					rule.matches.forEach((match) => args.push(match));
-				}
-				// TODO: Enable this once the support for it can be confirmed...
-				// if (rule.comment) {
-				// 	args.push('-m comment');
-				// 	args.push(`--comment "${rule.comment}"`);
-				// }
-				if (rule.target) {
-					args.push(`-j ${rule.target}`);
-				}
+			}
+			if (rule.proto) {
+				args.push(`-p ${rule.proto}`);
+			}
+			if (rule.matches) {
+				rule.matches.forEach((match) => args.push(match));
+			}
+			// TODO: Enable this once the support for it can be confirmed...
+			// if (rule.comment) {
+			// 	args.push('-m comment');
+			// 	args.push(`--comment "${rule.comment}"`);
+			// }
+			if (rule.target) {
+				args.push(`-j ${rule.target}`);
+			}
 
-				return args.join(' ');
-			})
-			.forEach((rule) => iptablesRestore.push(rule));
+			return args.join(' ');
+		}).forEach((rule) => iptablesRestore.push(rule));
 	}
 
 	// commit the changes...
@@ -167,18 +162,17 @@ export function convertToRestoreRulesFormat(rules: Rule[]): string {
 const iptablesRestoreAdaptor: RuleAdaptor = async (
 	rules: Rule[],
 ): Promise<void> => {
-	const rulesFiles = _(rules)
-		.groupBy((rule) => `v${rule.family}`)
-		.mapValues((ruleset) => convertToRestoreRulesFormat(ruleset))
-		.value();
+	const rulesFiles = _.mapValues(
+		Object.groupBy(rules, (rule) => `v${rule.family}`),
+		(ruleset) => convertToRestoreRulesFormat(ruleset!),
+	);
 
 	// run the iptables-restore command...
-	for (const family of Object.getOwnPropertyNames(rulesFiles)) {
+	for (const [family, ruleset] of Object.entries(rulesFiles)) {
 		if (!['v4', 'v6'].includes(family)) {
 			return;
 		}
 
-		const ruleset = rulesFiles[family];
 		const cmd = family === 'v6' ? 'ip6tables-restore' : 'iptables-restore';
 		await new Promise<string>((resolve, reject) => {
 			const args = ['--noflush', '--verbose'];
