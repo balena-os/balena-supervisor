@@ -1,4 +1,29 @@
 - commits:
+    - subject: Log errors and warnings to stderr
+      hash: b880e8e682351ac246e033ea32b21eddec9d02f0
+      body: |
+        All logs were being sent to stdout before. With this change, the
+        supervisor journal logs can be filtered by priority if using the
+        container id.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: felipe
+      nested: []
+    - subject: Revert moduleResolution to node16
+      hash: 41a7f79c6ca07a5165d8a57d28a92700fb441804
+      body: |
+        `classic` nodeResolution was not working with some language servers
+        during development.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: felipe
+      nested: []
+  version: 17.3.3
+  title: ""
+  date: 2025-12-16T20:46:37.282Z
+- commits:
     - subject: Update tsconfig targets for node22
       hash: 83767dce64516c4ae30d5e1449dc5807b4efd7d0
       body: |
