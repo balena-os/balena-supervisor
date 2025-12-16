@@ -44,7 +44,11 @@ const formatter = winston.format.printf((args) => {
 
 export const winstonLog = winston.createLogger({
 	format: winston.format.combine(winston.format.colorize(), formatter),
-	transports: [new winston.transports.Console()],
+	transports: [
+		new winston.transports.Console({
+			stderrLevels: ['error', 'warn'],
+		}),
+	],
 	// In the future we can reduce this logging level in
 	// certain scenarios, but for now we don't want to ignore
 	// any debugging without a rock solid method of making
