@@ -1,4 +1,19 @@
 - commits:
+    - subject: Update tsconfig targets for node22
+      hash: 83767dce64516c4ae30d5e1449dc5807b4efd7d0
+      body: |
+        This matches tsconfig to the targets that node22 supports and makes use
+        of the native `Object.groupBy` function that typescript will now accept
+        as supported and has better typings
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.3.2
+  title: ""
+  date: 2025-12-16T14:43:35.083Z
+- commits:
     - subject: Remove unused direct dependency on pinejs-client-core
       hash: a1b2309e652b63f3e1ac4a0cdf9ff2ed81d98108
       body: |
