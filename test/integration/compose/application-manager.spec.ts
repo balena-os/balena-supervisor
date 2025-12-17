@@ -447,9 +447,10 @@ describe('compose/application-manager', () => {
 					abortSignal: new AbortController().signal,
 				},
 			);
-			// There should be two noop steps, one for target service which is still downloading,
-			// and one for current service which is waiting on target download to complete.
-			expectSteps('noop', steps, 2);
+			// There should be three noop steps, one for target service which is still downloading,
+			// one for current service which is waiting on target download to complete,
+			// and one for current service which needs metadata update but is waiting for downloads.
+			expectSteps('noop', steps, 3);
 			// No kill step yet
 			expectNoStep('kill', steps);
 
