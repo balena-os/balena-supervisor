@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update systeminformation to v5.27.14 [SECURITY]
+      hash: 1a8240f2038f1d7997a65caa2341703bc51533b6
+      body: |
+        Update systeminformation from 5.27.0 to 5.27.14
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.3.6
+  title: ""
+  date: 2025-12-18T22:28:33.551Z
+- commits:
     - subject: "patch: only apply noop for download-then-kill strategy and fix
         integration tests"
       hash: be8652a548acf6975ac199f25cb2b4fa85ff5061
