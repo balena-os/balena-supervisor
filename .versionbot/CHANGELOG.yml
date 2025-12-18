@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update tsconfig.module to node20 and TS to 5.9.x
+      hash: 9cb07c8e104a5b74e04b34a5ff1062ba84f0ad2b
+      body: |
+        This ensures that IDEs validate correctly the code in the open file
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: felipe
+      nested: []
+  version: 17.3.4
+  title: ""
+  date: 2025-12-18T14:50:49.347Z
+- commits:
     - subject: Log errors and warnings to stderr
       hash: b880e8e682351ac246e033ea32b21eddec9d02f0
       body: |
