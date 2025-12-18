@@ -423,25 +423,32 @@ router.get('/v2/containerId', async (req: AuthorizedRequest, res) => {
 router.get('/v2/state/status', async (req: AuthorizedRequest, res) => {
 	const appIds: number[] = [];
 	const pending = deviceState.isApplyInProgress();
+	const allImages = await images.getState();
 	const containerStates = (await serviceManager.getAll())
 		.filter((service) => req.auth.isScoped({ apps: [service.appId] }))
 		.map((svc) => {
 			appIds.push(svc.appId);
-			return _.pick(
+			const s = _.pick(
 				svc,
 				'status',
 				'serviceName',
 				'appId',
-				'imageId',
 				'serviceId',
+				'imageId',
 				'containerId',
 				'createdAt',
 			);
+
+			s.imageId = allImages.find(
+				(img) => img.commit === svc.commit && img.serviceName === s.serviceName,
+			)?.imageId;
+
+			return s;
 		});
 
 	let downloadProgressTotal = 0;
 	let downloads = 0;
-	const imagesStates = (await images.getState())
+	const imagesStates = allImages
 		.filter((img) => req.auth.isScoped({ apps: [img.appId] }))
 		.map((img) => {
 			appIds.push(img.appId);

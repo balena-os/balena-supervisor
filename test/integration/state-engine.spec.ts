@@ -137,8 +137,8 @@ describe('state engine', () => {
 		expect(
 			containers.map(({ Names, State }) => ({ Name: Names[0], State })),
 		).to.have.deep.members([
-			{ Name: '/one_11_1_deadbeef', State: 'running' },
-			{ Name: '/two_12_1_deadbeef', State: 'running' },
+			{ Name: '/one_deadbeef', State: 'running' },
+			{ Name: '/two_deadbeef', State: 'running' },
 		]);
 
 		// Test that the service is running and accesssible via port 8080
@@ -184,7 +184,7 @@ describe('state engine', () => {
 		const containers = await docker.listContainers();
 		expect(
 			containers.map(({ Names, State }) => ({ Name: Names[0], State })),
-		).to.have.deep.members([{ Name: '/one_21_2_deadca1f', State: 'running' }]);
+		).to.have.deep.members([{ Name: '/one_deadca1f', State: 'running' }]);
 		const containerIds = containers.map(({ Id }) => Id);
 
 		await setTargetState({
@@ -240,8 +240,8 @@ describe('state engine', () => {
 		expect(
 			updatedContainers.map(({ Names, State }) => ({ Name: Names[0], State })),
 		).to.have.deep.members([
-			{ Name: '/one_21_2_deadca1f', State: 'running' },
-			{ Name: '/two_22_2_deadca1f', State: 'running' },
+			{ Name: '/one_deadca1f', State: 'running' },
+			{ Name: '/two_deadca1f', State: 'running' },
 		]);
 
 		// Container ids must have changed
@@ -309,8 +309,8 @@ describe('state engine', () => {
 		expect(
 			containers.map(({ Names, State }) => ({ Name: Names[0], State })),
 		).to.have.deep.members([
-			{ Name: '/one_11_1_deadbeef', State: 'running' },
-			{ Name: '/two_12_1_deadbeef', State: 'running' },
+			{ Name: '/one_deadbeef', State: 'running' },
+			{ Name: '/two_deadbeef', State: 'running' },
 		]);
 		const containerIds = containers.map(({ Id }) => Id);
 
@@ -355,8 +355,8 @@ describe('state engine', () => {
 		expect(
 			updatedContainers.map(({ Names, State }) => ({ Name: Names[0], State })),
 		).to.have.deep.members([
-			{ Name: '/one_11_2_deadca1f', State: 'running' },
-			{ Name: '/two_12_2_deadca1f', State: 'running' },
+			{ Name: '/one_deadca1f', State: 'running' },
+			{ Name: '/two_deadca1f', State: 'running' },
 		]);
 
 		// Container ids must have changed
@@ -451,8 +451,8 @@ describe('state engine', () => {
 		expect(
 			containers.map(({ Names, State }) => ({ Name: Names[0], State })),
 		).to.have.deep.members([
-			{ Name: '/one_11_1_deadbeef', State: 'running' },
-			{ Name: '/two_12_1_deadbeef', State: 'running' },
+			{ Name: '/one_deadbeef', State: 'running' },
+			{ Name: '/two_deadbeef', State: 'running' },
 		]);
 		const containerIds = containers.map(({ Id }) => Id);
 
@@ -476,8 +476,8 @@ describe('state engine', () => {
 		expect(
 			updatedContainers.map(({ Names, State }) => ({ Name: Names[0], State })),
 		).to.have.deep.members([
-			{ Name: '/one_11_2_deadca1f', State: 'running' },
-			{ Name: '/two_12_2_deadca1f', State: 'running' },
+			{ Name: '/one_deadca1f', State: 'running' },
+			{ Name: '/two_deadca1f', State: 'running' },
 		]);
 
 		// Container ids must have changed
@@ -549,8 +549,8 @@ describe('state engine', () => {
 		expect(
 			containers.map(({ Names, State }) => ({ Name: Names[0], State })),
 		).to.have.deep.members([
-			{ Name: '/one_11_1_deadbeef', State: 'running' },
-			{ Name: '/two_12_1_deadbeef', State: 'running' },
+			{ Name: '/one_deadbeef', State: 'running' },
+			{ Name: '/two_deadbeef', State: 'running' },
 		]);
 		const containerIds = containers.map(({ Id }) => Id);
 		await expect(docker.getNetwork('123_balena').inspect()).to.not.be.rejected;
@@ -598,8 +598,8 @@ describe('state engine', () => {
 		expect(
 			updatedContainers.map(({ Names, State }) => ({ Name: Names[0], State })),
 		).to.have.deep.members([
-			{ Name: '/one_21_2_deadca1f', State: 'running' },
-			{ Name: '/two_22_2_deadca1f', State: 'running' },
+			{ Name: '/one_deadca1f', State: 'running' },
+			{ Name: '/two_deadca1f', State: 'running' },
 		]);
 
 		// Container ids must have changed

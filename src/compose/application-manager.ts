@@ -403,10 +403,15 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 				// We get the image metadata from the image database because we cannot
 				// get it from the container itself
 				const imageForService = images.find(
-					(img) => img.serviceName === s.serviceName && img.commit === s.commit,
+					(img) =>
+						img.appUuid === s.appUuid &&
+						img.serviceName === s.serviceName &&
+						img.commit === s.commit,
 				);
 
 				s.imageName = imageForService?.name ?? s.imageName;
+				s.releaseId = imageForService?.releaseId ?? s.releaseId;
+				s.imageId = imageForService?.imageId ?? s.imageId;
 				return s;
 			});
 
@@ -728,6 +733,7 @@ function saveAndRemoveImages(
 					dockerImageId: svc.config.image,
 					// There is no way to compare a current service to an image by
 					// name, the only way to do it is by both commit and service name
+					appUuid: svc.appUuid,
 					commit: svc.commit,
 					serviceName: svc.serviceName,
 				}) ?? _.find(availableImages, { dockerImageId: svc.config.image }),
@@ -739,8 +745,11 @@ function saveAndRemoveImages(
 
 	const availableAndUnused = availableWithoutIds.filter(
 		(image) =>
-			!currentImages.concat(targetImages).some((imageInUse) => {
-				return _.isEqual(image, _.omit(imageInUse, ['dockerImageId', 'id']));
+			!_.some(currentImages.concat(targetImages), (imageInUse) => {
+				return _.isEqual(
+					_.omit(image, ['releaseId', 'imageId']),
+					_.omit(imageInUse, ['dockerImageId', 'id', 'releaseId', 'imageId']),
+				);
 			}),
 	);
 
@@ -879,24 +888,35 @@ export async function getLegacyState() {
 	// We iterate over the current running services and add them to the current state
 	// of the app they belong to.
 	for (const service of services) {
-		const { appId, imageId } = service;
-		if (!appId) {
+		const { appId } = service;
+
+		// We get the image for the service so we can get service metadata not
+		// in the containers
+		const imageForService = images.find(
+			(img) =>
+				img.appUuid === service.appUuid &&
+				img.serviceName === service.serviceName &&
+				img.commit === service.commit,
+		);
+		if (!appId || !imageForService) {
 			continue;
 		}
 		apps[appId] ??= {};
 		creationTimesAndReleases[appId] = {};
 		apps[appId].services ??= {};
+
+		const { releaseId: rId, imageId } = imageForService;
+
+		// Replace the service releaseId with the one from the image table above
+		service.releaseId = rId;
+
 		// We only send commit if all services have the same release, and it matches the target release
 		if (releaseId == null) {
-			({ releaseId } = service);
-		} else if (releaseId !== service.releaseId) {
+			releaseId = service.releaseId;
+		} else if (service.releaseId != null && releaseId !== service.releaseId) {
 			releaseId = false;
 		}
-		if (imageId == null) {
-			throw new InternalInconsistencyError(
-				`imageId not defined in ApplicationManager.getLegacyApplicationsState: ${service}`,
-			);
-		}
+
 		if (apps[appId].services[imageId] == null) {
 			apps[appId].services[imageId] = _.pick(service, ['status', 'releaseId']);
 			creationTimesAndReleases[appId][imageId] = _.pick(service, [
@@ -915,16 +935,12 @@ export async function getLegacyState() {
 	}
 
 	for (const image of images) {
-		const { appId } = image;
+		const { appId, imageId } = image;
 		apps[appId] ??= {};
 		apps[appId].services ??= {};
-		if (apps[appId].services[image.imageId] == null) {
-			apps[appId].services[image.imageId] = _.pick(image, [
-				'status',
-				'releaseId',
-			]);
-			apps[appId].services[image.imageId].download_progress =
-				image.downloadProgress;
+		if (apps[appId].services[imageId] == null) {
+			apps[appId].services[imageId] = _.pick(image, ['status', 'releaseId']);
+			apps[appId].services[imageId].download_progress = image.downloadProgress;
 		}
 	}
 
@@ -984,7 +1000,10 @@ export async function getState(): Promise<AppsReport> {
 			},
 			// Get the corresponding image to augment the service data
 			stateFromImages.find(
-				(img) => img.serviceName === serviceName && img.commit === commit,
+				(img) =>
+					img.appUuid === appUuid &&
+					img.serviceName === serviceName &&
+					img.commit === commit,
 			),
 		])
 		// We cannot report services that do not have an image as the API
@@ -1028,7 +1047,9 @@ export async function getState(): Promise<AppsReport> {
 				(img) =>
 					!stateFromServices.some(
 						(svc) =>
-							img.serviceName === svc.serviceName && img.commit === svc.commit,
+							img.appUuid === svc.appUuid &&
+							img.serviceName === svc.serviceName &&
+							img.commit === svc.commit,
 					),
 			)
 			// With the services that have a container
