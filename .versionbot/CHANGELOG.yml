@@ -1,4 +1,21 @@
 - commits:
+    - subject: "patch: only apply noop for download-then-kill strategy and fix
+        integration tests"
+      hash: be8652a548acf6975ac199f25cb2b4fa85ff5061
+      body: ""
+      footer: {}
+      author: Rob Thein
+      nested: []
+    - subject: "patch: Fix premature locking for metadata-only changes"
+      hash: a70ddb32ff6b00e5e2101c59533adb0a580108f0
+      body: ""
+      footer: {}
+      author: Rob Thein
+      nested: []
+  version: 17.3.5
+  title: ""
+  date: 2025-12-18T20:36:10.715Z
+- commits:
     - subject: Update tsconfig.module to node20 and TS to 5.9.x
       hash: 9cb07c8e104a5b74e04b34a5ff1062ba84f0ad2b
       body: |
