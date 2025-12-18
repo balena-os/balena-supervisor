@@ -1217,6 +1217,34 @@ describe('compose/app', () => {
 			expectNoStep('fetch', steps);
 		});
 
+		it('should not take lock when release has changed and images need downloading', async () => {
+			const current = createApp({
+				services: [
+					await createService({
+						serviceName: 'main',
+						appId: 1,
+						commit: 'old-release',
+					}),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services: [
+					await createService({
+						serviceName: 'main',
+						appId: 1,
+						commit: 'new-release',
+					}),
+				],
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			expectSteps('noop', steps);
+			expectNoStep('takeLock', steps);
+		});
+
 		it('should emit a takeLock followed by an updateMetadata step when a service has not changed but the release has', async () => {
 			const current = createApp({
 				services: [
@@ -1240,8 +1268,20 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			// Take lock before updating metadata
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			// Create available images for the target service
+			const availableImages = [
+				createImage({
+					appId: 1,
+					serviceName: 'main',
+					commit: 'new-release',
+				}),
+			];
+
+			// Take lock before updating metadata (now that images are available)
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, availableImages },
+				target,
+			);
 			const [takeLockStep] = expectSteps('takeLock', steps);
 			expect(takeLockStep)
 				.to.have.property('services')
@@ -1251,6 +1291,7 @@ describe('compose/app', () => {
 			const steps2 = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
+					availableImages,
 					lock: mockLock,
 				},
 				target,

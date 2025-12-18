@@ -682,27 +682,35 @@ class AppImpl implements App {
 				context.networkPairs,
 				context.volumePairs,
 			);
-			if (
-				!needsSpecialKill &&
-				target != null &&
-				current.isEqualConfig(target, context.containerIds)
-			) {
-				// Update service metadata or start/stop a service
-				return this.generateContainerStep(
-					current,
-					target,
-					context.appsToLock,
-					context.targetApp.services,
-					servicesLocked,
-					context.rebootBreadcrumbSet,
-					context.bootTime,
-				);
-			}
+
+			const dependenciesMetForKill = this.dependenciesMetForServiceKill(
+				context.targetApp,
+				context.availableImages,
+			);
 
 			let strategy: string;
 			let dependenciesMetForStart: boolean;
 			if (target != null) {
 				strategy = getStrategyFromService(target);
+
+				if (
+					!needsSpecialKill &&
+					current.isEqualConfig(target, context.containerIds)
+				) {
+					// Update service metadata or start/stop a service
+					return this.generateContainerStep(
+						current,
+						target,
+						context.appsToLock,
+						context.targetApp.services,
+						servicesLocked,
+						dependenciesMetForKill,
+						context.rebootBreadcrumbSet,
+						context.bootTime,
+						strategy,
+					);
+				}
+
 				dependenciesMetForStart = this.dependenciesMetForServiceStart(
 					target,
 					context.targetApp,
@@ -715,11 +723,6 @@ class AppImpl implements App {
 				strategy = getStrategyFromService(current);
 				dependenciesMetForStart = false;
 			}
-
-			const dependenciesMetForKill = this.dependenciesMetForServiceKill(
-				context.targetApp,
-				context.availableImages,
-			);
 
 			return getStepsFromStrategy(strategy, {
 				current,
@@ -776,11 +779,19 @@ class AppImpl implements App {
 		appsToLock: AppsToLockMap,
 		targetServices: Service[],
 		servicesLocked: boolean,
+		dependenciesMetForKill: boolean,
 		rebootBreadcrumbSet: boolean,
 		bootTime: Date,
+		strategy: string,
 	): CompositionStep[] {
 		// Update container metadata if service release has changed
 		if (current.commit !== target.commit) {
+			// Only take locks once all target images are downloaded,
+			// to respect the download-then-kill strategy.
+			// Otherwise we can hoard the lock during download of other service images.
+			if (strategy === 'download-then-kill' && !dependenciesMetForKill) {
+				return [generateStep('noop', {})];
+			}
 			if (servicesLocked) {
 				return [generateStep('updateMetadata', { current, target })];
 			} else {
