@@ -2,8 +2,7 @@
   "compilerOptions": {
     "baseUrl": "./",
     "target": "ES2024",
-    "module": "node16",
-    "moduleResolution": "node16",
+    "module": "node20",
     "strict": true,
     "strictFunctionTypes": false,
     "strictPropertyInitialization": false,
