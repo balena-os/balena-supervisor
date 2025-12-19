@@ -65,6 +65,8 @@ interface ServiceWithContract extends ServiceCtx {
 const validRequirementTypes = [
 	'sw.supervisor',
 	'sw.l4t',
+	'sw.os',
+	'sw.kernel',
 	'hw.device-type',
 	'arch.sw',
 ];
@@ -74,7 +76,11 @@ export function initializeContractRequirements(opts: {
 	supervisorVersion: string;
 	deviceType: string;
 	deviceArch: string;
+	kernelVersion?: string;
+	kernelSlug?: string;
 	l4tVersion?: string;
+	osVersion?: string;
+	osSlug?: string;
 }) {
 	deviceContract.addChildren([
 		new Contract({
@@ -101,6 +107,26 @@ export function initializeContractRequirements(opts: {
 			new Contract({
 				type: 'sw.l4t',
 				version: opts.l4tVersion,
+			}),
+		);
+	}
+
+	if (opts.osVersion && opts.osSlug) {
+		deviceContract.addChild(
+			new Contract({
+				type: 'sw.os',
+				slug: opts.osSlug,
+				version: opts.osVersion,
+			}),
+		);
+	}
+
+	if (opts.kernelVersion && opts.kernelSlug) {
+		deviceContract.addChild(
+			new Contract({
+				type: 'sw.kernel',
+				version: opts.kernelVersion,
+				slug: opts.kernelSlug,
 			}),
 		);
 	}
