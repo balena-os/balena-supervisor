@@ -1,4 +1,32 @@
 - commits:
+    - subject: Support sw.kernel version and slug requirements for container contracts
+      hash: 768e93daf433b44f9f95b26c0c0261f2a030074e
+      body: ""
+      footer:
+        See: https://balena.fibery.io/Work/Project/Add-kernel-and-OS-version-to-container-contracts-1916
+        see: https://balena.fibery.io/Work/Project/Add-kernel-and-OS-version-to-container-contracts-1916
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+    - subject: Support sw.os version and slug requirements for container contracts
+      hash: 0d88a016ed54a27e17eb8e0fc2b0a54a8be4d49b
+      body: ""
+      footer:
+        See: https://balena.fibery.io/Work/Project/Add-kernel-and-OS-version-to-container-contracts-1916
+        see: https://balena.fibery.io/Work/Project/Add-kernel-and-OS-version-to-container-contracts-1916
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.4.0
+  title: ""
+  date: 2025-12-19T20:33:21.268Z
+- commits:
     - subject: Update systeminformation to v5.27.14 [SECURITY]
       hash: 1a8240f2038f1d7997a65caa2341703bc51533b6
       body: |
