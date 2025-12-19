@@ -43,7 +43,7 @@
     "@balena/contrato": "^0.13.0",
     "@balena/es-version": "^1.0.3",
     "@balena/lint": "^9.3.8",
-    "@balena/sbvr-types": "^9.1.0",
+    "@balena/sbvr-types": "^11.0.0",
     "@types/bluebird": "^3.5.42",
     "@types/chai": "^4.3.20",
     "@types/chai-as-promised": "^8.0.1",
