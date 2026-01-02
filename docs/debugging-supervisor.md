@@ -344,3 +344,63 @@ At this point, the Supervisor will start up as if the device has just been
 provisioned and already registered, and the device's target release will
 be freshly downloaded if images were removed before starting the service
 containers.
+
+#### 8.4 The Supervisor State Report Cache
+
+The Supervisor maintains a cache of the last successfully reported device state
+to optimize communication with the balenaCloud API. This cache helps the
+Supervisor avoid sending redundant data by comparing the current state with
+what was previously reported.
+
+The state report cache is located at:
+- **Host OS path:** `/tmp/balena-supervisor/state-report-cache`
+- **Supervisor container path:** `/mnt/root/tmp/balena-supervisor/state-report-cache`
+
+##### Purpose of the Cache
+
+The cache serves several important functions:
+
+1. **Reduces bandwidth usage:** By caching the last reported state, the Supervisor
+   only sends the differences (delta) between the current and previous state,
+   significantly reducing the amount of data transmitted.
+
+2. **Survives Supervisor restarts:** When the Supervisor restarts, it reads the
+   cached state to understand what was last reported to the cloud. This allows
+   it to continue from where it left off rather than reporting the entire state
+   again.
+
+3. **Improves efficiency:** The cache prevents unnecessary API calls when the
+   device state hasn't changed since the last report.
+
+##### When the Cache is Used
+
+The cache is read when the Supervisor starts up and is updated every time
+the Supervisor successfully reports the current device state to the cloud.
+The cached data includes information about:
+- Running services and their status
+- Device configuration
+- System metrics (CPU, memory, temperature, etc.)
+
+##### Debugging Cache Issues
+
+If you suspect issues with state reporting, you can inspect the cache:
+
+```shell
+root@debug-device:~# cat /tmp/balena-supervisor/state-report-cache | jq .
+```
+
+To clear the cache and force a full state report on the next update:
+
+```shell
+root@debug-device:~# rm /tmp/balena-supervisor/state-report-cache
+```
+
+The Supervisor will automatically recreate the cache file and populate it
+with the next successful state report. Note that clearing the cache is
+generally safe and will simply result in a full state report being sent
+to the cloud on the next reporting cycle.
+
+**Note:** The cache file is stored in `/tmp`, which means it will be
+automatically cleared on device reboot. This is intentional, as the
+Supervisor should report a fresh state after a reboot to ensure the cloud
+has accurate information about the device's current state.

@@ -28,7 +28,11 @@ const maxReportFrequency = 10 * 1000;
 // How often can we report metrics to the server in ms; mirrors server setting.
 // Metrics are low priority, so less frequent than maxReportFrequency.
 const maxMetricsFrequency = 300 * 1000;
-// Path of the cache for last reported state
+// Path of the cache for last reported state.
+// This cache stores the last successfully reported device state to the cloud,
+// allowing the supervisor to only send state differences on subsequent reports.
+// The cache survives supervisor restarts but is cleared on device reboot.
+// See docs/debugging-supervisor.md for more information.
 const CACHE_PATH = pathOnRoot('/tmp/balena-supervisor/state-report-cache');
 
 // TODO: This counter is read by the healthcheck to see if the
