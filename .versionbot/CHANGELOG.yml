@@ -1,4 +1,21 @@
 - commits:
+    - subject: "backends: Enable configurable power modes and fan profiles for all
+        Jetson Orin devices"
+      hash: d7521507d10b9a5db1a15b960e2ca6f76bf41e3a
+      body: |
+        We do so because all Jetson Orin-based devices have been updated to
+        Jetpack 6.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 17.4.1
+  title: ""
+  date: 2026-01-05T18:32:02.308Z
+- commits:
     - subject: Support sw.kernel version and slug requirements for container contracts
       hash: 768e93daf433b44f9f95b26c0c0261f2a030074e
       body: ""
