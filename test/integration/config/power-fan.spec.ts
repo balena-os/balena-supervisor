@@ -25,7 +25,7 @@ const SUPPORTED_DEVICE_TYPES = [
 	'forecr-dsb-ornx-orin-nano-8gb',
 ];
 
-const UNSUPPORTED_DEVICE_TYPES = ['jetson-orin-nx-xv3'];
+const UNSUPPORTED_DEVICE_TYPES = ['jetson-tx2'];
 
 describe('config/power-fan', () => {
 	const CONFIG_PATH = hostUtils.pathOnBoot('config.json');
