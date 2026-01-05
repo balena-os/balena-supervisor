@@ -111,6 +111,48 @@ describe('lib/contracts', () => {
 				],
 			});
 		});
+
+		it('should parse a contract with multiple children listed in "or" requirements', () => {
+			expect(() =>
+				contracts.parseContract({
+					slug: 'user-container',
+					requires: [
+						{
+							or: [
+								{ type: 'sw.os', slug: 'balena-os', version: OS_VERSION },
+								{ type: 'sw.os', slug: 'ubuntu', version: '20.04' },
+							],
+						},
+					],
+				}),
+			).to.not.throw();
+		});
+
+		it('should reject if a contract has an unsupported type', () => {
+			expect(() =>
+				contracts.parseContract({
+					slug: 'user-container',
+					requires: [{ type: 'sw.unsupported' }],
+				}),
+			).to.throw(
+				contracts.InvalidContractTypeError,
+				'sw.unsupported is not a valid contract requirement type',
+			);
+		});
+
+		it('should reject if a contract has an "or" clause with an unsupported type', () => {
+			expect(() =>
+				contracts.parseContract({
+					slug: 'user-container',
+					requires: [
+						{ or: [{ type: 'sw.unsupported' }, { type: 'sw.supervisor' }] },
+					],
+				}),
+			).to.throw(
+				contracts.InvalidContractTypeError,
+				'sw.unsupported is not a valid contract requirement type',
+			);
+		});
 	});
 
 	describe('Requirement resolution', () => {
