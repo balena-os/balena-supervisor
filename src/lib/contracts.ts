@@ -165,34 +165,45 @@ export function containerContractsFulfilled(
 	};
 }
 
+const AtomicRequirement = t.exact(
+	// Ignore additional properties
+	t.intersection([
+		t.type({
+			type: t.string,
+		}),
+		// Allow searching the most common contract matchers
+		t.partial({
+			slug: t.union([t.null, t.undefined, t.string]),
+			version: t.union([t.null, t.undefined, t.string]),
+			data: t.record(t.union([t.string, t.number]), t.any),
+		}),
+	]),
+);
+
+const DisjunctiveRequirement = t.type({
+	or: t.array(AtomicRequirement),
+});
+
+const ContractRequirement = t.union([
+	AtomicRequirement,
+	DisjunctiveRequirement,
+]);
+
 const ContainerContract = t.intersection([
 	t.type({
 		type: withDefault(t.string, 'sw.container'),
 	}),
 	t.partial({
 		slug: t.union([t.null, t.undefined, t.string]),
-		requires: t.union([
-			t.null,
-			t.undefined,
-			t.array(
-				// Ignore additional properties
-				t.exact(
-					t.intersection([
-						t.type({
-							type: t.string,
-						}),
-						// Allow searching the most common contract matchers
-						t.partial({
-							slug: t.union([t.null, t.undefined, t.string]),
-							version: t.union([t.null, t.undefined, t.string]),
-							data: t.record(t.union([t.string, t.number]), t.any),
-						}),
-					]),
-				),
-			),
-		]),
+		requires: t.union([t.null, t.undefined, t.array(ContractRequirement)]),
 	}),
 ]);
+
+export class InvalidContractTypeError extends TypedError {
+	constructor(public type: string) {
+		super(`${type} is not a valid contract requirement type`);
+	}
+}
 
 // Exported for tests only
 export function parseContract(contract: unknown): ContractObject {
@@ -204,8 +215,14 @@ export function parseContract(contract: unknown): ContractObject {
 
 	const res = result.right;
 	for (const req of res.requires ?? []) {
-		if (!isValidRequirementType(req.type)) {
-			throw new Error(`${req.type} is not a valid contract requirement type`);
+		if ('or' in req) {
+			for (const child of req.or) {
+				if (!isValidRequirementType(child.type)) {
+					throw new InvalidContractTypeError(child.type);
+				}
+			}
+		} else if (!isValidRequirementType(req.type)) {
+			throw new InvalidContractTypeError(req.type);
 		}
 	}
 
