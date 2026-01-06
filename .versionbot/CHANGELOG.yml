@@ -1,4 +1,18 @@
 - commits:
+    - subject: Parse multiple child contracts listed under an `or` clause
+      hash: 5560744c8061bc2e008b4d5a1816fea04b611fd3
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.4.2
+  title: ""
+  date: 2026-01-06T19:34:23.699Z
+- commits:
     - subject: "backends: Enable configurable power modes and fan profiles for all
         Jetson Orin devices"
       hash: d7521507d10b9a5db1a15b960e2ca6f76bf41e3a
