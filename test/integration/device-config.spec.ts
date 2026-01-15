@@ -13,6 +13,7 @@ import { ConfigTxt } from '~/src/config/backends/config-txt';
 import { Odmdata } from '~/src/config/backends/odmdata';
 import { ConfigFs } from '~/src/config/backends/config-fs';
 import { SplashImage } from '~/src/config/backends/splash-image';
+import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
 import { pathOnBoot, pathOnRoot } from '~/lib/host-utils';
 import {
 	configJsonPath as configJson,
@@ -26,6 +27,7 @@ const configTxtBackend = new ConfigTxt();
 const odmdataBackend = new Odmdata();
 const configFsBackend = new ConfigFs();
 const splashImageBackend = new SplashImage();
+const extraUEnvBackend = new ExtraUEnv();
 
 // TODO: Since the getBootConfig method is simple enough
 // these tests could probably be removed if each backend has its own
@@ -377,6 +379,248 @@ describe('device-config', () => {
 		});
 	});
 
+	describe('extra_uEnv.txt', () => {
+		const extraUEnvTxt = pathOnBoot('extra_uEnv.txt');
+
+		const tFs = testfs({
+			// This is only needed so config.get doesn't fail
+			[configJson]: JSON.stringify({}),
+			[osRelease]: stripIndent`
+				PRETTY_NAME="balenaOS 6.0.36"
+				META_BALENA_VERSION="6.0.44"
+				VERSION="6.0.36"
+			`,
+			[extraUEnvTxt]: stripIndent`
+				custom_fdt_file=/path/to/mycustom.dtb
+    			extra_os_cmdline=isolcpus=3,4 splash console=tty0 rootwait
+				unsupported=value
+				unsupported_collection=value1 value2=foo,bar isolcpus=2
+			`,
+		});
+
+		beforeEach(async () => {
+			await tFs.enable();
+		});
+
+		afterEach(async () => {
+			// Reset the state of the fs after each test to
+			// prevent tests leaking into each other
+			await tFs.restore();
+		});
+
+		it('should correctly read from extra_uEnv.txt while filtering out unsupported configs', async () => {
+			expect(await deviceConfig.getBootConfig(extraUEnvBackend)).to.deep.equal({
+				HOST_EXTLINUX_extra_os_cmdline:
+					'console=tty0 isolcpus=3,4 rootwait splash',
+				HOST_EXTLINUX_fdt: '/path/to/mycustom.dtb',
+			});
+
+			await fs.writeFile(
+				extraUEnvTxt,
+				stripIndent`
+				custom_fdt_file=/another/path/to/mycustom.dtb
+    			extra_os_cmdline=isolcpus=2,4 console=tty1 foo
+				another_unsupported=value
+				another_unsupported_collection=value1 value2=foo,bar isolcpus=2
+			`,
+			);
+
+			expect(await deviceConfig.getBootConfig(extraUEnvBackend)).to.deep.equal({
+				HOST_EXTLINUX_extra_os_cmdline: 'console=tty1 foo isolcpus=2,4',
+				HOST_EXTLINUX_fdt: '/another/path/to/mycustom.dtb',
+			});
+		});
+
+		it('should correctly write to extra_uEnv.txt', async () => {
+			const target = {
+				HOST_EXTLINUX_extra_os_cmdline:
+					'isolcpus=2,4 console=tty0 splash rootwait',
+				HOST_EXTLINUX_fdt: '/boot/mycustom.dtb',
+			};
+
+			await deviceConfig.setBootConfig(extraUEnvBackend, target);
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+			expect(await fs.readFile(extraUEnvTxt, 'utf-8')).to.equal(
+				// extra_os_cmdline config colllection should be sorted alphabetically
+				stripIndent`
+					custom_fdt_file=/boot/mycustom.dtb
+					extra_os_cmdline=console=tty0 isolcpus=2,4 rootwait splash
+				` + '\n', // add newline because stripIndent trims last newline
+			);
+			expect(await deviceConfig.getBootConfig(extraUEnvBackend)).to.deep.equal({
+				HOST_EXTLINUX_extra_os_cmdline:
+					'console=tty0 isolcpus=2,4 rootwait splash',
+				HOST_EXTLINUX_fdt: '/boot/mycustom.dtb',
+			});
+		});
+
+		it('should support legacy isolcpus config when writing to extra_uEnv.txt', async () => {
+			const target = {
+				HOST_EXTLINUX_isolcpus: '2,4',
+				HOST_EXTLINUX_fdt: '/boot/mycustom.dtb',
+			};
+
+			await deviceConfig.setBootConfig(extraUEnvBackend, target);
+
+			expect(await fs.readFile(extraUEnvTxt, 'utf-8')).to.equal(
+				stripIndent`
+					custom_fdt_file=/boot/mycustom.dtb
+					extra_os_cmdline=isolcpus=2,4
+				` + '\n', // add newline because stripIndent trims last newline
+			);
+			expect(await deviceConfig.getBootConfig(extraUEnvBackend)).to.deep.equal({
+				HOST_EXTLINUX_extra_os_cmdline: 'isolcpus=2,4',
+				HOST_EXTLINUX_fdt: '/boot/mycustom.dtb',
+			});
+		});
+
+		it('should overwrite legacy isolcpus with value in extra_os_cmdline if both are set', async () => {
+			const target = {
+				HOST_EXTLINUX_isolcpus: '2,4',
+				HOST_EXTLINUX_fdt: '/boot/mycustom.dtb',
+				HOST_EXTLINUX_extra_os_cmdline: 'console=tty0 rootwait isolcpus=1,2',
+			};
+
+			await deviceConfig.setBootConfig(extraUEnvBackend, target);
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+			expect(await fs.readFile(extraUEnvTxt, 'utf-8')).to.equal(
+				stripIndent`
+					custom_fdt_file=/boot/mycustom.dtb
+					extra_os_cmdline=console=tty0 isolcpus=1,2 rootwait
+				` + '\n', // add newline because stripIndent trims last newline
+			);
+			expect(await deviceConfig.getBootConfig(extraUEnvBackend)).to.deep.equal({
+				HOST_EXTLINUX_fdt: '/boot/mycustom.dtb',
+				HOST_EXTLINUX_extra_os_cmdline: 'console=tty0 isolcpus=1,2 rootwait',
+			});
+		});
+
+		it('should overwrite legacy isolcpus as long as extra_os_cmdline is also set', async () => {
+			const target = {
+				HOST_EXTLINUX_isolcpus: '2,4',
+				HOST_EXTLINUX_fdt: '/boot/mycustom.dtb',
+				HOST_EXTLINUX_extra_os_cmdline: 'console=tty0 rootwait',
+			};
+
+			await deviceConfig.setBootConfig(extraUEnvBackend, target);
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+			expect(await fs.readFile(extraUEnvTxt, 'utf-8')).to.equal(
+				stripIndent`
+					custom_fdt_file=/boot/mycustom.dtb
+					extra_os_cmdline=console=tty0 rootwait
+				` + '\n', // add newline because stripIndent trims last newline
+			);
+			expect(await deviceConfig.getBootConfig(extraUEnvBackend)).to.deep.equal({
+				HOST_EXTLINUX_fdt: '/boot/mycustom.dtb',
+				HOST_EXTLINUX_extra_os_cmdline: 'console=tty0 rootwait',
+			});
+		});
+
+		it('should not register a boot config change required if all that differs is extra_os_cmdline collection order', () => {
+			const current = {
+				HOST_EXTLINUX_extra_os_cmdline:
+					'console=tty0 isolcpus=3,4 rootwait splash',
+				HOST_EXTLINUX_fdt: '/path/to/mycustom.dtb',
+			};
+			const target = {
+				HOST_EXTLINUX_extra_os_cmdline:
+					'isolcpus=3,4 console=tty0 splash rootwait',
+				HOST_EXTLINUX_fdt: '/path/to/mycustom.dtb',
+			};
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					extraUEnvBackend,
+					current,
+					target,
+					'foo-device-type',
+				),
+			).to.equal(false);
+		});
+
+		it('should not register a boot config change if equivalent configs are set between legacy isolcpus and extra_os_cmdline', () => {
+			const current = {
+				HOST_EXTLINUX_extra_os_cmdline:
+					'console=tty0 rootwait splash isolcpus=3,4',
+				HOST_EXTLINUX_isolcpus: '1,2', // This is ignored because extra_os_cmdline is also set
+				HOST_EXTLINUX_fdt: '/path/to/mycustom.dtb',
+			};
+			const target = {
+				HOST_EXTLINUX_extra_os_cmdline:
+					'isolcpus=3,4 console=tty0 splash rootwait',
+				HOST_EXTLINUX_fdt: '/path/to/mycustom.dtb',
+			};
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					extraUEnvBackend,
+					current,
+					target,
+					'foo-device-type',
+				),
+			).to.equal(false);
+			// When target & current are swapped, the configs are still equivalent
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					extraUEnvBackend,
+					target,
+					current,
+					'foo-device-type',
+				),
+			).to.equal(false);
+
+			// Only difference is the order of configs in extra_os_cmdline
+			const current2 = {
+				HOST_EXTLINUX_extra_os_cmdline:
+					'isolcpus=3,4 console=tty0 splash rootwait',
+				HOST_EXTLINUX_fdt: '/path/to/mycustom.dtb',
+			};
+			const target2 = {
+				HOST_EXTLINUX_extra_os_cmdline:
+					'console=tty0 rootwait splash isolcpus=3,4',
+				HOST_EXTLINUX_fdt: '/path/to/mycustom.dtb',
+			};
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					extraUEnvBackend,
+					current2,
+					target2,
+					'foo-device-type',
+				),
+			).to.equal(false);
+
+			// Only difference is where isolcpus is configured (extra_os_cmdline vs isolcpus)
+			const current3 = {
+				HOST_EXTLINUX_extra_os_cmdline: 'isolcpus=3,4',
+				HOST_EXTLINUX_fdt: '/path/to/mycustom.dtb',
+			};
+			const target3 = {
+				HOST_EXTLINUX_isolcpus: '3,4',
+				HOST_EXTLINUX_fdt: '/path/to/mycustom.dtb',
+			};
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					extraUEnvBackend,
+					current3,
+					target3,
+					'foo-device-type',
+				),
+			).to.equal(false);
+		});
+
+		it('requires change when no target is set', () => {
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					extraUEnvBackend,
+					{ HOST_EXTLINUX_extra_os_cmdline: 'console=tty0 rootwait splash' },
+					{},
+					'foo-device-type',
+				),
+			).to.equal(true);
+		});
+	});
+
 	describe('Balena fin', () => {
 		it('should always add the balena-fin dtoverlay', () => {
 			expect(configTxtBackend.ensureRequiredConfig('fincm3', {})).to.deep.equal(
@@ -450,7 +694,7 @@ describe('device-config', () => {
 				),
 			).to.equal(true);
 		});
-		it('requires change when no target is set', () => {
+		it('does not require change when no target is set', () => {
 			expect(
 				deviceConfig.bootConfigChangeRequired(
 					odmdataBackend,

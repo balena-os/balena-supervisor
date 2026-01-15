@@ -7,59 +7,31 @@ import * as hostUtils from '~/lib/host-utils';
 import log from '~/lib/supervisor-console';
 import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
 
-describe('config/extra-uEnv', () => {
+describe('config/extra_uEnv', () => {
 	const backend = new ExtraUEnv();
 
-	it('should parse extra_uEnv string', () => {
-		const fileContents = stripIndent`\
-      custom_fdt_file=mycustom.dtb
-      extra_os_cmdline=isolcpus=3,4 splash console=tty0
-		`;
-		// @ts-expect-error accessing private method
-		const parsed = ExtraUEnv.parseOptions(fileContents);
-		expect(parsed).to.deep.equal({
-			fdt: 'mycustom.dtb',
-			isolcpus: '3,4',
-			splash: '',
-			console: 'tty0',
+	it('should parse all configuration options from bootConfigPath', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]:
+				'custom_fdt_file=/path/to/mycustom.dtb\n' +
+				'\t\textra_os_cmdline=isolcpus=3,4 console=tty0 splash\n',
+		}).enable();
+
+		await expect(backend.getBootConfig()).to.eventually.deep.equal({
+			fdt: '/path/to/mycustom.dtb',
+			// extra_os_cmdline should be sorted alphabetically
+			extra_os_cmdline: 'console=tty0 isolcpus=3,4 splash',
 		});
+
+		await tfs.restore();
 	});
 
-	it('should only parse supported configuration options from bootConfigPath', async () => {
-		let tfs = await testfs({
-			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
-	    	custom_fdt_file=mycustom.dtb
-      	extra_os_cmdline=isolcpus=3,4
-			`,
-		}).enable();
-
-		await expect(backend.getBootConfig()).to.eventually.deep.equal({
-			fdt: 'mycustom.dtb',
-			isolcpus: '3,4',
-		});
-
-		await tfs.restore();
-
-		// Add other options that will get filtered out because they aren't supported
-		tfs = await testfs({
-			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
-	    	custom_fdt_file=mycustom.dtb
-        extra_os_cmdline=isolcpus=3,4 console=tty0 splash
-			`,
-		}).enable();
-
-		await expect(backend.getBootConfig()).to.eventually.deep.equal({
-			fdt: 'mycustom.dtb',
-			isolcpus: '3,4',
-		});
-
-		await tfs.restore();
-
+	it('should ignore configs with unsupported values from bootConfigPath', async () => {
 		// Configuration with no supported values
-		tfs = await testfs({
+		const tfs = await testfs({
 			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	    	fdt=something_else
-			 	isolcpus
+			 	isolcpus=3,4
 				123.12=5
 			`,
 		}).enable();
@@ -68,7 +40,7 @@ describe('config/extra-uEnv', () => {
 		await tfs.restore();
 	});
 
-	it('only matches supported devices', async () => {
+	it('matches all devices', async () => {
 		// The file exists before
 		const tfs = await testfs({
 			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
@@ -76,35 +48,55 @@ describe('config/extra-uEnv', () => {
       	extra_os_cmdline=isolcpus=3,4
 			`,
 		}).enable();
-		for (const device of MATCH_TESTS) {
-			// Test device that has extra_uEnv.txt
-			await expect(backend.matches(device.type)).to.eventually.equal(
-				device.supported,
-			);
-		}
+		// Test device that has extra_uEnv.txt
+		await Promise.all(
+			MATCH_TESTS.map(async () => {
+				await expect(backend.matches()).to.eventually.be.true;
+			}),
+		);
 
 		await tfs.restore();
 
-		// The file no longer exists
+		// The file doesn't exist before
 		await expect(
 			fs.access(hostUtils.pathOnBoot('extra_uEnv.txt')),
 			'extra_uEnv.txt does not exist before the test',
 		).to.be.rejected;
-		for (const device of MATCH_TESTS) {
-			// Test same device but without extra_uEnv.txt
-			await expect(backend.matches(device.type)).to.eventually.be.false;
-		}
+		// Test same device but without extra_uEnv.txt
+		await Promise.all(
+			MATCH_TESTS.map(async () => {
+				await expect(backend.matches()).to.eventually.be.true;
+			}),
+		);
 	});
 
-	it('errors when cannot find extra_uEnv.txt', async () => {
-		// The file no longer exists
+	it('creates extra_uEnv.txt if it does not exist', async () => {
+		// FIXME: If test-fs is initiated while a file doesn't exist but
+		// the file is created during tests, it will be created in the real fs
+		// and won't be cleaned up with testfs.restore().
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: 'foo',
+		}).enable();
+		await fs.unlink(hostUtils.pathOnBoot('extra_uEnv.txt'));
+
 		await expect(
 			fs.access(hostUtils.pathOnBoot('extra_uEnv.txt')),
 			'extra_uEnv.txt does not exist before the test',
 		).to.be.rejected;
-		await expect(backend.getBootConfig()).to.eventually.be.rejectedWith(
-			'Could not find extra_uEnv file. Device is possibly bricked',
-		);
+
+		// This should create the file
+		await expect(backend.getBootConfig()).to.eventually.deep.equal({});
+
+		await expect(
+			fs.access(hostUtils.pathOnBoot('extra_uEnv.txt')),
+			'extra_uEnv.txt should have been created',
+		).to.be.fulfilled;
+
+		await tfs.restore();
+
+		// No file leftover after testfs cleanup
+		await expect(fs.access(hostUtils.pathOnBoot('extra_uEnv.txt'))).to.be
+			.rejected;
 	});
 
 	it('logs warning for malformed extra_uEnv.txt', async () => {
@@ -122,72 +114,96 @@ describe('config/extra-uEnv', () => {
 		}
 	});
 
-	it('sets new config values', async () => {
+	it('sets new config values with legacy isolcpus which erases other values in extra_os_cmdline', async () => {
 		const tfs = await testfs({
 			// This config contains a value set from something else
 			// We to make sure the Supervisor is enforcing the source of truth (the cloud)
-			// So after setting new values this unsupported/not set value should be gone
+			// So after setting new values, unsupported lines should be gone
 			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	    	extra_os_cmdline=rootwait isolcpus=3,4
-	     other_service=set_this_value
+	     other_service=remove_this_value
 			`,
 		}).enable();
 
-		// Sets config with mix of supported and not supported values
 		await backend.setBootConfig({
 			fdt: '/boot/mycustomdtb.dtb',
-			isolcpus: '2',
-			console: 'tty0', // not supported so won't be set
+			isolcpus: '2,4',
 		});
 
 		// Confirm that the file was written correctly
 		await expect(
 			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
 		).to.eventually.equal(
-			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2\n',
-		);
-
-		expect(log.warn).to.have.been.calledWith(
-			'Not setting unsupported value: { console: tty0 }',
+			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2,4\n',
 		);
 
 		await tfs.restore();
 	});
 
-	it('sets new config values containing collections', async () => {
-		// @ts-expect-error accessing private value
-		const previousSupportedConfigs = ExtraUEnv.supportedConfigs;
-		// Stub isSupportedConfig so we can confirm collections work
-		// @ts-expect-error accessing private value
-		ExtraUEnv.supportedConfigs = {
-			fdt: { key: 'custom_fdt_file', collection: false },
-			isolcpus: { key: 'extra_os_cmdline', collection: true },
-			console: { key: 'extra_os_cmdline', collection: true },
-			splash: { key: 'extra_os_cmdline', collection: true },
-		};
-
+	it('sets new config values with extra_os_cmdline', async () => {
 		const tfs = await testfs({
 			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
-	     	other_service=set_this_value
+	    	extra_os_cmdline=rootwait isolcpus=3,4
+	     other_service=remove_this_value
 			`,
 		}).enable();
 
-		// Set config again
 		await backend.setBootConfig({
 			fdt: '/boot/mycustomdtb.dtb',
-			isolcpus: '2', // collection entry so should be concatted to other collections of this entry
-			console: 'tty0', // collection entry so should be concatted to other collections of this entry
-			splash: '', // collection entry so should be concatted to other collections of this entry
+			extra_os_cmdline: 'console=tty0 rootwait isolcpus=1,2',
 		});
 
 		await expect(
 			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
 		).to.eventually.equal(
-			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2 console=tty0 splash\n',
+			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=console=tty0 isolcpus=1,2 rootwait\n',
 		);
 
-		// @ts-expect-error accessing private value
-		ExtraUEnv.supportedConfigs = previousSupportedConfigs;
+		await tfs.restore();
+	});
+
+	it('sets new config values with extra_os_cmdline while overwriting current legacy isolcpus', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
+	    	extra_os_cmdline=isolcpus=3,4
+	     other_service=remove_this_value
+			`,
+		}).enable();
+
+		await backend.setBootConfig({
+			fdt: '/boot/mycustomdtb.dtb',
+			// No isolcpus value in target state
+			extra_os_cmdline: 'splash console=tty0 rootwait',
+		});
+
+		await expect(
+			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
+		).to.eventually.equal(
+			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=console=tty0 rootwait splash\n',
+		);
+
+		await tfs.restore();
+	});
+
+	it('sets new config values with extra_os_cmdline taking precedence over legacy isolcpus if values differ', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
+	    	extra_os_cmdline=rootwait isolcpus=3,4
+	     other_service=remove_this_value
+			`,
+		}).enable();
+
+		await backend.setBootConfig({
+			fdt: '/boot/mycustomdtb.dtb',
+			isolcpus: '2,4',
+			extra_os_cmdline: 'splash console=tty0 rootwait isolcpus=1,2',
+		});
+
+		await expect(
+			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
+		).to.eventually.equal(
+			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=console=tty0 isolcpus=1,2 rootwait splash\n',
+		);
 
 		await tfs.restore();
 	});
@@ -200,7 +216,15 @@ const MALFORMED_CONFIGS = [
       extra_os_cmdline=isolcpus=3,4
       another_value
     `,
-		reason: 'Could not read extra_uEnv entry: another_value',
+		reason: 'Unsupported or malformed extra_uEnv entry: another_value',
+	},
+	{
+		contents: stripIndent`
+      custom_fdt_file=mycustom.dtb
+      extra_os_cmdline=isolcpus=3,4
+      foo=bar
+    `,
+		reason: 'Unsupported or malformed extra_uEnv entry: foo=bar',
 	},
 ];
 
@@ -217,30 +241,30 @@ const MATCH_TESTS = [
 	{ type: 'jetson-nano-emmc', supported: true },
 	{ type: 'jn30b-nano', supported: true },
 	{ type: 'photon-nano', supported: true },
-	{ type: 'intel-nuc', supported: false },
-	{ type: 'raspberry', supported: false },
-	{ type: 'fincm3', supported: false },
-	{ type: 'asus-tinker-board', supported: false },
-	{ type: 'nano-board', supported: false },
+	{ type: 'intel-nuc', supported: true },
+	{ type: 'raspberry', supported: true },
+	{ type: 'fincm3', supported: true },
+	{ type: 'asus-tinker-board', supported: true },
+	{ type: 'nano-board', supported: true },
 	{ type: 'jetson-nano-2gb-devkit', supported: true },
-	{ type: 'jetson-nano-2gb-devkit-emmc', supported: false },
-	{ type: 'tx2-tx2-device', supported: false },
+	{ type: 'jetson-nano-2gb-devkit-emmc', supported: true },
+	{ type: 'tx2-tx2-device', supported: true },
 	{ type: 'jetson-tx2-nx-devkit', supported: true },
 	{ type: 'photon-tx2-nx', supported: true },
-	{ type: 'jetson-xavier-nx-devkit', supported: false },
+	{ type: 'jetson-xavier-nx-devkit', supported: true },
 	{ type: 'jetson-agx-orin-devkit', supported: true },
-	{ type: 'jetson-agx-orin', supported: false },
+	{ type: 'jetson-agx-orin', supported: true },
 	{ type: 'jetson-orin-nx-xavier-nx-devkit', supported: true },
 	{ type: 'cti-orin-nx-custom-carrier', supported: true },
-	{ type: 'jetson-orin-agx-nx-xavier-nx-devkit', supported: false },
+	{ type: 'jetson-orin-agx-nx-xavier-nx-devkit', supported: true },
 	{ type: 'jetson-orin-nano-devkit-nvme', supported: true },
-	{ type: 'jetson-orin-agx-nano-devkit-nvme', supported: false },
-	{ type: 'photon-xavier-nx', supported: false },
+	{ type: 'jetson-orin-agx-nano-devkit-nvme', supported: true },
+	{ type: 'photon-xavier-nx', supported: true },
 	{ type: 'imx8m-var-dart', supported: true },
 	{ type: 'imx8mm-var-dart', supported: true },
 	{ type: 'imx8mm-var-dart-nrt', supported: true },
 	{ type: 'imx8mm-var-dart-plt', supported: true },
 	{ type: 'imx8mm-var-som', supported: true },
-	{ type: 'imx8m-var-som', supported: false },
-	{ type: 'imx6ul-var-dart', supported: false },
+	{ type: 'imx8m-var-som', supported: true },
+	{ type: 'imx6ul-var-dart', supported: true },
 ];
