@@ -1,4 +1,25 @@
 - commits:
+    - subject: Remove object-capturing closure in triggerFetch abortSignal
+      hash: 93baefd7be429fa23e79ad576e0d932c234ba437
+      body: |
+        The `abortSignal.onabort` callback was never cleaned up after fetch
+        completion, causing the closure to retain references to image/service
+        data.
+
+        Replace `onabort` property assignment with `addEventListener` and
+        remove the listener in a `finally` block to ensure cleanup on all
+        code paths.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.4.5
+  title: ""
+  date: 2026-01-22T13:20:19.340Z
+- commits:
     - subject: Update lodash to v4.17.23 [SECURITY]
       hash: 0a768aa1f2109bb73501d7ef02b3d9b96b4bc2a8
       body: |
