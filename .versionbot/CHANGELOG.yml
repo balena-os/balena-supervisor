@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update @balena/sbvr-types to v11
+      hash: f11f2ce6935763caa93d509e500cc029eecf4cae
+      body: |
+        Update @balena/sbvr-types from 9.1.0 to 11.1.4
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.4.3
+  title: ""
+  date: 2026-01-22T00:10:34.770Z
+- commits:
     - subject: Parse multiple child contracts listed under an `or` clause
       hash: 5560744c8061bc2e008b4d5a1816fea04b611fd3
       body: ""
