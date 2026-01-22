@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update lodash to v4.17.23 [SECURITY]
+      hash: 0a768aa1f2109bb73501d7ef02b3d9b96b4bc2a8
+      body: |
+        Update lodash from 4.17.21 to 4.17.23
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.4.4
+  title: ""
+  date: 2026-01-22T01:01:09.680Z
+- commits:
     - subject: Update @balena/sbvr-types to v11
       hash: f11f2ce6935763caa93d509e500cc029eecf4cae
       body: |
