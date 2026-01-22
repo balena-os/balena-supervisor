@@ -196,13 +196,16 @@ export async function triggerFetch(
 		});
 	};
 
-	// Remove image task on fetch abort to prevent noop loop
-	abortSignal.onabort = () => {
+	// Remove image task on fetch abort to prevent noop loop.
+	// Use addEventListener with a named handler so we can remove it later
+	// to prevent memory leaks from closures capturing the image object.
+	const onAbort = () => {
 		reportEvent('finish', {
 			...image,
 			status: 'Downloading',
 		});
 	};
+	abortSignal.addEventListener('abort', onAbort, { once: true });
 
 	let success: boolean;
 	try {
@@ -273,6 +276,11 @@ export async function triggerFetch(
 			}
 			success = false;
 		}
+	} finally {
+		// Clean up the abort listener to prevent memory leaks.
+		// The closure captures `image` which holds references to Service data,
+		// so we must remove it to allow garbage collection.
+		abortSignal.removeEventListener('abort', onAbort);
 	}
 
 	reportEvent('finish', { ...image, status: 'Downloaded' });
