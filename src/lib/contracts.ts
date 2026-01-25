@@ -69,6 +69,7 @@ const validRequirementTypes = [
 	'sw.kernel',
 	'hw.device-type',
 	'arch.sw',
+	'os.block',
 ];
 const deviceContract: Universe = new Universe();
 
@@ -267,4 +268,41 @@ export function validateTargetContracts(
 	}
 
 	return result;
+}
+
+/**
+ * Extract OS block profiles from user app contract requirements.
+ * User apps can declare dependencies on OS blocks via contract requirements:
+ *   requires:
+ *     - type: os.block
+ *       slug: kernel-modules
+ *
+ * This function scans all non-host apps and extracts the slugs from
+ * os.block requirements, which are used as profile names to activate
+ * the corresponding hostapp overlay extensions.
+ */
+export function extractOsBlockProfiles(apps: TargetApps): Set<string> {
+	type Requirement =
+		| { type: string; slug?: string }
+		| { or: Array<{ type: string; slug?: string }> };
+
+	const extractSlug = (req: Requirement): string[] => {
+		if ('or' in req) {
+			return req.or
+				.filter((r) => r.type === 'os.block' && r.slug)
+				.map((r) => r.slug!);
+		}
+		return req.type === 'os.block' && req.slug ? [req.slug] : [];
+	};
+
+	const slugs = Object.values(apps)
+		.filter((app) => !app.is_host)
+		.flatMap((app) => Object.values(app.releases))
+		.flatMap((release) => Object.values(release.services ?? {}))
+		.filter((service) => service.contract?.requires)
+		.flatMap((service) =>
+			(service.contract!.requires as Requirement[]).flatMap(extractSlug),
+		);
+
+	return new Set(slugs);
 }
