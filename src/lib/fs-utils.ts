@@ -1,11 +1,12 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { exec as execSync } from 'child_process';
+import { exec as execSync, execFile as execFileSync } from 'child_process';
 import { promisify } from 'util';
 import { uptime } from 'os';
 import { isENOENT } from './errors';
 
 export const exec = promisify(execSync);
+export const execFile = promisify(execFileSync);
 
 export async function writeAndSyncFile(
 	pathName: string,

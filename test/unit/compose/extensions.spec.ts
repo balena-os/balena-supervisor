@@ -1,13 +1,18 @@
 import { expect } from 'chai';
+import type { SinonStub } from 'sinon';
+import { stub } from 'sinon';
 
 import {
 	filterByActiveProfiles,
 	compareExtensions,
 	isOverlayService,
 	isDataStore,
+	handleOverlayExtensions,
 	type ExtensionState,
 } from '~/src/compose/extensions';
 import type { ServiceComposeConfig } from '~/src/compose/types/service';
+import * as fsUtils from '~/src/lib/fs-utils';
+import * as reboot from '~/src/lib/reboot';
 
 describe('compose/extensions', () => {
 	describe('isOverlayService', () => {
@@ -261,6 +266,137 @@ describe('compose/extensions', () => {
 			expect(toRemove[0].serviceName).to.equal('to-remove');
 			expect(toUpdate).to.have.lengthOf(1);
 			expect(toUpdate[0].serviceName).to.equal('to-update');
+		});
+	});
+
+	describe('handleOverlayExtensions', () => {
+		let execFileStub: SinonStub;
+		let setRebootBreadcrumbStub: SinonStub;
+
+		beforeEach(() => {
+			execFileStub = stub(fsUtils, 'execFile');
+			setRebootBreadcrumbStub = stub(reboot, 'setRebootBreadcrumb').resolves();
+		});
+
+		afterEach(() => {
+			execFileStub.restore();
+			setRebootBreadcrumbStub.restore();
+		});
+
+		it('should return early when no changes needed', async () => {
+			const overlayServices: ServiceComposeConfig[] = [];
+			const activeProfiles = new Set<string>();
+
+			const result = await handleOverlayExtensions(
+				overlayServices,
+				activeProfiles,
+				[],
+			);
+
+			expect(result.needsReboot).to.be.false;
+			expect(result.deployed).to.have.lengthOf(0);
+			expect(result.removed).to.have.lengthOf(0);
+			expect(execFileStub.called).to.be.false;
+		});
+
+		it('should call update-hostapp-extensions with image list', async () => {
+			execFileStub.resolves({ stdout: '', stderr: '' });
+
+			const overlayServices: ServiceComposeConfig[] = [
+				{
+					serviceName: 'kernel-modules',
+					image: 'registry/kernel-modules:v1',
+					labels: { 'io.balena.image.class': 'overlay' },
+				} as ServiceComposeConfig,
+			];
+			const activeProfiles = new Set<string>();
+
+			const result = await handleOverlayExtensions(
+				overlayServices,
+				activeProfiles,
+				[],
+			);
+
+			expect(execFileStub.calledOnce).to.be.true;
+			expect(execFileStub.firstCall.args[0]).to.equal(
+				'update-hostapp-extensions',
+			);
+			expect(execFileStub.firstCall.args[1]).to.deep.equal([
+				'-t',
+				'registry/kernel-modules:v1',
+			]);
+			expect(result.deployed).to.include('kernel-modules');
+			expect(result.error).to.be.undefined;
+		});
+
+		it('should not pass -t when no images match profiles', async () => {
+			const overlayServices: ServiceComposeConfig[] = [
+				{
+					serviceName: 'kernel-modules',
+					image: 'registry/kernel-modules:v1',
+					labels: { 'io.balena.image.class': 'overlay' },
+					profiles: ['some-profile'],
+				} as ServiceComposeConfig,
+			];
+			const activeProfiles = new Set<string>(); // No active profiles
+
+			const result = await handleOverlayExtensions(
+				overlayServices,
+				activeProfiles,
+				[],
+			);
+
+			// Service filtered out by profile, no changes needed
+			expect(result.needsReboot).to.be.false;
+			expect(result.deployed).to.have.lengthOf(0);
+			expect(execFileStub.called).to.be.false;
+		});
+
+		it('should return error on execFile failure', async () => {
+			execFileStub.rejects(new Error('Command failed'));
+
+			const overlayServices: ServiceComposeConfig[] = [
+				{
+					serviceName: 'kernel-modules',
+					image: 'registry/kernel-modules:v1',
+					labels: { 'io.balena.image.class': 'overlay' },
+				} as ServiceComposeConfig,
+			];
+			const activeProfiles = new Set<string>();
+
+			const result = await handleOverlayExtensions(
+				overlayServices,
+				activeProfiles,
+				[],
+			);
+
+			expect(result.error).to.include('Failed to deploy overlay extensions');
+			expect(result.deployed).to.have.lengthOf(0);
+		});
+
+		it('should set reboot breadcrumb when extension requires reboot', async () => {
+			execFileStub.resolves({ stdout: '', stderr: '' });
+
+			const overlayServices: ServiceComposeConfig[] = [
+				{
+					serviceName: 'kernel-modules',
+					image: 'registry/kernel-modules:v1',
+					labels: {
+						'io.balena.image.class': 'overlay',
+						'io.balena.image.requires-reboot': '1',
+					},
+				} as ServiceComposeConfig,
+			];
+			const activeProfiles = new Set<string>();
+
+			const result = await handleOverlayExtensions(
+				overlayServices,
+				activeProfiles,
+				[],
+			);
+
+			expect(result.needsReboot).to.be.true;
+			expect(setRebootBreadcrumbStub.calledOnce).to.be.true;
 		});
 	});
 });

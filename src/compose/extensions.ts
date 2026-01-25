@@ -1,11 +1,7 @@
-import { execFile as execFileSync } from 'child_process';
-import { promisify } from 'util';
-
 import log from '../lib/supervisor-console';
+import { execFile } from '../lib/fs-utils';
 import { setRebootBreadcrumb } from '../lib/reboot';
 import type { ServiceComposeConfig } from './types/service';
-
-const execFile = promisify(execFileSync);
 
 /**
  * State of a deployed overlay extension tracked in the supervisor.
