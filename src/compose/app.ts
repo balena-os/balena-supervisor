@@ -7,6 +7,7 @@ import { Volume } from './volume';
 import { Service } from './service';
 import * as imageManager from './images';
 import { generateStep } from './composition-steps';
+import { isDataStore } from './extensions';
 import type * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
 import * as constants from '../lib/constants';
@@ -1063,6 +1064,23 @@ class AppImpl implements App {
 			await config.get('composeProfiles'),
 		);
 
+		const allServices = JSON.parse(
+			app.services ?? '[]',
+		) as ServiceComposeConfig[];
+
+		// For non-host apps, auto-activate profiles declared by services.
+		// This ensures user services that declare extension dependencies
+		// are themselves included, and their profiles activate extensions.
+		if (!app.isHost) {
+			for (const svc of allServices) {
+				if (svc.profiles) {
+					for (const p of svc.profiles) {
+						activeProfiles.add(p);
+					}
+				}
+			}
+		}
+
 		// Check if a service matches the active profiles
 		// Services without profiles are always included (backward compatible)
 		// Services with profiles need at least one matching active profile
@@ -1073,10 +1091,6 @@ class AppImpl implements App {
 			}
 			return serviceProfiles.some((p) => activeProfiles.has(p));
 		};
-
-		const allServices = JSON.parse(
-			app.services ?? '[]',
-		) as ServiceComposeConfig[];
 
 		// In the db, the services are an array, but here we switch them to an
 		// object so that they are consistent

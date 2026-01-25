@@ -348,7 +348,8 @@ describe('lib/contracts', () => {
 							name: 'user-container1',
 							slug: 'user-container1',
 							requires: [
-								// sw.blah is not provided by the device contract so it shouldn't be validated
+								// sw.blah is not a known type, so contrato evaluates it against
+								// the device universe where no match exists, causing rejection.
 								{
 									type: 'sw.blah',
 									version: '<3.0.0',

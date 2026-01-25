@@ -3427,6 +3427,117 @@ describe('compose/application-manager', () => {
 		});
 	});
 
+	describe('Extension steps', () => {
+		it('should infer deployExtension steps when extensions need deployment', async () => {
+			const targetApps = createApps(
+				{ services: [], networks: [DEFAULT_NETWORK] },
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [],
+					networks: [DEFAULT_NETWORK],
+				});
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+					extensionChanges: {
+						toPull: [],
+						toDeploy: [
+							{
+								serviceName: 'kernel-modules',
+								image: 'registry/kernel-modules:v1',
+								labels: { 'io.balena.image.class': 'overlay' },
+							},
+						],
+						toRemove: [],
+					},
+				},
+			);
+
+			expectSteps('deployExtension', steps);
+		});
+
+		it('should prioritize extension steps over app steps', async () => {
+			const targetApps = createApps(
+				{
+					services: [await createService({ image: 'new-image', appId: 1 })],
+					networks: [DEFAULT_NETWORK],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [await createService({ appId: 1 })],
+					networks: [DEFAULT_NETWORK],
+					images: [],
+				});
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+					extensionChanges: {
+						toPull: [],
+						toDeploy: [
+							{
+								serviceName: 'kernel-modules',
+								image: 'registry/kernel-modules:v1',
+								labels: { 'io.balena.image.class': 'overlay' },
+							},
+						],
+						toRemove: [],
+					},
+				},
+			);
+
+			// Extension steps should be present
+			expectSteps('deployExtension', steps);
+			// App steps (fetch) should not be present in the same cycle
+			expectNoStep('fetch', steps);
+		});
+
+		it('should not infer extension steps when no changes needed', async () => {
+			const targetApps = createApps(
+				{ services: [], networks: [DEFAULT_NETWORK] },
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [],
+					networks: [DEFAULT_NETWORK],
+				});
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+					extensionChanges: {
+						toPull: [],
+						toDeploy: [],
+						toRemove: [],
+					},
+				},
+			);
+
+			expectNoStep('deployExtension', steps);
+		});
+	});
+
 	// In the case where a container requires a host resource such as a network interface that is not created by the time the Engine
 	// comes up, the Engine will not attempt to restart the container which seems to be Docker's implemented behavior (if not the correct behavior).
 	// An example of a host resource would be a port binding such as 192.168.88.1:3000:3000, where the IP is an interface delayed in creation by host.
