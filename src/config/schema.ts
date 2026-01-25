@@ -203,6 +203,11 @@ export const schema = {
 		mutable: true,
 		removeIfNull: false,
 	},
+	composeProfiles: {
+		source: 'db',
+		mutable: true,
+		removeIfNull: false,
+	},
 };
 
 export type Schema = typeof schema;

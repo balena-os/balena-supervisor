@@ -111,3 +111,16 @@ export function validStringOrUndefined(s: string | undefined): boolean {
 export function validObjectOrUndefined(o: object | undefined): boolean {
 	return o == null || _.isObject(o);
 }
+
+/**
+ * Parse a comma-separated string into a Set of trimmed, non-empty values.
+ * Used for parsing profile lists from config.
+ */
+export function parseCommaSeparatedSet(str: string): Set<string> {
+	return new Set(
+		str
+			.split(',')
+			.map((s) => s.trim())
+			.filter((s) => s.length > 0),
+	);
+}

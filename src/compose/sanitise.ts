@@ -52,6 +52,7 @@ const supportedComposeFields = [
 	'oomKillDisable',
 	'oomScoreAdj',
 	'privileged',
+	'profiles',
 	'readOnly',
 	'shmSize',
 	'user',
