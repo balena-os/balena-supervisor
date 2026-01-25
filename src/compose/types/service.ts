@@ -214,6 +214,7 @@ export interface ServiceComposeConfig {
 	oomKillDisable?: boolean;
 	oomScoreAdj?: number;
 	privileged?: boolean;
+	profiles?: string[];
 	readOnly?: boolean;
 	shmSize?: string;
 	user?: string;

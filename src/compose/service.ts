@@ -98,6 +98,10 @@ class ServiceImpl implements Service {
 		// reported on a container inspect, so we cannot use it
 		// to compare containers
 		'cpus',
+		// profiles is a compose-level field used for OS block profile
+		// activation; it is not stored in the container and should not
+		// trigger container recreation on reconciliation
+		'profiles',
 		// These fields are special case, due to network_mode:service:<service>
 		'networkMode',
 		'hostname',
