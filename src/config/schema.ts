@@ -92,6 +92,11 @@ export const schema = {
 		mutable: true,
 		removeIfNull: false,
 	},
+	hostappExtensions: {
+		source: 'config.json',
+		mutable: true,
+		removeIfNull: true,
+	},
 
 	name: {
 		source: 'db',

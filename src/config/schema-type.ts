@@ -91,6 +91,10 @@ export const schemaTypes = {
 		type: t.union([t.record(t.string, t.any), t.undefined]),
 		default: NullOrUndefined,
 	},
+	hostappExtensions: {
+		type: t.string,
+		default: NullOrUndefined,
+	},
 
 	// Database types
 	name: {

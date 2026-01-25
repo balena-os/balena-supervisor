@@ -1058,4 +1058,293 @@ describe('lib/contracts', () => {
 				.that.equals(true);
 		});
 	});
+
+	describe('OS block requirements', () => {
+		it('should accept os.block as a valid requirement type', () => {
+			expect(() =>
+				contracts.parseContract({
+					slug: 'user-container',
+					requires: [
+						{
+							type: 'os.block',
+							slug: 'kernel-modules',
+						},
+					],
+				}),
+			).to.not.throw();
+		});
+
+		it('should accept os.block in an "or" clause', () => {
+			expect(() =>
+				contracts.parseContract({
+					slug: 'user-container',
+					requires: [
+						{
+							or: [
+								{ type: 'os.block', slug: 'kernel-modules' },
+								{ type: 'os.block', slug: 'wifi-firmware' },
+							],
+						},
+					],
+				}),
+			).to.not.throw();
+		});
+	});
+
+	describe('extractOsBlockProfiles', () => {
+		it('should extract os.block slugs from user app contracts', () => {
+			const apps = {
+				'app-uuid-1': {
+					id: 1,
+					name: 'user-app',
+					class: 'fleet' as const,
+					releases: {
+						'release-1': {
+							id: 101,
+							services: {
+								main: {
+									id: 1001,
+									image_id: 2001,
+									image: 'registry/main:latest',
+									environment: {},
+									labels: {},
+									contract: {
+										type: 'sw.container',
+										slug: 'main',
+										requires: [
+											{ type: 'os.block', slug: 'kernel-modules' },
+											{ type: 'os.block', slug: 'wifi-firmware' },
+										],
+									},
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+			};
+
+			const profiles = contracts.extractOsBlockProfiles(apps);
+			expect(profiles.size).to.equal(2);
+			expect(profiles.has('kernel-modules')).to.be.true;
+			expect(profiles.has('wifi-firmware')).to.be.true;
+		});
+
+		it('should extract os.block slugs from disjunctive requirements', () => {
+			const apps = {
+				'app-uuid-1': {
+					id: 1,
+					name: 'user-app',
+					class: 'fleet' as const,
+					releases: {
+						'release-1': {
+							id: 101,
+							services: {
+								main: {
+									id: 1001,
+									image_id: 2001,
+									image: 'registry/main:latest',
+									environment: {},
+									labels: {},
+									contract: {
+										type: 'sw.container',
+										slug: 'main',
+										requires: [
+											{
+												or: [
+													{ type: 'os.block', slug: 'nvidia-drivers' },
+													{ type: 'os.block', slug: 'amd-drivers' },
+												],
+											},
+										],
+									},
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+			};
+
+			const profiles = contracts.extractOsBlockProfiles(apps);
+			expect(profiles.size).to.equal(2);
+			expect(profiles.has('nvidia-drivers')).to.be.true;
+			expect(profiles.has('amd-drivers')).to.be.true;
+		});
+
+		it('should skip hostapp when extracting profiles', () => {
+			const apps = {
+				'hostapp-uuid': {
+					id: 1,
+					name: 'hostapp',
+					class: 'fleet' as const,
+					is_host: true,
+					releases: {
+						'release-1': {
+							id: 101,
+							services: {
+								hostapp: {
+									id: 1001,
+									image_id: 2001,
+									image: 'registry/hostapp:latest',
+									environment: {},
+									labels: {},
+									contract: {
+										type: 'sw.container',
+										slug: 'hostapp',
+										requires: [{ type: 'os.block', slug: 'should-be-ignored' }],
+									},
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+				'app-uuid-1': {
+					id: 2,
+					name: 'user-app',
+					class: 'fleet' as const,
+					releases: {
+						'release-1': {
+							id: 102,
+							services: {
+								main: {
+									id: 1002,
+									image_id: 2002,
+									image: 'registry/main:latest',
+									environment: {},
+									labels: {},
+									contract: {
+										type: 'sw.container',
+										slug: 'main',
+										requires: [{ type: 'os.block', slug: 'kernel-modules' }],
+									},
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+			};
+
+			const profiles = contracts.extractOsBlockProfiles(apps);
+			expect(profiles.size).to.equal(1);
+			expect(profiles.has('kernel-modules')).to.be.true;
+			expect(profiles.has('should-be-ignored')).to.be.false;
+		});
+
+		it('should return empty set when no os.block requirements exist', () => {
+			const apps = {
+				'app-uuid-1': {
+					id: 1,
+					name: 'user-app',
+					class: 'fleet' as const,
+					releases: {
+						'release-1': {
+							id: 101,
+							services: {
+								main: {
+									id: 1001,
+									image_id: 2001,
+									image: 'registry/main:latest',
+									environment: {},
+									labels: {},
+									contract: {
+										type: 'sw.container',
+										slug: 'main',
+										requires: [{ type: 'sw.supervisor', version: '>10.0.0' }],
+									},
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+			};
+
+			const profiles = contracts.extractOsBlockProfiles(apps);
+			expect(profiles.size).to.equal(0);
+		});
+
+		it('should handle services without contracts', () => {
+			const apps = {
+				'app-uuid-1': {
+					id: 1,
+					name: 'user-app',
+					class: 'fleet' as const,
+					releases: {
+						'release-1': {
+							id: 101,
+							services: {
+								main: {
+									id: 1001,
+									image_id: 2001,
+									image: 'registry/main:latest',
+									environment: {},
+									labels: {},
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+			};
+
+			const profiles = contracts.extractOsBlockProfiles(apps);
+			expect(profiles.size).to.equal(0);
+		});
+
+		it('should deduplicate profiles from multiple services', () => {
+			const apps = {
+				'app-uuid-1': {
+					id: 1,
+					name: 'user-app',
+					class: 'fleet' as const,
+					releases: {
+						'release-1': {
+							id: 101,
+							services: {
+								svc1: {
+									id: 1001,
+									image_id: 2001,
+									image: 'registry/svc1:latest',
+									environment: {},
+									labels: {},
+									contract: {
+										type: 'sw.container',
+										slug: 'svc1',
+										requires: [{ type: 'os.block', slug: 'kernel-modules' }],
+									},
+								},
+								svc2: {
+									id: 1002,
+									image_id: 2002,
+									image: 'registry/svc2:latest',
+									environment: {},
+									labels: {},
+									contract: {
+										type: 'sw.container',
+										slug: 'svc2',
+										requires: [{ type: 'os.block', slug: 'kernel-modules' }],
+									},
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+			};
+
+			const profiles = contracts.extractOsBlockProfiles(apps);
+			expect(profiles.size).to.equal(1);
+			expect(profiles.has('kernel-modules')).to.be.true;
+		});
+	});
 });

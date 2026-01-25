@@ -14,7 +14,7 @@ import log from '../lib/supervisor-console';
 import { InternalInconsistencyError } from '../lib/errors';
 import type { Lock } from '../lib/update-lock';
 import { hasLeftoverLocks } from '../lib/update-lock';
-import { checkTruthy } from '../lib/validation';
+import { checkTruthy, parseCommaSeparatedSet } from '../lib/validation';
 
 import { App } from './app';
 import * as volumeManager from './volume-manager';
@@ -23,6 +23,8 @@ import * as serviceManager from './service-manager';
 import * as imageManager from './images';
 import * as commitStore from './commit';
 import { generateStep, getExecutors } from './composition-steps';
+import * as extensions from './extensions';
+import type { ServiceComposeConfig } from './types/service';
 
 import type {
 	TargetApps,
@@ -57,6 +59,64 @@ export const removeAllListeners: (typeof events)['removeAllListeners'] =
 	events.removeAllListeners.bind(events);
 
 const localModeManager = new LocalModeManager();
+
+/**
+ * Collect active profiles from two sources:
+ * 1. Device config: SUPERVISOR_COMPOSE_PROFILES
+ * 2. Contract requirements: os.block requirements from user apps
+ *
+ * The union of these sets determines which overlay extensions to deploy.
+ */
+async function getActiveProfiles(apps: TargetApps): Promise<Set<string>> {
+	// Source 1: Device config
+	const activeProfiles = parseCommaSeparatedSet(
+		await config.get('composeProfiles'),
+	);
+
+	// Source 2: Contract os.block requirements from user apps
+	for (const p of contracts.extractOsBlockProfiles(apps)) {
+		activeProfiles.add(p);
+	}
+
+	return activeProfiles;
+}
+
+/**
+ * Extract overlay services from the hostapp in target state.
+ * These are services with io.balena.image.class=overlay label.
+ */
+function extractOverlayServices(apps: TargetApps): ServiceComposeConfig[] {
+	const overlayServices: ServiceComposeConfig[] = [];
+
+	for (const [, app] of Object.entries(apps)) {
+		// Only look at hostapp
+		if (!app.is_host) {
+			continue;
+		}
+
+		for (const [, release] of Object.entries(app.releases)) {
+			for (const [serviceName, service] of Object.entries(
+				release.services ?? {},
+			)) {
+				// Check if this is an overlay service
+				if (service.labels?.['io.balena.image.class'] === 'overlay') {
+					// Convert to ServiceComposeConfig format
+					overlayServices.push({
+						serviceName,
+						image: service.image,
+						labels: service.labels,
+						environment: service.environment,
+						// Get profiles from composition if available
+						profiles: (service.composition as { profiles?: string[] })
+							?.profiles,
+					} as ServiceComposeConfig);
+				}
+			}
+		}
+	}
+
+	return overlayServices;
+}
 
 export let fetchesInProgress = 0;
 export let timeSpentFetching = 0;
@@ -131,14 +191,45 @@ export async function getRequiredSteps(
 	},
 ): Promise<CompositionStep[]> {
 	// get some required data
-	const [downloading, availableImages, { localMode, delta }] =
+	const [downloading, availableImages, { localMode, delta }, rawTargetApps] =
 		await Promise.all([
 			Promise.resolve(imageManager.getDownloadingImageNames()),
 			imageManager.getAvailable(),
 			config.getMany(['localMode', 'delta']),
+			// Get raw target apps for overlay service extraction
+			getTargetApps(),
 		]);
 	const containerIdsByAppId = getAppContainerIds(currentApps);
 	const rebootBreadcrumbSet = await isRebootBreadcrumbSet();
+
+	// Handle overlay extensions BEFORE regular app processing
+	// This ensures modules/firmware are available when user apps start
+	const overlayServices = extractOverlayServices(rawTargetApps);
+	const currentExtensions = await extensionState.getDeployedExtensions();
+	if (overlayServices.length > 0 || currentExtensions.length > 0) {
+		const activeProfiles = await getActiveProfiles(rawTargetApps);
+		log.debug(
+			`Active profiles: ${Array.from(activeProfiles).join(', ') || '(none)'}`,
+		);
+
+		const result = await extensions.handleOverlayExtensions(
+			overlayServices,
+			activeProfiles,
+			[], // TODO: Get currently deployed extensions from DB
+		);
+
+		if (result.error) {
+			// Extension deployment failed - error already logged, continue with apps
+			log.warn('Continuing with app processing despite extension failure');
+		} else if (result.needsReboot && !rebootBreadcrumbSet) {
+			// Extension requires reboot - signal this via a noop step
+			// The reboot will be handled by the device state module
+			log.info('Overlay extension deployed, reboot required');
+			// We return noop to keep the state loop alive
+			// The reboot breadcrumb should be set by extension handler
+			return [generateStep('noop', {})];
+		}
+	}
 
 	// Local mode sets the image and volume retention only
 	// if not explicitely set by the caller

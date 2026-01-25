@@ -7,6 +7,7 @@ import { Volume } from './volume';
 import { Service } from './service';
 import * as imageManager from './images';
 import { generateStep } from './composition-steps';
+import { isDataStore } from './extensions';
 import type * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
 import * as constants from '../lib/constants';

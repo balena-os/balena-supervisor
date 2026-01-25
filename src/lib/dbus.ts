@@ -70,6 +70,25 @@ export async function shutdown() {
 	}
 }
 
+export async function waitForServiceState(
+	serviceName: string,
+	targetStates: string[],
+	timeoutMs: number = 5 * 60 * 1000,
+	pollIntervalMs: number = 500,
+): Promise<string> {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		const state = await serviceActiveState(serviceName);
+		if (targetStates.includes(state)) {
+			return state;
+		}
+		await setTimeout(pollIntervalMs);
+	}
+	throw new Error(
+		`Timed out waiting for ${serviceName}.service to reach one of [${targetStates}]`,
+	);
+}
+
 export async function serviceActiveState(serviceName: string) {
 	const bus = await singleton();
 	const systemd = new ServiceManager(bus);
