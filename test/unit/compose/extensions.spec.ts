@@ -442,6 +442,31 @@ describe('compose/extensions', () => {
 			expect(restartServiceStub.called).to.be.false;
 		});
 
+		it('should write null to hostappExtensions when removing all extensions', async () => {
+			const overlayServices: ServiceComposeConfig[] = [];
+			const activeProfiles = new Set<string>();
+			const currentExtensions: ExtensionState[] = [
+				{
+					serviceName: 'kernel-modules',
+					image: 'registry/kernel-modules:v1',
+					deployedAt: '2026-01-01T00:00:00.000Z',
+				},
+			];
+
+			const result = await handleOverlayExtensions(
+				overlayServices,
+				activeProfiles,
+				currentExtensions,
+			);
+
+			expect(configSetStub.calledOnce).to.be.true;
+			expect(configSetStub.firstCall.args[0]).to.deep.equal({
+				hostappExtensions: null,
+			});
+			expect(restartServiceStub.calledOnce).to.be.true;
+			expect(result.removed).to.include('kernel-modules');
+		});
+
 		it('should return error when service fails', async () => {
 			waitForServiceStateStub.resolves('failed');
 

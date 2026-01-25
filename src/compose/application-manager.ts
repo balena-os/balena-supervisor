@@ -24,6 +24,7 @@ import * as imageManager from './images';
 import * as commitStore from './commit';
 import { generateStep, getExecutors } from './composition-steps';
 import * as extensions from './extensions';
+import * as extensionState from './extension-state';
 import type { ServiceComposeConfig } from './types/service';
 
 import type {
@@ -212,22 +213,34 @@ export async function getRequiredSteps(
 			`Active profiles: ${Array.from(activeProfiles).join(', ') || '(none)'}`,
 		);
 
+		const currentExtensions = await extensionState.getDeployedExtensions();
 		const result = await extensions.handleOverlayExtensions(
 			overlayServices,
 			activeProfiles,
-			[], // TODO: Get currently deployed extensions from DB
+			currentExtensions,
 		);
 
 		if (result.error) {
 			// Extension deployment failed - error already logged, continue with apps
 			log.warn('Continuing with app processing despite extension failure');
-		} else if (result.needsReboot && !rebootBreadcrumbSet) {
-			// Extension requires reboot - signal this via a noop step
-			// The reboot will be handled by the device state module
-			log.info('Overlay extension deployed, reboot required');
-			// We return noop to keep the state loop alive
-			// The reboot breadcrumb should be set by extension handler
-			return [generateStep('noop', {})];
+		} else {
+			// Update DB with deployment results
+			if (result.deployed.length > 0 || result.removed.length > 0) {
+				await extensionState.updateDeployedExtensions(
+					result.deployed,
+					result.removed,
+					overlayServices,
+				);
+			}
+
+			if (result.needsReboot && !rebootBreadcrumbSet) {
+				// Extension requires reboot - signal this via a noop step
+				// The reboot will be handled by the device state module
+				log.info('Overlay extension deployed, reboot required');
+				// We return noop to keep the state loop alive
+				// The reboot breadcrumb should be set by extension handler
+				return [generateStep('noop', {})];
+			}
 		}
 	}
 
