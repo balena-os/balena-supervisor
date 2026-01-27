@@ -202,15 +202,25 @@ RUN npm ci \
 	&& rm -rf node_modules/sqlite3/node.dtps
 
 ###################################################
-# Build the production image
+# Build the DEBUG production image (runs with ts-node)
 ###################################################
 FROM runtime-base
 
+ARG NPM
+
+# Need npm for ts-node
+RUN apk add --update --no-cache $NPM
+
 WORKDIR /usr/src/app
 
-COPY --from=build-prod /usr/src/app/dist ./dist
-COPY --from=build-prod /usr/src/app/package.json ./
-COPY --from=build-prod /usr/src/app/node_modules ./node_modules
+# Keep dev dependencies (includes ts-node, typescript, nodemon)
+COPY --from=build-base /usr/src/app/node_modules ./node_modules
+COPY --from=build-base /usr/src/app/package.json ./
+
+# Copy source files for ts-node
+COPY src ./src
+COPY typings ./typings
+COPY tsconfig.json tsconfig.release.json ./
 
 COPY entry.sh .
 
