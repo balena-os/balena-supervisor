@@ -1,7 +1,7 @@
 version: '2.3'
 
 x-helios-image: &helios-image
-  image: ghcr.io/balena-io/helios:0.13.1
+  image: ghcr.io/balena-io/helios:build-80051653853bede5c3b87c8eef99b3b35fb4b83d-unstable
 
 services:
   # This service can only be named `main` or `balena-supervisor` as older
