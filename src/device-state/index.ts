@@ -81,19 +81,13 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 let currentVolatile: DeviceReport = {};
 let maxPollTime: number;
 let applyBlocker: Nullable<Promise<void>>;
-let cancelDelay: null | (() => void) = null;
-
-let applyCancelled = false;
-let lastApplyStart = process.hrtime();
-let scheduledApply: { force?: boolean; delay?: number } | null = null;
 let shuttingDown = false;
 
-let applyInProgress = false;
 export let connected: boolean;
 export let lastSuccessfulUpdate: number | null = null;
 
-// Controls cancelling of in-progress steps such as fetches
-let abortController = new AbortController();
+const applyTargetTrigger = createCancellableTrigger(applyTarget);
+export const triggerApplyTarget = applyTargetTrigger.trigger;
 
 events.on('error', (err) => {
 	log.error('deviceState error: ', err);
@@ -134,7 +128,7 @@ export const initialized = _.once(async () => {
 });
 
 export function isApplyInProgress() {
-	return applyInProgress;
+	return applyTargetTrigger.isInProgress();
 }
 
 export async function healthcheck() {
@@ -145,14 +139,14 @@ export async function healthcheck() {
 		return true;
 	}
 
-	const cycleTime = process.hrtime(lastApplyStart);
+	const cycleTime = process.hrtime(applyTargetTrigger.getLastStart());
 	const cycleTimeMs = cycleTime[0] * 1000 + cycleTime[1] / 1e6;
 	const cycleTimeWithinInterval =
 		cycleTimeMs - applicationManager.timeSpentFetching < 2 * maxPollTime;
 
 	// Check if target is healthy
 	const applyTargetHealthy =
-		!applyInProgress ||
+		!applyTargetTrigger.isInProgress() ||
 		applicationManager.fetchesInProgress > 0 ||
 		cycleTimeWithinInterval;
 
@@ -160,7 +154,7 @@ export async function healthcheck() {
 		log.info(
 			stripIndent`
 				Healthcheck failure - At least ONE of the following conditions must be true:
-					- No applyInProgress      ? ${!(applyInProgress === true)}
+					- No applyInProgress      ? ${!applyTargetTrigger.isInProgress()}
 					- fetchesInProgress       ? ${applicationManager.fetchesInProgress > 0}
 					- cycleTimeWithinInterval ? ${cycleTimeWithinInterval}`,
 		);
@@ -319,7 +313,7 @@ export async function getLegacyState(): Promise<DeviceLegacyState> {
 	if (appId != null) {
 		const commit = await commitStore.getCommitForApp(appId);
 
-		if (commit != null && !applyInProgress) {
+		if (commit != null && !applyTargetTrigger.isInProgress()) {
 			theState.local.is_on__commit = commit;
 		}
 	}
@@ -568,7 +562,7 @@ function applyError(
 	}
 	TargetState.increaseFailedUpdates();
 	reportCurrentState({ update_failed: true });
-	if (scheduledApply != null) {
+	if (applyTargetTrigger.hasScheduled()) {
 		if (!(err instanceof UpdatesLockedError)) {
 			log.error(
 				"Updating failed, but there's another update scheduled immediately: ",
@@ -609,7 +603,7 @@ interface ApplyTargetOpts {
 	abortSignal: AbortSignal;
 }
 
-export const applyTarget = async ({
+export async function applyTarget({
 	force = false,
 	initial = false,
 	intermediate = false,
@@ -617,7 +611,7 @@ export const applyTarget = async ({
 	retryCount = 0,
 	keepVolumes = undefined as boolean | undefined,
 	abortSignal,
-}: ApplyTargetOpts) => {
+}: ApplyTargetOpts) {
 	if (!intermediate) {
 		await applyBlocker;
 	}
@@ -744,7 +738,7 @@ export const applyTarget = async ({
 	}).catch((err) => {
 		applyError(err, { force, initial, intermediate });
 	});
-};
+}
 
 function pausingApply(fn: () => any) {
 	const lock = () => {
@@ -766,88 +760,111 @@ function pausingApply(fn: () => any) {
 	return Bluebird.using(lock(), () => Bluebird.using(pause(), () => fn()));
 }
 
-export function triggerApplyTarget({
-	force = false,
-	delay = 0,
-	initial = false,
-	isFromApi = false,
-	cancel = false,
-} = {}) {
-	if (applyInProgress) {
-		// If there's an apply in progress and we get a new target state,
-		// abort the current operation if cancel is true. Cancel is true if:
-		// - The target state changed (received a non-304 response from the API)
-		// - The user called /v1/update with { "cancel": true }
-		if (cancel) {
-			log.debug('Aborting target state apply');
-			abortController.abort();
-			applyInProgress = false;
-			abortController = new AbortController();
-			// Trigger a re-apply after aborting the current apply
-			triggerApplyTarget({ force, isFromApi });
-		}
+// A factory that wraps a promise-returning function with scheduling and
+// cancellation. The returned trigger function:
+// - fires the promise as `void` to avoid pausing execution
+// - ensures at most one promise is in progress at a time
+// - queues a single pending request that is dispatched after the current one settles
+// - supports an optional delay before invocation, skippable via `isFromApi`
+// - provides an AbortSignal so the in-progress promise can be cancelled via `cancel`
+export function createCancellableTrigger(
+	promiseFn: (opts: ApplyTargetOpts) => Promise<void>,
+) {
+	let inProgress = false;
+	let lastStartTime = process.hrtime();
+	let scheduled: { force?: boolean; delay?: number } | null = null;
+	let cancelDelay: null | (() => void) = null;
+	let isCancelled = false;
+	let abortController = new AbortController();
 
-		if (scheduledApply == null || (isFromApi && cancelDelay)) {
-			scheduledApply = { force, delay };
-			if (isFromApi) {
-				// Cancel promise delay if call came from api to
-				// prevent waiting due to backoff (and if we've
-				// previously setup a delay)
-				cancelDelay?.();
+	function trigger({
+		force = false,
+		delay = 0,
+		initial = false,
+		isFromApi = false,
+		cancel = false,
+	} = {}) {
+		if (inProgress) {
+			// If there's an apply in progress and we get a new target state,
+			// abort the current operation if cancel is true. Cancel is true if:
+			// - The target state changed (received a non-304 response from the API)
+			// - The user called /v1/update with { "cancel": true }
+			if (cancel) {
+				log.debug('Aborting target state apply');
+				abortController.abort();
+				inProgress = false;
+				abortController = new AbortController();
+				// Re-trigger after aborting current promise
+				trigger({ force, isFromApi });
 			}
-		} else {
-			// If a delay has been set it's because we need to hold off before applying again,
-			// so we need to respect the maximum delay that has been passed
-			if (scheduledApply.delay === undefined || isNaN(scheduledApply.delay)) {
-				log.debug(
-					`Tried to apply target with invalid delay: ${scheduledApply.delay}`,
-				);
-				throw new InternalInconsistencyError(
-					'No delay specified in scheduledApply',
-				);
+
+			if (scheduled == null || (isFromApi && cancelDelay)) {
+				scheduled = { force, delay };
+				if (isFromApi) {
+					// Cancel promise delay if call came from api to
+					// prevent waiting due to backoff (and if we've
+					// previously setup a delay)
+					cancelDelay?.();
+				}
+			} else {
+				// If a delay has been set it's because we need to hold off before applying again,
+				// so we need to respect the maximum delay that has been passed
+				scheduled.delay = Math.max(delay ?? 0, scheduled.delay ?? 0);
+				// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+				if (!scheduled.force) {
+					scheduled.force = force;
+				}
 			}
-			scheduledApply.delay = Math.max(delay, scheduledApply.delay);
-			// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-			if (!scheduledApply.force) {
-				scheduledApply.force = force;
-			}
+			return;
 		}
-		return;
-	}
-	applyCancelled = false;
-	applyInProgress = true;
-	// Create new abort controller for this apply trigger
-	abortController = new AbortController();
-	void new Promise((resolve, reject) => {
-		void setTimeout(delay).then(resolve);
-		cancelDelay = reject;
-	})
-		.catch(() => {
-			applyCancelled = true;
+		isCancelled = false;
+		inProgress = true;
+		// Create new abort controller for this apply trigger
+		abortController = new AbortController();
+		void new Promise((resolve, reject) => {
+			void setTimeout(delay).then(resolve);
+			cancelDelay = reject;
 		})
-		.then(() => {
-			cancelDelay = null;
-			if (applyCancelled) {
-				log.info('Skipping applyTarget because of a cancellation');
-				return;
-			}
-			lastApplyStart = process.hrtime();
-			log.info('Applying target state');
-			return applyTarget({
-				force,
-				initial,
-				abortSignal: abortController.signal,
+			.catch(() => {
+				isCancelled = true;
+			})
+			.then(() => {
+				cancelDelay = null;
+				if (isCancelled) {
+					log.info('Skipping applyTarget because of a cancellation');
+					return;
+				}
+				lastStartTime = process.hrtime();
+				log.info('Applying target state');
+				return promiseFn({
+					force,
+					initial,
+					abortSignal: abortController.signal,
+				});
+			})
+			.finally(() => {
+				abortController = new AbortController();
+				inProgress = false;
+				reportCurrentState();
+				if (scheduled != null) {
+					trigger(scheduled);
+					scheduled = null;
+				}
 			});
-		})
-		.finally(() => {
-			abortController = new AbortController();
-			applyInProgress = false;
-			reportCurrentState();
-			if (scheduledApply != null) {
-				triggerApplyTarget(scheduledApply);
-				scheduledApply = null;
-			}
-		});
+	}
+
+	return {
+		trigger,
+		isInProgress: () => inProgress,
+		// TODO: This can be removed once we integrate intermediate target apply
+		// into the cancellable trigger (so that intermediate target apply has the same
+		// control flow as regular target apply)
+		setInProgress: (v: boolean) => {
+			inProgress = v;
+		},
+		getLastStart: () => lastStartTime,
+		hasScheduled: () => scheduled != null,
+	};
 }
 
 export async function applyIntermediateTarget(
@@ -861,7 +878,7 @@ export async function applyIntermediateTarget(
 		const intermediateAbortController = new AbortController();
 		// TODO: Make sure we don't accidentally overwrite this
 		TargetState.setIntermediateTarget(intermediate);
-		applyInProgress = true;
+		applyTargetTrigger.setInProgress(true);
 		return applyTarget({
 			intermediate: true,
 			force,
@@ -874,7 +891,7 @@ export async function applyIntermediateTarget(
 			})
 			.finally(() => {
 				TargetState.setIntermediateTarget(null);
-				applyInProgress = false;
+				applyTargetTrigger.setInProgress(false);
 			});
 	});
 }
