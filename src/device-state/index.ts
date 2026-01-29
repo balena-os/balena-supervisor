@@ -772,7 +772,8 @@ export function createCancellableTrigger(
 ) {
 	let inProgress = false;
 	let lastStartTime = process.hrtime();
-	let scheduled: { force?: boolean; delay?: number } | null = null;
+	let scheduled: { force?: boolean; delay?: number; initial?: boolean } | null =
+		null;
 	let cancelDelay: null | (() => void) = null;
 	let abortController = new AbortController();
 
@@ -800,7 +801,7 @@ export function createCancellableTrigger(
 			}
 
 			if (scheduled == null) {
-				scheduled = { force, delay };
+				scheduled = { force, delay, initial };
 			} else {
 				// If a delay has been set it's because we need to hold off before applying again,
 				// so we need to respect the maximum delay that has been passed
@@ -808,6 +809,10 @@ export function createCancellableTrigger(
 				// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 				if (!scheduled.force) {
 					scheduled.force = force;
+				}
+				// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+				if (!scheduled.initial) {
+					scheduled.initial = initial;
 				}
 			}
 			return;

@@ -245,4 +245,58 @@ describe('createCancellableTrigger', () => {
 		d.resolve();
 		await settle();
 	});
+
+	it('merges initial flag into existing scheduled promise', async () => {
+		const d = deferred();
+		const stub = sinon
+			.stub()
+			.onFirstCall()
+			.returns(d.promise)
+			.onSecondCall()
+			.resolves();
+		const { trigger } = createCancellableTrigger(stub);
+
+		trigger();
+		await settle();
+
+		// Queue two triggers — initial should be OR'd
+		trigger({ initial: false });
+		trigger({ initial: true });
+
+		d.resolve();
+		await settle();
+
+		expect(stub.secondCall).to.have.been.calledWith(
+			sinon.match({ initial: true }),
+		);
+	});
+
+	it('dispatches scheduled promise after cancel aborts the current one', async () => {
+		const d = deferred();
+		const stub = sinon
+			.stub()
+			.onFirstCall()
+			.returns(d.promise)
+			.onSecondCall()
+			.resolves();
+		const { trigger, hasScheduled } = createCancellableTrigger(stub);
+
+		trigger();
+		await settle();
+		expect(stub).to.have.been.calledOnce;
+
+		// Cancel queues a new request and aborts the current one
+		trigger({ cancel: true, force: true });
+
+		// Resolve the aborted promise so .finally() runs
+		d.resolve();
+		await settle();
+
+		// The scheduled promise should have been dispatched
+		expect(stub).to.have.been.calledTwice;
+		expect(stub.secondCall).to.have.been.calledWith(
+			sinon.match({ force: true }),
+		);
+		expect(hasScheduled()).to.be.false;
+	});
 });
