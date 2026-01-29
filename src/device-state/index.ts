@@ -774,7 +774,6 @@ export function createCancellableTrigger(
 	let lastStartTime = process.hrtime();
 	let scheduled: { force?: boolean; delay?: number } | null = null;
 	let cancelDelay: null | (() => void) = null;
-	let isCancelled = false;
 	let abortController = new AbortController();
 
 	function trigger({
@@ -785,27 +784,23 @@ export function createCancellableTrigger(
 		cancel = false,
 	} = {}) {
 		if (inProgress) {
-			// If there's an apply in progress and we get a new target state,
-			// abort the current operation if cancel is true. Cancel is true if:
+			// Abort the in-progress apply if cancel is true. This happens when:
 			// - The target state changed (received a non-304 response from the API)
 			// - The user called /v1/update with { "cancel": true }
 			if (cancel) {
 				log.debug('Aborting target state apply');
 				abortController.abort();
-				inProgress = false;
-				abortController = new AbortController();
-				// Re-trigger after aborting current promise
-				trigger({ force, isFromApi });
 			}
 
-			if (scheduled == null || (isFromApi && cancelDelay)) {
+			// Skip delay phase if the call came from the API or if the current
+			// apply was cancelled — the queued request should start immediately
+			// once the current promise settles.
+			if (cancel || isFromApi) {
+				cancelDelay?.();
+			}
+
+			if (scheduled == null) {
 				scheduled = { force, delay };
-				if (isFromApi) {
-					// Cancel promise delay if call came from api to
-					// prevent waiting due to backoff (and if we've
-					// previously setup a delay)
-					cancelDelay?.();
-				}
 			} else {
 				// If a delay has been set it's because we need to hold off before applying again,
 				// so we need to respect the maximum delay that has been passed
@@ -817,40 +812,48 @@ export function createCancellableTrigger(
 			}
 			return;
 		}
-		isCancelled = false;
+
 		inProgress = true;
-		// Create new abort controller for this apply trigger
 		abortController = new AbortController();
-		void new Promise((resolve, reject) => {
-			void setTimeout(delay).then(resolve);
-			cancelDelay = reject;
-		})
-			.catch(() => {
-				isCancelled = true;
-			})
-			.then(() => {
-				cancelDelay = null;
-				if (isCancelled) {
-					log.info('Skipping applyTarget because of a cancellation');
-					return;
+		const signal = abortController.signal;
+
+		void (async () => {
+			// First, delay trigger if specified (skippable via cancelDelay)
+			let delayCancelled = false;
+			if (delay > 0) {
+				try {
+					await new Promise<void>((resolve, reject) => {
+						void setTimeout(delay).then(resolve);
+						cancelDelay = reject;
+					});
+				} catch {
+					delayCancelled = true;
 				}
+				cancelDelay = null;
+			}
+
+			// Then run the promise unless cancelled
+			if (!delayCancelled && !signal.aborted) {
 				lastStartTime = process.hrtime();
 				log.info('Applying target state');
-				return promiseFn({
+				await promiseFn({
 					force,
 					initial,
-					abortSignal: abortController.signal,
+					abortSignal: signal,
 				});
-			})
-			.finally(() => {
-				abortController = new AbortController();
-				inProgress = false;
-				reportCurrentState();
-				if (scheduled != null) {
-					trigger(scheduled);
-					scheduled = null;
-				}
-			});
+			} else {
+				log.info('Skipping applyTarget because of a cancellation');
+			}
+		})().finally(() => {
+			cancelDelay = null;
+			abortController = new AbortController();
+			inProgress = false;
+			reportCurrentState();
+			if (scheduled != null) {
+				trigger(scheduled);
+				scheduled = null;
+			}
+		});
 	}
 
 	return {
