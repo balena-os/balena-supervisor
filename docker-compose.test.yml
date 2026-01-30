@@ -20,7 +20,7 @@ services:
       - mock-systemd
     volumes:
       - dbus:/shared/dbus
-      - tmp:/mnt/root/tmp/balena-supervisor/services
+      - services:/mnt/root/tmp/balena-supervisor/services
       - ./test/data/root:/mnt/root
       - ./test/data/root/mnt/boot:/mnt/boot
       - ./test/lib/wait-for-it.sh:/wait-for-it.sh
@@ -78,7 +78,7 @@ services:
     stop_grace_period: 3s
     volumes:
       - dbus:/shared/dbus
-      - tmp:/mnt/root/tmp/balena-supervisor/services
+      - services:/mnt/root/tmp/balena-supervisor/services
     # Set required supervisor configuration variables here
     environment:
       DOCKER_HOST: tcp://docker:2375
@@ -110,7 +110,7 @@ volumes:
     driver_opts:
       type: tmpfs
       device: tmpfs
-  tmp:
+  services:
     driver_opts:
       type: tmpfs
       device: tmpfs
