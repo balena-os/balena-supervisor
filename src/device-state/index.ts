@@ -715,6 +715,11 @@ export const applyTarget = async ({
 			await Promise.all(steps.map((s) => applyStep(s, { force, initial })));
 
 			await setTimeout(nextDelay);
+			// Bail out immediately if already aborted. This is an intentional
+			// cancellation (e.g. new target state arrived), not an error.
+			if (abortSignal.aborted) {
+				return;
+			}
 			await applyTarget({
 				force,
 				initial,
@@ -775,7 +780,7 @@ export function triggerApplyTarget({
 				stateApply.trigger({ force, initial });
 			})
 			.catch(() => {
-				// Timer aborted — no action needed
+				// Timeout was aborted, do nothing
 			});
 	} else {
 		stateApply.trigger({ force, initial, cancel });
