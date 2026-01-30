@@ -32,19 +32,11 @@ assumption that updates are locked (see [issue #20](https://github.com/balena-os
 
 There are many different tools and libraries to provide proper lockfile functionality and a few common examples are shown below.
 
-__Note:__ Just creating the lockfile, for example by using `touch /tmp/balena/updates.lock`, is not adequate to prevent updates. A file created in this way won't have the exclusive access flag set, and thus does not provide reliable locking. Additionally, a file needs to be held by a process to be counted by the system as a lockfile.
+__Note:__ Just creating the lockfile, for example by using `touch /tmp/balena/updates.lock`, is not adequate. You must hold an exclusive flock on the file for the duration of the critical section so that both the Supervisor and the host OS update logic respect the lock.
 
 #### Shell
 
-One simple way to create a lockfile is using [lockfile](https://linux.die.net/man/1/lockfile) (available for example in Debian from the `procmail` package):
-
-```shell
-lockfile /tmp/balena/updates.lock
-# ... (do things)
-rm -f /tmp/balena/updates.lock
-```
-
-Another tool is [flock](https://linux.die.net/man/1/flock) (available for example in Debian from the `linux-utils` package):
+Use [flock](https://linux.die.net/man/1/flock) (e.g. Debian: `linux-utils` package). The lock file is opened and an exclusive flock is held for the duration of the command:
 
 ```shell
 flock /tmp/balena/updates.lock -c '... (command to run while locked)'
@@ -75,14 +67,31 @@ lockFile.lock('/tmp/balena/updates.lock', function(err) {
 
 #### Python
 
-In Python you can use the [`lockfile` library][lockfile-library]
+Open the file with exclusive create and hold an exclusive flock for the duration :
+
 ```python
-from lockfile import LockFile
-lock = LockFile("/tmp/balena/updates")
-with lock:
-    print lock.path, 'is locked.'
+import fcntl
+import os
+import time
+
+LOCK_PATH = '/tmp/balena/updates.lock'
+
+def with_update_lock(fn):
+    fd = os.open(LOCK_PATH, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        fn()
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+        try:
+            os.unlink(LOCK_PATH)
+        except OSError:
+            pass
+
+with_update_lock(do_the_harlem_shake)
+
 ```
-Check the link for more examples and other Python libraries that provide locking.
 
 ### Overriding the lock
 
@@ -97,4 +106,3 @@ Please note that setting the override is a one-time action. Locks set previously
 
 [device-configuration]:/learn/manage/configuration/#managing-device-configuration-variables
 [supervisor-api]:/reference/supervisor/supervisor-api
-[lockfile-library]:http://pythonhosted.org/lockfile/lockfile.html#examples
