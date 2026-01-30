@@ -25,7 +25,7 @@ import * as applicationManager from '../compose/application-manager';
 import * as commitStore from '../compose/commit';
 import type { InstancedDeviceState } from './target-state';
 import * as TargetState from './target-state';
-export { getTarget, setTarget } from './target-state';
+export { getTarget, setTarget, setIntermediateTarget } from './target-state';
 
 import { StateApplicator } from './state-apply';
 
@@ -82,13 +82,9 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 
 let currentVolatile: DeviceReport = {};
 let maxPollTime: number;
-let applyBlocker: Nullable<Promise<void>>;
 
 let lastApplyStart = process.hrtime();
 let shuttingDown = false;
-
-// TO REMOVE: only used by applyIntermediateTarget; normal applies are tracked by the semaphore.
-let applyInProgress = false;
 export let connected: boolean;
 export let lastSuccessfulUpdate: number | null = null;
 
@@ -146,7 +142,7 @@ export const initialized = _.once(async () => {
 });
 
 export function isApplyInProgress() {
-	return applyInProgress || stateApply.isInProgress();
+	return stateApply.isInProgress();
 }
 
 export async function healthcheck() {
@@ -620,9 +616,6 @@ export const applyTarget = async ({
 	keepVolumes = undefined as boolean | undefined,
 	abortSignal,
 }: ApplyTargetOpts) => {
-	if (!intermediate) {
-		await applyBlocker;
-	}
 	await applicationManager.localModeSwitchCompletion();
 
 	return usingInferStepsLock(async () => {
@@ -748,24 +741,13 @@ export const applyTarget = async ({
 	});
 };
 
-function pausingApply(fn: () => any) {
-	const lock = () => {
-		return takeGlobalLockRW('pause').disposer((release) => {
-			release();
-		});
-	};
-	// TODO: This function is a bit of a mess
-	const pause = () => {
-		return Bluebird.try(() => {
-			let res;
-			applyBlocker = new Promise((resolve) => {
-				res = resolve;
-			});
-			return res;
-		}).disposer((resolve: any) => resolve());
-	};
-
-	return Bluebird.using(lock(), () => Bluebird.using(pause(), () => fn()));
+export async function withExclusiveApply(
+	fn: (abortSignal: AbortSignal) => Promise<void>,
+): Promise<void> {
+	// Cancel any pending retry delay and in-flight triggered applies
+	retryAbortController?.abort();
+	retryAbortController = null;
+	return stateApply.withExclusive(fn, { cancel: true });
 }
 
 export function triggerApplyTarget({
@@ -798,33 +780,4 @@ export function triggerApplyTarget({
 	} else {
 		stateApply.trigger({ force, initial, cancel });
 	}
-}
-
-export async function applyIntermediateTarget(
-	intermediate: InstancedDeviceState,
-	{ force = false, keepVolumes = undefined as boolean | undefined } = {},
-) {
-	return pausingApply(async () => {
-		// Our current usage of intermediate state doesn't necessitate
-		// making intermediate state apply operations cancellable, which
-		// is why there's no public interface for aborting intermediate applies.
-		const intermediateAbortController = new AbortController();
-		// TODO: Make sure we don't accidentally overwrite this
-		TargetState.setIntermediateTarget(intermediate);
-		applyInProgress = true;
-		return applyTarget({
-			intermediate: true,
-			force,
-			keepVolumes,
-			abortSignal: intermediateAbortController.signal,
-		})
-			.catch((err) => {
-				intermediateAbortController.abort();
-				throw err;
-			})
-			.finally(() => {
-				TargetState.setIntermediateTarget(null);
-				applyInProgress = false;
-			});
-	});
 }
