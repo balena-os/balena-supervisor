@@ -1,4 +1,3 @@
-import Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';
 import _ from 'lodash';
@@ -13,7 +12,6 @@ import * as deviceConfig from './device-config';
 
 import * as constants from '../lib/constants';
 import * as dbus from '../lib/dbus';
-import { takeGlobalLockRW } from '../lib/process-lock';
 import { InternalInconsistencyError, UpdatesLockedError } from '../lib/errors';
 import * as updateLock from '../lib/update-lock';
 import { getGlobalApiKey } from '../lib/api-keys';
@@ -284,18 +282,6 @@ function emitAsync<T extends keyof DeviceStateEvents>(
 		: Array<DeviceStateEvents[T]>
 ) {
 	return setImmediate(() => events.emit(ev as any, ...args));
-}
-
-const inferStepsLock = () =>
-	takeGlobalLockRW('inferSteps').disposer((release) => {
-		release();
-	});
-// Exported for unit test
-export function usingInferStepsLock<
-	T extends () => any,
-	U extends ReturnType<T>,
->(fn: T): Bluebird<UnwrappedPromise<U>> {
-	return Bluebird.using(inferStepsLock, () => fn());
 }
 
 // This returns the current state of the device in (more or less)
@@ -618,7 +604,7 @@ export const applyTarget = async ({
 }: ApplyTargetOpts) => {
 	await applicationManager.localModeSwitchCompletion();
 
-	return usingInferStepsLock(async () => {
+	try {
 		const [currentState, targetState] = await Promise.all([
 			getCurrentState(),
 			TargetState.getTarget({ initial, intermediate }),
@@ -741,9 +727,9 @@ export const applyTarget = async ({
 					JSON.stringify(_.map(steps, 'action')),
 			);
 		}
-	}).catch((err) => {
-		applyError(err, { force, initial, intermediate });
-	});
+	} catch (err) {
+		applyError(err as Error, { force, initial, intermediate });
+	}
 };
 
 export async function withExclusiveApply(

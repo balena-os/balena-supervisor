@@ -7,9 +7,9 @@
  * It is different from lockfile and update-lock modules, which handle
  * inter-container communication via lockfiles.
  *
- * TODO:
- * - Use a maintained solution such as async-lock
- * - Move to native Promises
+ * TODO: Replace rwlock + Bluebird with async-mutex and native Promises.
+ * This would also remove Bluebird from all callers that only import it
+ * for the .using/.disposer pattern (configJson, poll, target-state, etc).
  */
 
 import Bluebird from 'bluebird';
