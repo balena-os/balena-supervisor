@@ -33,6 +33,9 @@ describe('StateApplicator', () => {
 
 			expect(receivedOpts).to.have.property('force', true);
 			expect(receivedOpts).to.have.property('initial', true);
+			expect(receivedOpts)
+				.to.have.property('abortSignal')
+				.that.is.instanceof(AbortSignal);
 		});
 
 		it('defaults `force` and `initial` to false', async () => {
@@ -83,6 +86,30 @@ describe('StateApplicator', () => {
 	});
 
 	describe('withExclusive', () => {
+		it('is not affected by a normal trigger with cancel=true', async () => {
+			let exclusiveRan = false;
+			const barrier = deferred();
+
+			const applicator = new StateApplicator(async () => {
+				await Promise.resolve();
+			});
+
+			const exclusiveDone = applicator.withExclusive(async () => {
+				await barrier.promise;
+				exclusiveRan = true;
+			});
+			await tick();
+
+			// A normal trigger with cancel should not affect the exclusive apply
+			applicator.trigger({ cancel: true });
+			await tick();
+
+			barrier.resolve();
+			await exclusiveDone;
+
+			expect(exclusiveRan).to.be.true;
+		});
+
 		it('holds the lock for the entire callback', async () => {
 			const order: string[] = [];
 			const applicator = new StateApplicator(async () => {
@@ -274,6 +301,76 @@ describe('StateApplicator', () => {
 		});
 	});
 
+	describe('cancellation', () => {
+		it('cancel with nothing running still queues an apply', async () => {
+			let called = false;
+			const applicator = new StateApplicator(async () => {
+				called = true;
+				await Promise.resolve();
+			});
+
+			applicator.trigger({ cancel: true });
+			await tick();
+
+			expect(called).to.be.true;
+		});
+
+		it('aborts the running apply when cancel=true', async () => {
+			let aborted = false;
+			const barrier = deferred();
+			const applicator = new StateApplicator(async ({ abortSignal }) => {
+				abortSignal.addEventListener('abort', () => {
+					aborted = true;
+				});
+				await barrier.promise;
+			});
+
+			applicator.trigger();
+			await tick();
+			expect(aborted).to.be.false;
+
+			applicator.trigger({ cancel: true });
+			await tick();
+			expect(aborted).to.be.true;
+
+			barrier.resolve();
+			await tick();
+		});
+
+		it('runs the new apply after the cancelled one finishes', async () => {
+			const calls: number[] = [];
+			let callCount = 0;
+			const barriers = [deferred(), deferred()];
+
+			const applicator = new StateApplicator(async ({ abortSignal }) => {
+				const count = callCount++;
+				calls.push(count);
+				if (count === 0) {
+					// First call: wait until aborted, then exit
+					await new Promise<void>((resolve) => {
+						abortSignal.addEventListener('abort', () => {
+							resolve();
+						});
+					});
+				} else {
+					await barriers[1].promise;
+				}
+			});
+
+			applicator.trigger();
+			await tick();
+			expect(calls).to.deep.equal([0]);
+
+			// Cancel and dispatch new apply
+			applicator.trigger({ cancel: true });
+			await tick(50);
+			expect(calls).to.deep.equal([0, 1]);
+
+			barriers[1].resolve();
+			await tick();
+		});
+	});
+
 	describe('recursive calls', () => {
 		it('does not deadlock when applyFn triggers a retry via trigger()', async () => {
 			let callCount = 0;
@@ -298,7 +395,7 @@ describe('StateApplicator', () => {
 		it('handles recursive self-calls within applyFn', async () => {
 			let depth = 0;
 			let maxDepth = 0;
-			const applicator = new StateApplicator(async () => {
+			const applicator = new StateApplicator(async ({ abortSignal }) => {
 				depth++;
 				maxDepth = Math.max(maxDepth, depth);
 				if (depth < 3) {
@@ -308,6 +405,7 @@ describe('StateApplicator', () => {
 					await applicator['applyFn']({
 						force: false,
 						initial: false,
+						abortSignal,
 					});
 				}
 				depth--;

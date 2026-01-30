@@ -5,6 +5,7 @@ import log from '../lib/supervisor-console';
 export interface ApplyOpts {
 	force: boolean;
 	initial: boolean;
+	abortSignal: AbortSignal;
 }
 
 type ApplyFn = (opts: ApplyOpts) => Promise<void>;
@@ -23,6 +24,9 @@ export const HIGH_PRIORITY = 1;
  */
 export class StateApplicator {
 	private semaphore = new Semaphore(1);
+	// Only trigger-initiated applies are cancellable via trigger({ cancel }).
+	// withExclusive cannot be cancelled by this AbortController.
+	private runningTrigger: AbortController | null = null;
 
 	constructor(private applyFn: ApplyFn) {}
 
@@ -33,21 +37,37 @@ export class StateApplicator {
 	/**
 	 * Queue an apply at normal priority.
 	 * initial & force params are passed to the applyFn.
+	 * If cancel=true, aborts the currently running trigger-initiated apply
+	 * before triggering a new apply.
+	 * Does not affect running or pending withExclusive calls.
 	 */
 	trigger({
 		force = false,
 		initial = false,
+		cancel = false,
 	}: {
 		force?: boolean;
 		initial?: boolean;
+		cancel?: boolean;
 	} = {}): void {
+		if (cancel) {
+			this.runningTrigger?.abort();
+		}
+
 		void this.semaphore
 			.runExclusive(
 				async () => {
-					await this.applyFn({
-						force,
-						initial,
-					});
+					const ac = new AbortController();
+					this.runningTrigger = ac;
+					try {
+						await this.applyFn({
+							force,
+							initial,
+							abortSignal: ac.signal,
+						});
+					} finally {
+						this.runningTrigger = null;
+					}
 				},
 				1,
 				NORMAL_PRIORITY,
@@ -66,6 +86,7 @@ export class StateApplicator {
 	 * Run an awaitable callback exclusively at high priority.
 	 * Used for high priority sequences which execute before normal apply.
 	 * "High priority sequences" include user actions such as restart or purge.
+	 * Not cancellable by trigger().
 	 */
 	async withExclusive(fn: () => Promise<void>): Promise<void> {
 		return this.semaphore.runExclusive(
