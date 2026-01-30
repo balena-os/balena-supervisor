@@ -27,6 +27,8 @@ import type { InstancedDeviceState } from './target-state';
 import * as TargetState from './target-state';
 export { getTarget, setTarget } from './target-state';
 
+import { StateApplicator } from './state-apply';
+
 export {
 	formatConfigKeys,
 	getCurrent as getCurrentConfig,
@@ -81,19 +83,29 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 let currentVolatile: DeviceReport = {};
 let maxPollTime: number;
 let applyBlocker: Nullable<Promise<void>>;
-let cancelDelay: null | (() => void) = null;
 
-let applyCancelled = false;
 let lastApplyStart = process.hrtime();
-let scheduledApply: { force?: boolean; delay?: number } | null = null;
 let shuttingDown = false;
 
+// TO REMOVE: only used by applyIntermediateTarget; normal applies are tracked by the semaphore.
 let applyInProgress = false;
 export let connected: boolean;
 export let lastSuccessfulUpdate: number | null = null;
 
-// Controls cancelling of in-progress steps such as fetches
-let abortController = new AbortController();
+const stateApply = new StateApplicator(
+	async ({ force, initial, abortSignal }) => {
+		lastApplyStart = process.hrtime();
+		log.info('Applying target state');
+		try {
+			await applyTarget({ force, initial, abortSignal });
+		} finally {
+			reportCurrentState();
+		}
+	},
+);
+
+// Cancels a pending backoff delay scheduled by applyError.
+let retryAbortController: AbortController | null = null;
 
 events.on('error', (err) => {
 	log.error('deviceState error: ', err);
@@ -134,7 +146,7 @@ export const initialized = _.once(async () => {
 });
 
 export function isApplyInProgress() {
-	return applyInProgress;
+	return applyInProgress || stateApply.isInProgress();
 }
 
 export async function healthcheck() {
@@ -151,8 +163,9 @@ export async function healthcheck() {
 		cycleTimeMs - applicationManager.timeSpentFetching < 2 * maxPollTime;
 
 	// Check if target is healthy
+	const applying = isApplyInProgress();
 	const applyTargetHealthy =
-		!applyInProgress ||
+		!applying ||
 		applicationManager.fetchesInProgress > 0 ||
 		cycleTimeWithinInterval;
 
@@ -160,7 +173,7 @@ export async function healthcheck() {
 		log.info(
 			stripIndent`
 				Healthcheck failure - At least ONE of the following conditions must be true:
-					- No applyInProgress      ? ${!(applyInProgress === true)}
+					- No applyInProgress      ? ${!applying}
 					- fetchesInProgress       ? ${applicationManager.fetchesInProgress > 0}
 					- cycleTimeWithinInterval ? ${cycleTimeWithinInterval}`,
 		);
@@ -319,7 +332,7 @@ export async function getLegacyState(): Promise<DeviceLegacyState> {
 	if (appId != null) {
 		const commit = await commitStore.getCommitForApp(appId);
 
-		if (commit != null && !applyInProgress) {
+		if (commit != null && !isApplyInProgress()) {
 			theState.local.is_on__commit = commit;
 		}
 	}
@@ -568,34 +581,23 @@ function applyError(
 	}
 	TargetState.increaseFailedUpdates();
 	reportCurrentState({ update_failed: true });
-	if (scheduledApply != null) {
-		if (!(err instanceof UpdatesLockedError)) {
-			log.error(
-				"Updating failed, but there's another update scheduled immediately: ",
-				err,
-			);
-		}
+	const delay = Math.min(
+		Math.pow(2, TargetState.getFailedUpdates()) * constants.backoffIncrement,
+		maxPollTime,
+	);
+	if (err instanceof UpdatesLockedError) {
+		const message = `Updates are locked, retrying in ${prettyMs(delay, {
+			compact: true,
+		})}. Reason: ${err.message}`;
+		logger.logSystemMessage(message, {}, 'updateLocked', false);
+		log.info(message);
 	} else {
-		const delay = Math.min(
-			Math.pow(2, TargetState.getFailedUpdates()) * constants.backoffIncrement,
-			maxPollTime,
+		log.error(
+			`Scheduling another update attempt in ${delay}ms due to failure: `,
+			err,
 		);
-		// If there was an error then schedule another attempt briefly in the future.
-		if (err instanceof UpdatesLockedError) {
-			const message = `Updates are locked, retrying in ${prettyMs(delay, {
-				compact: true,
-			})}. Reason: ${err.message}`;
-			logger.logSystemMessage(message, {}, 'updateLocked', false);
-			log.info(message);
-		} else {
-			log.error(
-				`Scheduling another update attempt in ${delay}ms due to failure: `,
-				err,
-			);
-		}
-		triggerApplyTarget({ force, delay, initial });
-		return;
 	}
+	triggerApplyTarget({ force, delay, initial });
 }
 
 interface ApplyTargetOpts {
@@ -773,81 +775,29 @@ export function triggerApplyTarget({
 	isFromApi = false,
 	cancel = false,
 } = {}) {
-	if (applyInProgress) {
-		// If there's an apply in progress and we get a new target state,
-		// abort the current operation if cancel is true. Cancel is true if:
-		// - The target state changed (received a non-304 response from the API)
-		// - The user called /v1/update with { "cancel": true }
-		if (cancel) {
-			log.debug('Aborting target state apply');
-			abortController.abort();
-			applyInProgress = false;
-			abortController = new AbortController();
-			// Trigger a re-apply after aborting the current apply
-			triggerApplyTarget({ force, isFromApi });
-		}
-
-		if (scheduledApply == null || (isFromApi && cancelDelay)) {
-			scheduledApply = { force, delay };
-			if (isFromApi) {
-				// Cancel promise delay if call came from api to
-				// prevent waiting due to backoff (and if we've
-				// previously setup a delay)
-				cancelDelay?.();
-			}
-		} else {
-			// If a delay has been set it's because we need to hold off before applying again,
-			// so we need to respect the maximum delay that has been passed
-			if (scheduledApply.delay === undefined || isNaN(scheduledApply.delay)) {
-				log.debug(
-					`Tried to apply target with invalid delay: ${scheduledApply.delay}`,
-				);
-				throw new InternalInconsistencyError(
-					'No delay specified in scheduledApply',
-				);
-			}
-			scheduledApply.delay = Math.max(delay, scheduledApply.delay);
-			// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-			if (!scheduledApply.force) {
-				scheduledApply.force = force;
-			}
-		}
-		return;
+	if (cancel || isFromApi) {
+		// Cancel pending retry
+		retryAbortController?.abort();
+		retryAbortController = null;
 	}
-	applyCancelled = false;
-	applyInProgress = true;
-	// Create new abort controller for this apply trigger
-	abortController = new AbortController();
-	void new Promise((resolve, reject) => {
-		void setTimeout(delay).then(resolve);
-		cancelDelay = reject;
-	})
-		.catch(() => {
-			applyCancelled = true;
-		})
-		.then(() => {
-			cancelDelay = null;
-			if (applyCancelled) {
-				log.info('Skipping applyTarget because of a cancellation');
-				return;
-			}
-			lastApplyStart = process.hrtime();
-			log.info('Applying target state');
-			return applyTarget({
-				force,
-				initial,
-				abortSignal: abortController.signal,
+
+	if (delay > 0) {
+		// Schedule delayed trigger
+		// Used by applyError for backoff
+		retryAbortController?.abort();
+		const ac = new AbortController();
+		retryAbortController = ac;
+		void setTimeout(delay, undefined, { signal: ac.signal })
+			.then(() => {
+				retryAbortController = null;
+				stateApply.trigger({ force, initial });
+			})
+			.catch(() => {
+				// Timer aborted — no action needed
 			});
-		})
-		.finally(() => {
-			abortController = new AbortController();
-			applyInProgress = false;
-			reportCurrentState();
-			if (scheduledApply != null) {
-				triggerApplyTarget(scheduledApply);
-				scheduledApply = null;
-			}
-		});
+	} else {
+		stateApply.trigger({ force, initial, cancel });
+	}
 }
 
 export async function applyIntermediateTarget(
