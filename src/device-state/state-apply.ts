@@ -2,6 +2,8 @@ import { Semaphore, E_CANCELED } from 'async-mutex';
 
 import log from '../lib/supervisor-console';
 
+export { E_CANCELED };
+
 export interface ApplyOpts {
 	force: boolean;
 	initial: boolean;
@@ -27,6 +29,12 @@ export class StateApplicator {
 	// Only trigger-initiated applies are cancellable via trigger({ cancel }).
 	// withExclusive cannot be cancelled by this AbortController.
 	private runningTrigger: AbortController | null = null;
+	// This AbortController is used to cancel in-flight withExclusive calls.
+	private runningExclusive: AbortController | null = null;
+	// Cancellation token for pending (queued but not yet running) triggers.
+	// When cancel is requested, the current controller is aborted and replaced,
+	// so any previously queued triggers see an aborted signal and skip execution.
+	private pendingTriggers = new AbortController();
 
 	constructor(private applyFn: ApplyFn) {}
 
@@ -38,7 +46,7 @@ export class StateApplicator {
 	 * Queue an apply at normal priority.
 	 * initial & force params are passed to the applyFn.
 	 * If cancel=true, aborts the currently running trigger-initiated apply
-	 * before triggering a new apply.
+	 * and invalidates all pending trigger callbacks before triggering a new apply.
 	 * Does not affect running or pending withExclusive calls.
 	 */
 	trigger({
@@ -52,11 +60,21 @@ export class StateApplicator {
 	} = {}): void {
 		if (cancel) {
 			this.runningTrigger?.abort();
+			this.pendingTriggers.abort();
+			this.pendingTriggers = new AbortController();
 		}
+
+		// This captures the signal at call time so that the correct aborted
+		// pending signal is checked accurately in old trigger calls.
+		const { signal: pendingSignal } = this.pendingTriggers;
 
 		void this.semaphore
 			.runExclusive(
 				async () => {
+					// Skip if a cancel has invalidated this queued trigger.
+					if (pendingSignal.aborted) {
+						return;
+					}
 					const ac = new AbortController();
 					this.runningTrigger = ac;
 					try {
@@ -86,12 +104,36 @@ export class StateApplicator {
 	 * Run an awaitable callback exclusively at high priority.
 	 * Used for high priority sequences which execute before normal apply.
 	 * "High priority sequences" include user actions such as restart or purge.
-	 * Not cancellable by trigger().
+	 * Provides an AbortSignal to the callback. Not cancellable by trigger().
+	 *
+	 * If cancel=true, aborts the currently running trigger or exclusive,
+	 * invalidates all pending triggers, and rejects all pending waiters
+	 * (both trigger and exclusive) with E_CANCELED.
 	 */
-	async withExclusive(fn: () => Promise<void>): Promise<void> {
+	async withExclusive(
+		fn: (abortSignal: AbortSignal) => Promise<void>,
+		{ cancel = false }: { cancel?: boolean } = {},
+	): Promise<void> {
+		if (cancel) {
+			this.runningTrigger?.abort();
+			this.runningExclusive?.abort();
+			this.pendingTriggers.abort();
+			this.pendingTriggers = new AbortController();
+			this.semaphore.cancel();
+		}
+
+		const ac = new AbortController();
 		return this.semaphore.runExclusive(
 			async () => {
-				await fn();
+				this.runningExclusive = ac;
+				try {
+					await fn(ac.signal);
+				} catch (err) {
+					ac.abort();
+					throw err;
+				} finally {
+					this.runningExclusive = null;
+				}
 			},
 			1,
 			HIGH_PRIORITY,
