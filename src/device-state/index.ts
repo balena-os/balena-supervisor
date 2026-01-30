@@ -14,7 +14,11 @@ import * as deviceConfig from './device-config';
 import * as constants from '../lib/constants';
 import * as dbus from '../lib/dbus';
 import { takeGlobalLockRW } from '../lib/process-lock';
-import { InternalInconsistencyError, UpdatesLockedError } from '../lib/errors';
+import {
+	InternalInconsistencyError,
+	isAbortError,
+	UpdatesLockedError,
+} from '../lib/errors';
 import * as updateLock from '../lib/update-lock';
 import { getGlobalApiKey } from '../lib/api-keys';
 import * as sysInfo from '../lib/system-info';
@@ -26,6 +30,8 @@ import * as commitStore from '../compose/commit';
 import type { InstancedDeviceState } from './target-state';
 import * as TargetState from './target-state';
 export { getTarget, setTarget } from './target-state';
+
+import { ExclusiveRunner } from './exclusive-runner';
 
 export {
 	formatConfigKeys,
@@ -81,19 +87,26 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 let currentVolatile: DeviceReport = {};
 let maxPollTime: number;
 let applyBlocker: Nullable<Promise<void>>;
-let cancelDelay: null | (() => void) = null;
 
-let applyCancelled = false;
 let lastApplyStart = process.hrtime();
-let scheduledApply: { force?: boolean; delay?: number } | null = null;
 let shuttingDown = false;
 
+// TO REMOVE: only used by applyIntermediateTarget; normal applies are tracked by the semaphore.
 let applyInProgress = false;
 export let connected: boolean;
 export let lastSuccessfulUpdate: number | null = null;
 
-// Controls cancelling of in-progress steps such as fetches
-let abortController = new AbortController();
+const stateApply = new ExclusiveRunner<{ force?: boolean; initial?: boolean }>(
+	async ({ force, initial, abortSignal }) => {
+		lastApplyStart = process.hrtime();
+		log.info('Applying target state');
+		try {
+			await applyTarget({ force, initial, abortSignal });
+		} finally {
+			reportCurrentState();
+		}
+	},
+);
 
 events.on('error', (err) => {
 	log.error('deviceState error: ', err);
@@ -134,7 +147,7 @@ export const initialized = _.once(async () => {
 });
 
 export function isApplyInProgress() {
-	return applyInProgress;
+	return applyInProgress || stateApply.isInProgress();
 }
 
 export async function healthcheck() {
@@ -151,8 +164,9 @@ export async function healthcheck() {
 		cycleTimeMs - applicationManager.timeSpentFetching < 2 * maxPollTime;
 
 	// Check if target is healthy
+	const applying = isApplyInProgress();
 	const applyTargetHealthy =
-		!applyInProgress ||
+		!applying ||
 		applicationManager.fetchesInProgress > 0 ||
 		cycleTimeWithinInterval;
 
@@ -160,7 +174,7 @@ export async function healthcheck() {
 		log.info(
 			stripIndent`
 				Healthcheck failure - At least ONE of the following conditions must be true:
-					- No applyInProgress      ? ${!(applyInProgress === true)}
+					- No applyInProgress      ? ${!applying}
 					- fetchesInProgress       ? ${applicationManager.fetchesInProgress > 0}
 					- cycleTimeWithinInterval ? ${cycleTimeWithinInterval}`,
 		);
@@ -319,7 +333,7 @@ export async function getLegacyState(): Promise<DeviceLegacyState> {
 	if (appId != null) {
 		const commit = await commitStore.getCommitForApp(appId);
 
-		if (commit != null && !applyInProgress) {
+		if (commit != null && !isApplyInProgress()) {
 			theState.local.is_on__commit = commit;
 		}
 	}
@@ -553,68 +567,24 @@ async function applyStep(
 	}
 }
 
-function applyError(
-	err: Error,
-	{
-		force,
-		initial,
-		intermediate,
-	}: { force?: boolean; initial?: boolean; intermediate?: boolean },
-) {
-	emitAsync('apply-target-state-error', err);
-	emitAsync('apply-target-state-end', err);
-	if (intermediate) {
-		throw err;
-	}
-	TargetState.increaseFailedUpdates();
-	reportCurrentState({ update_failed: true });
-	if (scheduledApply != null) {
-		if (!(err instanceof UpdatesLockedError)) {
-			log.error(
-				"Updating failed, but there's another update scheduled immediately: ",
-				err,
-			);
-		}
-	} else {
-		const delay = Math.min(
-			Math.pow(2, TargetState.getFailedUpdates()) * constants.backoffIncrement,
-			maxPollTime,
-		);
-		// If there was an error then schedule another attempt briefly in the future.
-		if (err instanceof UpdatesLockedError) {
-			const message = `Updates are locked, retrying in ${prettyMs(delay, {
-				compact: true,
-			})}. Reason: ${err.message}`;
-			logger.logSystemMessage(message, {}, 'updateLocked', false);
-			log.info(message);
-		} else {
-			log.error(
-				`Scheduling another update attempt in ${delay}ms due to failure: `,
-				err,
-			);
-		}
-		triggerApplyTarget({ force, delay, initial });
-		return;
-	}
-}
-
 interface ApplyTargetOpts {
 	force?: boolean;
 	initial?: boolean;
 	intermediate?: boolean;
-	nextDelay?: number;
-	retryCount?: number;
 	keepVolumes?: boolean;
 	// All target states should be abortable, so abortSignal is non-optional
 	abortSignal: AbortSignal;
 }
 
+/**
+ * WARNING: This function should only be called from within triggerApplyTarget
+ * or withExclusiveApply. It must NOT be called outside of these contexts,
+ * as there would be no guardrails for managing mutually exclusive applyTarget calls.
+ */
 export const applyTarget = async ({
 	force = false,
 	initial = false,
 	intermediate = false,
-	nextDelay = 200,
-	retryCount = 0,
 	keepVolumes = undefined as boolean | undefined,
 	abortSignal,
 }: ApplyTargetOpts) => {
@@ -623,127 +593,173 @@ export const applyTarget = async ({
 	}
 	await applicationManager.localModeSwitchCompletion();
 
-	return usingInferStepsLock(async () => {
-		const [currentState, targetState] = await Promise.all([
-			getCurrentState(),
-			TargetState.getTarget({ initial, intermediate }),
-		]);
-		const deviceConfigSteps = await deviceConfig.getRequiredSteps(
-			currentState,
-			targetState,
-		);
-		const noConfigSteps = _.every(
-			deviceConfigSteps,
-			({ action }) => action === 'noop',
-		);
+	try {
+		await usingInferStepsLock(async () => {
+			let nextDelay = 200;
+			let retryCount = 0;
 
-		const rebootRequired = await isRebootRequired();
+			while (true) {
+				const [currentState, targetState] = await Promise.all([
+					getCurrentState(),
+					TargetState.getTarget({ initial, intermediate }),
+				]);
+				const deviceConfigSteps = await deviceConfig.getRequiredSteps(
+					currentState,
+					targetState,
+				);
+				const noConfigSteps = _.every(
+					deviceConfigSteps,
+					({ action }) => action === 'noop',
+				);
 
-		let backoff = false;
-		let steps: Array<DeviceStateStep<PossibleStepTargets>>;
+				const rebootRequired = await isRebootRequired();
 
-		if (!noConfigSteps) {
-			steps = deviceConfigSteps;
-		} else {
-			const appSteps = await applicationManager.getRequiredSteps(
-				currentState.local.apps,
-				targetState.local.apps,
-				{
-					// Do not remove images while applying an intermediate state
-					// if not applying intermediate, we let getRequired steps set
-					// the value
-					keepImages: intermediate || undefined,
-					keepVolumes,
-					force,
-					abortSignal,
-				},
-			);
+				let backoff = false;
+				let steps: Array<DeviceStateStep<PossibleStepTargets>>;
 
-			if (_.isEmpty(appSteps)) {
-				// If we retrieve a bunch of no-ops from the
-				// device config, generally we want to back off
-				// more than if we retrieve them from the
-				// application manager
-				backoff = true;
-				steps = deviceConfigSteps;
-			} else {
-				backoff = false;
-				steps = appSteps;
+				if (!noConfigSteps) {
+					steps = deviceConfigSteps;
+				} else {
+					const appSteps = await applicationManager.getRequiredSteps(
+						currentState.local.apps,
+						targetState.local.apps,
+						{
+							// Do not remove images while applying an intermediate state
+							// if not applying intermediate, we let getRequired steps set
+							// the value
+							keepImages: intermediate || undefined,
+							keepVolumes,
+							force,
+							abortSignal,
+						},
+					);
+
+					if (_.isEmpty(appSteps)) {
+						// If we retrieve a bunch of no-ops from the
+						// device config, generally we want to back off
+						// more than if we retrieve them from the
+						// application manager
+						backoff = true;
+						steps = deviceConfigSteps;
+					} else {
+						backoff = false;
+						steps = appSteps;
+					}
+				}
+
+				// Check if there is either no steps, or they are all
+				// noops, and we need to reboot. We want to do this
+				// because in a preloaded setting with no internet
+				// connection, the device will try to start containers
+				// before any boot config has been applied, which can
+				// cause problems
+				// For application manager, the reboot breadcrumb should
+				// be set after all downloads are ready and target containers
+				// have been installed
+				if (steps.every(({ action }) => action === 'noop') && rebootRequired) {
+					steps.push({
+						action: 'reboot',
+					});
+				}
+
+				if (_.isEmpty(steps)) {
+					emitAsync('apply-target-state-end', null);
+					if (!intermediate) {
+						log.debug('Finished applying target state');
+						applicationManager.resetTimeSpentFetching();
+						TargetState.resetFailedUpdates();
+						lastSuccessfulUpdate = Date.now();
+						reportCurrentState({
+							update_failed: false,
+							update_pending: false,
+							update_downloaded: false,
+						});
+					}
+					return;
+				}
+
+				if (!intermediate) {
+					reportCurrentState({ update_pending: true });
+				}
+				if (_.every(steps, (step) => step.action === 'noop')) {
+					if (backoff) {
+						retryCount += 1;
+						// Backoff to a maximum of 10 minutes
+						nextDelay = Math.min(
+							Math.pow(2, retryCount) * 1000,
+							60 * 10 * 1000,
+						);
+					} else {
+						nextDelay = 1000;
+					}
+				}
+
+				try {
+					await Promise.all(steps.map((s) => applyStep(s, { force, initial })));
+					await setTimeout(nextDelay, undefined, {
+						signal: abortSignal,
+					});
+				} catch (e: any) {
+					if (e instanceof UpdatesLockedError) {
+						// Forward UpdatesLockedError directly
+						throw e;
+					}
+					// Intentional apply cancellation, exit without error
+					if (isAbortError(e)) {
+						return;
+					}
+					throw new Error(
+						'Failed to apply state transition steps. ' +
+							e.message +
+							' Steps:' +
+							JSON.stringify(_.map(steps, 'action')),
+					);
+				}
 			}
-		}
-
-		// Check if there is either no steps, or they are all
-		// noops, and we need to reboot. We want to do this
-		// because in a preloaded setting with no internet
-		// connection, the device will try to start containers
-		// before any boot config has been applied, which can
-		// cause problems
-		// For application manager, the reboot breadcrumb should
-		// be set after all downloads are ready and target containers
-		// have been installed
-		if (steps.every(({ action }) => action === 'noop') && rebootRequired) {
-			steps.push({
-				action: 'reboot',
-			});
-		}
-
-		if (_.isEmpty(steps)) {
-			emitAsync('apply-target-state-end', null);
-			if (!intermediate) {
-				log.debug('Finished applying target state');
-				applicationManager.resetTimeSpentFetching();
-				TargetState.resetFailedUpdates();
-				lastSuccessfulUpdate = Date.now();
-				reportCurrentState({
-					update_failed: false,
-					update_pending: false,
-					update_downloaded: false,
-				});
-			}
+		});
+	} catch (err) {
+		// AbortError means intentional cancellation, bail out
+		if (isAbortError(err)) {
 			return;
 		}
-
-		if (!intermediate) {
-			reportCurrentState({ update_pending: true });
+		emitAsync('apply-target-state-error', err as Error);
+		emitAsync('apply-target-state-end', err as Error);
+		if (intermediate) {
+			throw err;
 		}
-		if (_.every(steps, (step) => step.action === 'noop')) {
-			if (backoff) {
-				retryCount += 1;
-				// Backoff to a maximum of 10 minutes
-				nextDelay = Math.min(Math.pow(2, retryCount) * 1000, 60 * 10 * 1000);
-			} else {
-				nextDelay = 1000;
-			}
-		}
-
-		try {
-			await Promise.all(steps.map((s) => applyStep(s, { force, initial })));
-
-			await setTimeout(nextDelay);
-			await applyTarget({
-				force,
-				initial,
-				intermediate,
-				nextDelay,
-				retryCount,
-				keepVolumes,
-				abortSignal,
-			});
-		} catch (e: any) {
-			if (e instanceof UpdatesLockedError) {
-				// Forward the UpdatesLockedError directly
-				throw e;
-			}
-			throw new Error(
-				'Failed to apply state transition steps. ' +
-					e.message +
-					' Steps:' +
-					JSON.stringify(_.map(steps, 'action')),
+		TargetState.increaseFailedUpdates();
+		reportCurrentState({ update_failed: true });
+		const delay = Math.min(
+			Math.pow(2, TargetState.getFailedUpdates()) * constants.backoffIncrement,
+			maxPollTime,
+		);
+		if (err instanceof UpdatesLockedError) {
+			const message = `Updates are locked, retrying in ${prettyMs(delay, {
+				compact: true,
+			})}. Reason: ${(err as Error).message}`;
+			logger.logSystemMessage(message, {}, 'updateLocked', false);
+			log.info(message);
+		} else {
+			log.error(
+				`Scheduling another update attempt in ${delay}ms due to failure: `,
+				err,
 			);
 		}
-	}).catch((err) => {
-		applyError(err, { force, initial, intermediate });
-	});
+		// Wait for backoff delay before retrying
+		try {
+			await setTimeout(delay, undefined, { signal: abortSignal });
+		} catch {
+			// Aborted during backoff delay, bail out
+			return;
+		}
+		await applyTarget({
+			force,
+			initial,
+			intermediate,
+			keepVolumes,
+			abortSignal,
+		});
+	}
 };
 
 function pausingApply(fn: () => any) {
@@ -768,86 +784,10 @@ function pausingApply(fn: () => any) {
 
 export function triggerApplyTarget({
 	force = false,
-	delay = 0,
 	initial = false,
-	isFromApi = false,
 	cancel = false,
 } = {}) {
-	if (applyInProgress) {
-		// If there's an apply in progress and we get a new target state,
-		// abort the current operation if cancel is true. Cancel is true if:
-		// - The target state changed (received a non-304 response from the API)
-		// - The user called /v1/update with { "cancel": true }
-		if (cancel) {
-			log.debug('Aborting target state apply');
-			abortController.abort();
-			applyInProgress = false;
-			abortController = new AbortController();
-			// Trigger a re-apply after aborting the current apply
-			triggerApplyTarget({ force, isFromApi });
-		}
-
-		if (scheduledApply == null || (isFromApi && cancelDelay)) {
-			scheduledApply = { force, delay };
-			if (isFromApi) {
-				// Cancel promise delay if call came from api to
-				// prevent waiting due to backoff (and if we've
-				// previously setup a delay)
-				cancelDelay?.();
-			}
-		} else {
-			// If a delay has been set it's because we need to hold off before applying again,
-			// so we need to respect the maximum delay that has been passed
-			if (scheduledApply.delay === undefined || isNaN(scheduledApply.delay)) {
-				log.debug(
-					`Tried to apply target with invalid delay: ${scheduledApply.delay}`,
-				);
-				throw new InternalInconsistencyError(
-					'No delay specified in scheduledApply',
-				);
-			}
-			scheduledApply.delay = Math.max(delay, scheduledApply.delay);
-			// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-			if (!scheduledApply.force) {
-				scheduledApply.force = force;
-			}
-		}
-		return;
-	}
-	applyCancelled = false;
-	applyInProgress = true;
-	// Create new abort controller for this apply trigger
-	abortController = new AbortController();
-	void new Promise((resolve, reject) => {
-		void setTimeout(delay).then(resolve);
-		cancelDelay = reject;
-	})
-		.catch(() => {
-			applyCancelled = true;
-		})
-		.then(() => {
-			cancelDelay = null;
-			if (applyCancelled) {
-				log.info('Skipping applyTarget because of a cancellation');
-				return;
-			}
-			lastApplyStart = process.hrtime();
-			log.info('Applying target state');
-			return applyTarget({
-				force,
-				initial,
-				abortSignal: abortController.signal,
-			});
-		})
-		.finally(() => {
-			abortController = new AbortController();
-			applyInProgress = false;
-			reportCurrentState();
-			if (scheduledApply != null) {
-				triggerApplyTarget(scheduledApply);
-				scheduledApply = null;
-			}
-		});
+	stateApply.trigger({ force, initial, cancel });
 }
 
 export async function applyIntermediateTarget(
