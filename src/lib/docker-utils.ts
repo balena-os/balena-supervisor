@@ -276,11 +276,13 @@ export async function fetchDeltaWithProgress(
 							);
 							break;
 						} catch (e) {
-							if (isStatusError(e)) {
+							if (isStatusError(e) || abortSignal.aborted) {
 								// A status error during delta pull indicates network issues,
 								// so we should throw an error to the handler that indicates that
 								// the delta pull should be retried until network issues are resolved,
 								// rather than falling back to a regular pull.
+								//
+								// Also don't retry if the operation was intentionally aborted
 								throw e;
 							}
 							lastError = e as Error;
