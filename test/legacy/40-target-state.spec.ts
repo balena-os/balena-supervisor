@@ -7,11 +7,7 @@ import rewire from 'rewire';
 import { expect } from 'chai';
 
 import * as TargetState from '~/src/api-binder/poll';
-import Log from '~/lib/supervisor-console';
 import * as request from '~/lib/request';
-import * as deviceConfig from '~/src/device-state/device-config';
-import { UpdatesLockedError } from '~/lib/errors';
-import { setTimeout } from 'timers/promises';
 
 const deviceState = rewire('~/src/device-state');
 
@@ -176,53 +172,6 @@ describe('Target state', () => {
 
 			// Cleanup
 			TargetState.emitter.off('target-state-update', listener);
-		});
-
-		it('should cancel any target state applying if request is from API', async () => {
-			const logInfoSpy = spy(Log, 'info');
-
-			// This just makes the first step of the applyTarget function throw an error
-			// We could have stubbed any function to throw this error as long as it is inside the try block
-			stub(deviceConfig, 'getRequiredSteps').throws(
-				new UpdatesLockedError('Updates locked'),
-			);
-
-			// Rather then stubbing more values to make the following code execute
-			// I am just going to make the function I want run
-			const updateListener = async (
-				_targetState: any,
-				force: boolean,
-				isFromApi: boolean,
-			) => {
-				deviceState.triggerApplyTarget({ force, isFromApi });
-			};
-			const applyListener = async (force: boolean, isFromApi: boolean) => {
-				deviceState.triggerApplyTarget({ force, isFromApi });
-			};
-
-			// Add the function we want to run to this listener which calls it normally
-			TargetState.emitter.on('target-state-update', updateListener);
-			TargetState.emitter.on('target-state-apply', applyListener);
-
-			// Trigger an update which will start delay due to lock exception
-			await TargetState.update(false, false);
-
-			// Wait for interval to tick a few times
-			await setTimeout(2000); // 2 seconds
-
-			// Trigger another update but say it's from the API
-			await TargetState.update(false, true);
-
-			// Check for log message stating cancellation
-			expect(logInfoSpy.lastCall?.lastArg).to.equal(
-				'Skipping applyTarget because of a cancellation',
-			);
-
-			// Restore stubs
-			logInfoSpy.restore();
-			(deviceConfig.getRequiredSteps as SinonStub).restore();
-			TargetState.emitter.off('target-state-update', updateListener);
-			TargetState.emitter.off('target-state-apply', applyListener);
 		});
 	});
 

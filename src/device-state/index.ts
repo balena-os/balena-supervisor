@@ -1,4 +1,3 @@
-import Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';
 import _ from 'lodash';
@@ -13,7 +12,6 @@ import * as deviceConfig from './device-config';
 
 import * as constants from '../lib/constants';
 import * as dbus from '../lib/dbus';
-import { takeGlobalLockRW } from '../lib/process-lock';
 import { InternalInconsistencyError, UpdatesLockedError } from '../lib/errors';
 import * as updateLock from '../lib/update-lock';
 import { getGlobalApiKey } from '../lib/api-keys';
@@ -25,7 +23,9 @@ import * as applicationManager from '../compose/application-manager';
 import * as commitStore from '../compose/commit';
 import type { InstancedDeviceState } from './target-state';
 import * as TargetState from './target-state';
-export { getTarget, setTarget } from './target-state';
+export { getTarget, setTarget, setIntermediateTarget } from './target-state';
+
+import { StateApplicator } from './state-apply';
 
 export {
 	formatConfigKeys,
@@ -80,20 +80,26 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 
 let currentVolatile: DeviceReport = {};
 let maxPollTime: number;
-let applyBlocker: Nullable<Promise<void>>;
-let cancelDelay: null | (() => void) = null;
 
-let applyCancelled = false;
 let lastApplyStart = process.hrtime();
-let scheduledApply: { force?: boolean; delay?: number } | null = null;
 let shuttingDown = false;
-
-let applyInProgress = false;
 export let connected: boolean;
 export let lastSuccessfulUpdate: number | null = null;
 
-// Controls cancelling of in-progress steps such as fetches
-let abortController = new AbortController();
+const stateApply = new StateApplicator(
+	async ({ force, initial, abortSignal }) => {
+		lastApplyStart = process.hrtime();
+		log.info('Applying target state');
+		try {
+			await applyTarget({ force, initial, abortSignal });
+		} finally {
+			reportCurrentState();
+		}
+	},
+);
+
+// Cancels a pending backoff delay scheduled by applyError.
+let retryAbortController: AbortController | null = null;
 
 events.on('error', (err) => {
 	log.error('deviceState error: ', err);
@@ -134,7 +140,7 @@ export const initialized = _.once(async () => {
 });
 
 export function isApplyInProgress() {
-	return applyInProgress;
+	return stateApply.isInProgress();
 }
 
 export async function healthcheck() {
@@ -151,8 +157,9 @@ export async function healthcheck() {
 		cycleTimeMs - applicationManager.timeSpentFetching < 2 * maxPollTime;
 
 	// Check if target is healthy
+	const applying = isApplyInProgress();
 	const applyTargetHealthy =
-		!applyInProgress ||
+		!applying ||
 		applicationManager.fetchesInProgress > 0 ||
 		cycleTimeWithinInterval;
 
@@ -160,7 +167,7 @@ export async function healthcheck() {
 		log.info(
 			stripIndent`
 				Healthcheck failure - At least ONE of the following conditions must be true:
-					- No applyInProgress      ? ${!(applyInProgress === true)}
+					- No applyInProgress      ? ${!applying}
 					- fetchesInProgress       ? ${applicationManager.fetchesInProgress > 0}
 					- cycleTimeWithinInterval ? ${cycleTimeWithinInterval}`,
 		);
@@ -277,18 +284,6 @@ function emitAsync<T extends keyof DeviceStateEvents>(
 	return setImmediate(() => events.emit(ev as any, ...args));
 }
 
-const inferStepsLock = () =>
-	takeGlobalLockRW('inferSteps').disposer((release) => {
-		release();
-	});
-// Exported for unit test
-export function usingInferStepsLock<
-	T extends () => any,
-	U extends ReturnType<T>,
->(fn: T): Bluebird<UnwrappedPromise<U>> {
-	return Bluebird.using(inferStepsLock, () => fn());
-}
-
 // This returns the current state of the device in (more or less)
 // the same format as the target state. This method,
 // getCurrent and getCurrentForComparison should probably get
@@ -319,7 +314,7 @@ export async function getLegacyState(): Promise<DeviceLegacyState> {
 	if (appId != null) {
 		const commit = await commitStore.getCommitForApp(appId);
 
-		if (commit != null && !applyInProgress) {
+		if (commit != null && !isApplyInProgress()) {
 			theState.local.is_on__commit = commit;
 		}
 	}
@@ -568,34 +563,23 @@ function applyError(
 	}
 	TargetState.increaseFailedUpdates();
 	reportCurrentState({ update_failed: true });
-	if (scheduledApply != null) {
-		if (!(err instanceof UpdatesLockedError)) {
-			log.error(
-				"Updating failed, but there's another update scheduled immediately: ",
-				err,
-			);
-		}
+	const delay = Math.min(
+		Math.pow(2, TargetState.getFailedUpdates()) * constants.backoffIncrement,
+		maxPollTime,
+	);
+	if (err instanceof UpdatesLockedError) {
+		const message = `Updates are locked, retrying in ${prettyMs(delay, {
+			compact: true,
+		})}. Reason: ${err.message}`;
+		logger.logSystemMessage(message, {}, 'updateLocked', false);
+		log.info(message);
 	} else {
-		const delay = Math.min(
-			Math.pow(2, TargetState.getFailedUpdates()) * constants.backoffIncrement,
-			maxPollTime,
+		log.error(
+			`Scheduling another update attempt in ${delay}ms due to failure: `,
+			err,
 		);
-		// If there was an error then schedule another attempt briefly in the future.
-		if (err instanceof UpdatesLockedError) {
-			const message = `Updates are locked, retrying in ${prettyMs(delay, {
-				compact: true,
-			})}. Reason: ${err.message}`;
-			logger.logSystemMessage(message, {}, 'updateLocked', false);
-			log.info(message);
-		} else {
-			log.error(
-				`Scheduling another update attempt in ${delay}ms due to failure: `,
-				err,
-			);
-		}
-		triggerApplyTarget({ force, delay, initial });
-		return;
 	}
+	triggerApplyTarget({ force, delay, initial });
 }
 
 interface ApplyTargetOpts {
@@ -618,12 +602,9 @@ export const applyTarget = async ({
 	keepVolumes = undefined as boolean | undefined,
 	abortSignal,
 }: ApplyTargetOpts) => {
-	if (!intermediate) {
-		await applyBlocker;
-	}
 	await applicationManager.localModeSwitchCompletion();
 
-	return usingInferStepsLock(async () => {
+	try {
 		const [currentState, targetState] = await Promise.all([
 			getCurrentState(),
 			TargetState.getTarget({ initial, intermediate }),
@@ -720,6 +701,11 @@ export const applyTarget = async ({
 			await Promise.all(steps.map((s) => applyStep(s, { force, initial })));
 
 			await setTimeout(nextDelay);
+			// Bail out immediately if already aborted. This is an intentional
+			// cancellation (e.g. new target state arrived), not an error.
+			if (abortSignal.aborted) {
+				return;
+			}
 			await applyTarget({
 				force,
 				initial,
@@ -741,29 +727,18 @@ export const applyTarget = async ({
 					JSON.stringify(_.map(steps, 'action')),
 			);
 		}
-	}).catch((err) => {
-		applyError(err, { force, initial, intermediate });
-	});
+	} catch (err) {
+		applyError(err as Error, { force, initial, intermediate });
+	}
 };
 
-function pausingApply(fn: () => any) {
-	const lock = () => {
-		return takeGlobalLockRW('pause').disposer((release) => {
-			release();
-		});
-	};
-	// TODO: This function is a bit of a mess
-	const pause = () => {
-		return Bluebird.try(() => {
-			let res;
-			applyBlocker = new Promise((resolve) => {
-				res = resolve;
-			});
-			return res;
-		}).disposer((resolve: any) => resolve());
-	};
-
-	return Bluebird.using(lock(), () => Bluebird.using(pause(), () => fn()));
+export async function withExclusiveApply(
+	fn: (abortSignal: AbortSignal) => Promise<void>,
+): Promise<void> {
+	// Cancel any pending retry delay and in-flight triggered applies
+	retryAbortController?.abort();
+	retryAbortController = null;
+	return stateApply.withExclusive(fn, { cancel: true });
 }
 
 export function triggerApplyTarget({
@@ -773,108 +748,27 @@ export function triggerApplyTarget({
 	isFromApi = false,
 	cancel = false,
 } = {}) {
-	if (applyInProgress) {
-		// If there's an apply in progress and we get a new target state,
-		// abort the current operation if cancel is true. Cancel is true if:
-		// - The target state changed (received a non-304 response from the API)
-		// - The user called /v1/update with { "cancel": true }
-		if (cancel) {
-			log.debug('Aborting target state apply');
-			abortController.abort();
-			applyInProgress = false;
-			abortController = new AbortController();
-			// Trigger a re-apply after aborting the current apply
-			triggerApplyTarget({ force, isFromApi });
-		}
-
-		if (scheduledApply == null || (isFromApi && cancelDelay)) {
-			scheduledApply = { force, delay };
-			if (isFromApi) {
-				// Cancel promise delay if call came from api to
-				// prevent waiting due to backoff (and if we've
-				// previously setup a delay)
-				cancelDelay?.();
-			}
-		} else {
-			// If a delay has been set it's because we need to hold off before applying again,
-			// so we need to respect the maximum delay that has been passed
-			if (scheduledApply.delay === undefined || isNaN(scheduledApply.delay)) {
-				log.debug(
-					`Tried to apply target with invalid delay: ${scheduledApply.delay}`,
-				);
-				throw new InternalInconsistencyError(
-					'No delay specified in scheduledApply',
-				);
-			}
-			scheduledApply.delay = Math.max(delay, scheduledApply.delay);
-			// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-			if (!scheduledApply.force) {
-				scheduledApply.force = force;
-			}
-		}
-		return;
+	if (cancel || isFromApi) {
+		// Cancel pending retry
+		retryAbortController?.abort();
+		retryAbortController = null;
 	}
-	applyCancelled = false;
-	applyInProgress = true;
-	// Create new abort controller for this apply trigger
-	abortController = new AbortController();
-	void new Promise((resolve, reject) => {
-		void setTimeout(delay).then(resolve);
-		cancelDelay = reject;
-	})
-		.catch(() => {
-			applyCancelled = true;
-		})
-		.then(() => {
-			cancelDelay = null;
-			if (applyCancelled) {
-				log.info('Skipping applyTarget because of a cancellation');
-				return;
-			}
-			lastApplyStart = process.hrtime();
-			log.info('Applying target state');
-			return applyTarget({
-				force,
-				initial,
-				abortSignal: abortController.signal,
-			});
-		})
-		.finally(() => {
-			abortController = new AbortController();
-			applyInProgress = false;
-			reportCurrentState();
-			if (scheduledApply != null) {
-				triggerApplyTarget(scheduledApply);
-				scheduledApply = null;
-			}
-		});
-}
 
-export async function applyIntermediateTarget(
-	intermediate: InstancedDeviceState,
-	{ force = false, keepVolumes = undefined as boolean | undefined } = {},
-) {
-	return pausingApply(async () => {
-		// Our current usage of intermediate state doesn't necessitate
-		// making intermediate state apply operations cancellable, which
-		// is why there's no public interface for aborting intermediate applies.
-		const intermediateAbortController = new AbortController();
-		// TODO: Make sure we don't accidentally overwrite this
-		TargetState.setIntermediateTarget(intermediate);
-		applyInProgress = true;
-		return applyTarget({
-			intermediate: true,
-			force,
-			keepVolumes,
-			abortSignal: intermediateAbortController.signal,
-		})
-			.catch((err) => {
-				intermediateAbortController.abort();
-				throw err;
+	if (delay > 0) {
+		// Schedule delayed trigger
+		// Used by applyError for backoff
+		retryAbortController?.abort();
+		const ac = new AbortController();
+		retryAbortController = ac;
+		void setTimeout(delay, undefined, { signal: ac.signal })
+			.then(() => {
+				retryAbortController = null;
+				stateApply.trigger({ force, initial });
 			})
-			.finally(() => {
-				TargetState.setIntermediateTarget(null);
-				applyInProgress = false;
+			.catch(() => {
+				// Timeout was aborted, do nothing
 			});
-	});
+	} else {
+		stateApply.trigger({ force, initial, cancel });
+	}
 }
