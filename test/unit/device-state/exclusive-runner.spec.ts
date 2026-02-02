@@ -36,6 +36,9 @@ describe('ExclusiveRunner', () => {
 
 			expect(receivedOpts).to.have.property('force', true);
 			expect(receivedOpts).to.have.property('initial', true);
+			expect(receivedOpts)
+				.to.have.property('abortSignal')
+				.that.is.instanceof(AbortSignal);
 		});
 
 		it('passes an empty object to fn when called with no args', async () => {
@@ -48,7 +51,9 @@ describe('ExclusiveRunner', () => {
 			runner.trigger();
 			await tick();
 
-			expect(receivedOpts).to.deep.equal({});
+			expect(receivedOpts)
+				.to.have.property('abortSignal')
+				.that.is.instanceof(AbortSignal);
 		});
 
 		it('logs an unhandled error when fn throws, because fn should handle its own errors', async () => {
@@ -85,6 +90,30 @@ describe('ExclusiveRunner', () => {
 	});
 
 	describe('withExclusive', () => {
+		it('is not affected by a normal trigger with cancel=true', async () => {
+			let exclusiveRan = false;
+			const barrier = deferred();
+
+			const runner = new ExclusiveRunner(async () => {
+				await Promise.resolve();
+			});
+
+			const exclusiveDone = runner.withExclusive(async () => {
+				await barrier.promise;
+				exclusiveRan = true;
+			});
+			await tick();
+
+			// A normal trigger with cancel should not affect the exclusive call
+			runner.trigger({ cancel: true });
+			await tick();
+
+			barrier.resolve();
+			await exclusiveDone;
+
+			expect(exclusiveRan).to.be.true;
+		});
+
 		it('holds the lock for the entire callback', async () => {
 			const order: string[] = [];
 			const runner = new ExclusiveRunner(async () => {
@@ -276,6 +305,76 @@ describe('ExclusiveRunner', () => {
 		});
 	});
 
+	describe('cancellation', () => {
+		it('cancel with nothing running still queues a call', async () => {
+			let called = false;
+			const runner = new ExclusiveRunner(async () => {
+				called = true;
+				await Promise.resolve();
+			});
+
+			runner.trigger({ cancel: true });
+			await tick();
+
+			expect(called).to.be.true;
+		});
+
+		it('aborts the running call when cancel=true', async () => {
+			let aborted = false;
+			const barrier = deferred();
+			const runner = new ExclusiveRunner(async ({ abortSignal }) => {
+				abortSignal.addEventListener('abort', () => {
+					aborted = true;
+				});
+				await barrier.promise;
+			});
+
+			runner.trigger();
+			await tick();
+			expect(aborted).to.be.false;
+
+			runner.trigger({ cancel: true });
+			await tick();
+			expect(aborted).to.be.true;
+
+			barrier.resolve();
+			await tick();
+		});
+
+		it('runs the new call after the cancelled one finishes', async () => {
+			const calls: number[] = [];
+			let callCount = 0;
+			const barriers = [deferred(), deferred()];
+
+			const runner = new ExclusiveRunner(async ({ abortSignal }) => {
+				const count = callCount++;
+				calls.push(count);
+				if (count === 0) {
+					// First call: wait until aborted, then exit
+					await new Promise<void>((resolve) => {
+						abortSignal.addEventListener('abort', () => {
+							resolve();
+						});
+					});
+				} else {
+					await barriers[1].promise;
+				}
+			});
+
+			runner.trigger();
+			await tick();
+			expect(calls).to.deep.equal([0]);
+
+			// Cancel and dispatch new call
+			runner.trigger({ cancel: true });
+			await tick(50);
+			expect(calls).to.deep.equal([0, 1]);
+
+			barriers[1].resolve();
+			await tick();
+		});
+	});
+
 	describe('recursive calls', () => {
 		it('does not deadlock when fn triggers a retry via trigger()', async () => {
 			let callCount = 0;
@@ -300,7 +399,7 @@ describe('ExclusiveRunner', () => {
 		it('handles recursive self-calls within fn', async () => {
 			let depth = 0;
 			let maxDepth = 0;
-			const runner = new ExclusiveRunner(async () => {
+			const runner = new ExclusiveRunner(async ({ abortSignal }) => {
 				depth++;
 				maxDepth = Math.max(maxDepth, depth);
 				if (depth < 3) {
@@ -310,6 +409,7 @@ describe('ExclusiveRunner', () => {
 					await (runner as any).fn({
 						force: false,
 						initial: false,
+						abortSignal,
 					});
 				}
 				depth--;

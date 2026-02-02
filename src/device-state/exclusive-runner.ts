@@ -18,8 +18,13 @@ export class ExclusiveRunner<
 	FnArgs extends Record<string, unknown> = Record<string, unknown>,
 > {
 	private semaphore = new Semaphore(1);
+	// Only trigger-initiated calls are cancellable via trigger({ cancel }).
+	// withExclusive cannot be cancelled by this AbortController.
+	private runningTrigger: AbortController | null = null;
 
-	constructor(private fn: (opts: FnArgs) => Promise<void>) {}
+	constructor(
+		private fn: (opts: FnArgs & { abortSignal: AbortSignal }) => Promise<void>,
+	) {}
 
 	isInProgress(): boolean {
 		return this.semaphore.isLocked();
@@ -28,12 +33,31 @@ export class ExclusiveRunner<
 	/**
 	 * Queue fn at normal priority.
 	 * FnArgs fields are passed through to fn.
+	 * If cancel=true, aborts the currently running trigger-initiated call
+	 * before triggering a new call.
+	 * Does not affect running or pending withExclusive calls.
 	 */
-	trigger(opts: FnArgs = {} as FnArgs): void {
+	trigger(
+		opts: FnArgs & { cancel?: boolean } = {} as FnArgs & { cancel?: boolean },
+	): void {
+		const { cancel: _, ...fnArgs } = opts;
+		if (opts.cancel) {
+			this.runningTrigger?.abort();
+		}
+
 		void this.semaphore
 			.runExclusive(
 				async () => {
-					await this.fn(opts);
+					const ac = new AbortController();
+					this.runningTrigger = ac;
+					try {
+						await this.fn({
+							...(fnArgs as FnArgs),
+							abortSignal: ac.signal,
+						});
+					} finally {
+						this.runningTrigger = null;
+					}
 				},
 				1,
 				NORMAL_PRIORITY,
@@ -52,6 +76,7 @@ export class ExclusiveRunner<
 	 * Run an awaitable callback exclusively at high priority.
 	 * Used for high priority sequences which execute before normal triggers.
 	 * "High priority sequences" include user actions such as restart or purge.
+	 * Not cancellable by trigger().
 	 */
 	async withExclusive(fn: () => Promise<void>): Promise<void> {
 		return this.semaphore.runExclusive(
