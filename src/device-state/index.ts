@@ -1,4 +1,3 @@
-import Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';
 import _ from 'lodash';
@@ -13,7 +12,6 @@ import * as deviceConfig from './device-config';
 
 import * as constants from '../lib/constants';
 import * as dbus from '../lib/dbus';
-import { takeGlobalLockRW } from '../lib/process-lock';
 import {
 	InternalInconsistencyError,
 	isAbortError,
@@ -285,18 +283,6 @@ function emitAsync<T extends keyof DeviceStateEvents>(
 		: Array<DeviceStateEvents[T]>
 ) {
 	return setImmediate(() => events.emit(ev as any, ...args));
-}
-
-const inferStepsLock = () =>
-	takeGlobalLockRW('inferSteps').disposer((release) => {
-		release();
-	});
-// Exported for unit test
-export function usingInferStepsLock<
-	T extends () => any,
-	U extends ReturnType<T>,
->(fn: T): Bluebird<UnwrappedPromise<U>> {
-	return Bluebird.using(inferStepsLock, () => fn());
 }
 
 // This returns the current state of the device in (more or less)
@@ -587,129 +573,124 @@ export const applyTarget = async ({
 	await applicationManager.localModeSwitchCompletion();
 
 	try {
-		await usingInferStepsLock(async () => {
-			let nextDelay = 200;
-			let retryCount = 0;
+		let nextDelay = 200;
+		let retryCount = 0;
 
-			while (true) {
-				const [currentState, targetState] = await Promise.all([
-					getCurrentState(),
-					TargetState.getTarget({ initial, intermediate }),
-				]);
-				const deviceConfigSteps = await deviceConfig.getRequiredSteps(
-					currentState,
-					targetState,
+		while (true) {
+			const [currentState, targetState] = await Promise.all([
+				getCurrentState(),
+				TargetState.getTarget({ initial, intermediate }),
+			]);
+			const deviceConfigSteps = await deviceConfig.getRequiredSteps(
+				currentState,
+				targetState,
+			);
+			const noConfigSteps = _.every(
+				deviceConfigSteps,
+				({ action }) => action === 'noop',
+			);
+
+			const rebootRequired = await isRebootRequired();
+
+			let backoff = false;
+			let steps: Array<DeviceStateStep<PossibleStepTargets>>;
+
+			if (!noConfigSteps) {
+				steps = deviceConfigSteps;
+			} else {
+				const appSteps = await applicationManager.getRequiredSteps(
+					currentState.local.apps,
+					targetState.local.apps,
+					{
+						// Do not remove images while applying an intermediate state
+						// if not applying intermediate, we let getRequired steps set
+						// the value
+						keepImages: intermediate || undefined,
+						keepVolumes,
+						force,
+						abortSignal,
+					},
 				);
-				const noConfigSteps = _.every(
-					deviceConfigSteps,
-					({ action }) => action === 'noop',
-				);
 
-				const rebootRequired = await isRebootRequired();
-
-				let backoff = false;
-				let steps: Array<DeviceStateStep<PossibleStepTargets>>;
-
-				if (!noConfigSteps) {
+				if (_.isEmpty(appSteps)) {
+					// If we retrieve a bunch of no-ops from the
+					// device config, generally we want to back off
+					// more than if we retrieve them from the
+					// application manager
+					backoff = true;
 					steps = deviceConfigSteps;
 				} else {
-					const appSteps = await applicationManager.getRequiredSteps(
-						currentState.local.apps,
-						targetState.local.apps,
-						{
-							// Do not remove images while applying an intermediate state
-							// if not applying intermediate, we let getRequired steps set
-							// the value
-							keepImages: intermediate || undefined,
-							keepVolumes,
-							force,
-							abortSignal,
-						},
-					);
-
-					if (_.isEmpty(appSteps)) {
-						// If we retrieve a bunch of no-ops from the
-						// device config, generally we want to back off
-						// more than if we retrieve them from the
-						// application manager
-						backoff = true;
-						steps = deviceConfigSteps;
-					} else {
-						backoff = false;
-						steps = appSteps;
-					}
-				}
-
-				// Check if there is either no steps, or they are all
-				// noops, and we need to reboot. We want to do this
-				// because in a preloaded setting with no internet
-				// connection, the device will try to start containers
-				// before any boot config has been applied, which can
-				// cause problems
-				// For application manager, the reboot breadcrumb should
-				// be set after all downloads are ready and target containers
-				// have been installed
-				if (steps.every(({ action }) => action === 'noop') && rebootRequired) {
-					steps.push({
-						action: 'reboot',
-					});
-				}
-
-				if (_.isEmpty(steps)) {
-					emitAsync('apply-target-state-end', null);
-					if (!intermediate) {
-						log.debug('Finished applying target state');
-						applicationManager.resetTimeSpentFetching();
-						TargetState.resetFailedUpdates();
-						lastSuccessfulUpdate = Date.now();
-						reportCurrentState({
-							update_failed: false,
-							update_pending: false,
-							update_downloaded: false,
-						});
-					}
-					return;
-				}
-
-				if (!intermediate) {
-					reportCurrentState({ update_pending: true });
-				}
-				if (_.every(steps, (step) => step.action === 'noop')) {
-					if (backoff) {
-						retryCount += 1;
-						// Backoff to a maximum of 10 minutes
-						nextDelay = Math.min(
-							Math.pow(2, retryCount) * 1000,
-							60 * 10 * 1000,
-						);
-					} else {
-						nextDelay = 1000;
-					}
-				}
-
-				try {
-					await Promise.all(steps.map((s) => applyStep(s, { force, initial })));
-					await setTimeout(nextDelay, undefined, {
-						signal: abortSignal,
-					});
-				} catch (e: any) {
-					if (e instanceof UpdatesLockedError) {
-						// Forward UpdatesLockedError directly
-						throw e;
-					}
-					// Intentional apply cancellation, exit without error
-					if (isAbortError(e)) {
-						return;
-					}
-					throw new Error(
-						'Failed to apply state transition steps. ' +
-							e.message +
-							' Steps:' +
-							JSON.stringify(_.map(steps, 'action')),
-					);
+					backoff = false;
+					steps = appSteps;
 				}
 			}
-		});
+
+			// Check if there is either no steps, or they are all
+			// noops, and we need to reboot. We want to do this
+			// because in a preloaded setting with no internet
+			// connection, the device will try to start containers
+			// before any boot config has been applied, which can
+			// cause problems
+			// For application manager, the reboot breadcrumb should
+			// be set after all downloads are ready and target containers
+			// have been installed
+			if (steps.every(({ action }) => action === 'noop') && rebootRequired) {
+				steps.push({
+					action: 'reboot',
+				});
+			}
+
+			if (_.isEmpty(steps)) {
+				emitAsync('apply-target-state-end', null);
+				if (!intermediate) {
+					log.debug('Finished applying target state');
+					applicationManager.resetTimeSpentFetching();
+					TargetState.resetFailedUpdates();
+					lastSuccessfulUpdate = Date.now();
+					reportCurrentState({
+						update_failed: false,
+						update_pending: false,
+						update_downloaded: false,
+					});
+				}
+				return;
+			}
+
+			if (!intermediate) {
+				reportCurrentState({ update_pending: true });
+			}
+			if (_.every(steps, (step) => step.action === 'noop')) {
+				if (backoff) {
+					retryCount += 1;
+					// Backoff to a maximum of 10 minutes
+					nextDelay = Math.min(Math.pow(2, retryCount) * 1000, 60 * 10 * 1000);
+				} else {
+					nextDelay = 1000;
+				}
+			}
+
+			try {
+				await Promise.all(steps.map((s) => applyStep(s, { force, initial })));
+				await setTimeout(nextDelay, undefined, {
+					signal: abortSignal,
+				});
+			} catch (e: any) {
+				if (e instanceof UpdatesLockedError) {
+					// Forward UpdatesLockedError directly
+					throw e;
+				}
+				// Intentional apply cancellation, exit without error
+				if (isAbortError(e)) {
+					return;
+				}
+				throw new Error(
+					'Failed to apply state transition steps. ' +
+						e.message +
+						' Steps:' +
+						JSON.stringify(_.map(steps, 'action')),
+				);
+			}
+		}
 	} catch (err) {
 		// AbortError means intentional cancellation, bail out
 		if (isAbortError(err)) {
