@@ -2,7 +2,10 @@ import { expect } from 'chai';
 import { setTimeout } from 'timers/promises';
 import type { SinonStub } from 'sinon';
 
-import { ExclusiveRunner } from '~/src/device-state/exclusive-runner';
+import {
+	ExclusiveRunner,
+	E_CANCELED,
+} from '~/src/device-state/exclusive-runner';
 import log from '~/lib/supervisor-console';
 
 // Create a deferred promise that can be resolved externally.
@@ -372,6 +375,236 @@ describe('ExclusiveRunner', () => {
 
 			barriers[1].resolve();
 			await tick();
+		});
+	});
+
+	describe('pending call cancellation', () => {
+		it('trigger({ cancel }) skips previously queued pending triggers', async () => {
+			const calls: number[] = [];
+			let callIndex = 0;
+			const barrier = deferred();
+
+			const runner = new ExclusiveRunner(async () => {
+				calls.push(callIndex++);
+				if (calls.length === 1) {
+					await barrier.promise;
+				}
+				await Promise.resolve();
+			});
+
+			// First trigger starts running and blocks
+			runner.trigger();
+			await tick();
+			expect(calls).to.deep.equal([0]);
+
+			// Queue two more triggers
+			runner.trigger();
+			runner.trigger();
+
+			// Cancel: aborts running + invalidates the two queued triggers
+			runner.trigger({ cancel: true });
+
+			// Release the first call
+			barrier.resolve();
+			await tick(50);
+
+			// Only the first (running) and the cancel trigger should have run.
+			// The two intermediate queued triggers should have been skipped.
+			expect(calls).to.deep.equal([0, 1]);
+		});
+
+		it('trigger({ cancel }) does not cancel pending withExclusive calls', async () => {
+			const order: string[] = [];
+			const barrier = deferred();
+
+			const runner = new ExclusiveRunner(async () => {
+				order.push('normal');
+				await Promise.resolve();
+			});
+
+			// Hold the semaphore
+			const holdDone = runner.withExclusive(async () => {
+				order.push('holding');
+				await barrier.promise;
+			});
+			await tick();
+
+			// Queue a pending exclusive
+			const exDone = runner.withExclusive(async () => {
+				order.push('exclusive');
+				await Promise.resolve();
+			});
+
+			// Queue a normal trigger, then cancel
+			runner.trigger();
+			runner.trigger({ cancel: true });
+
+			// Release the holder
+			barrier.resolve();
+			await holdDone;
+			await exDone;
+			await tick();
+
+			// The pending exclusive should still run; the pending normal trigger should be skipped
+			// but the cancel trigger itself queues a new normal call
+			expect(order[0]).to.equal('holding');
+			expect(order[1]).to.equal('exclusive');
+		});
+
+		it('withExclusive({ cancel }) aborts the running trigger', async () => {
+			let triggerAborted = false;
+			const barrier = deferred();
+
+			const runner = new ExclusiveRunner(async ({ abortSignal }) => {
+				abortSignal.addEventListener('abort', () => {
+					triggerAborted = true;
+				});
+				await barrier.promise;
+			});
+
+			runner.trigger();
+			await tick();
+			expect(triggerAborted).to.be.false;
+
+			const exDone = runner.withExclusive(
+				async () => {
+					await Promise.resolve();
+				},
+				{ cancel: true },
+			);
+
+			barrier.resolve();
+			await exDone;
+
+			expect(triggerAborted).to.be.true;
+		});
+
+		it('withExclusive({ cancel }) aborts a running exclusive', async () => {
+			let firstExAborted = false;
+			const barrier = deferred();
+
+			const runner = new ExclusiveRunner(async () => {
+				await Promise.resolve();
+			});
+
+			const firstEx = runner
+				.withExclusive(async (abortSignal) => {
+					abortSignal.addEventListener('abort', () => {
+						firstExAborted = true;
+					});
+					await barrier.promise;
+				})
+				.catch(() => {
+					// expected: cancelled by withExclusive({ cancel })
+				});
+			await tick();
+			expect(firstExAborted).to.be.false;
+
+			const secondEx = runner.withExclusive(
+				async () => {
+					await Promise.resolve();
+				},
+				{ cancel: true },
+			);
+
+			barrier.resolve();
+			await firstEx;
+			await secondEx;
+
+			expect(firstExAborted).to.be.true;
+		});
+
+		it('withExclusive({ cancel }) rejects all pending waiters with E_CANCELED', async () => {
+			const barrier = deferred();
+			const errors: unknown[] = [];
+
+			const runner = new ExclusiveRunner(async () => {
+				await Promise.resolve();
+			});
+
+			// Hold the semaphore
+			const holdDone = runner.withExclusive(async () => {
+				await barrier.promise;
+			});
+			await tick();
+
+			// Queue pending exclusive waiters
+			const ex1 = runner
+				.withExclusive(async () => {
+					await Promise.resolve();
+				})
+				.catch((err) => {
+					errors.push(err);
+				});
+			const ex2 = runner
+				.withExclusive(async () => {
+					await Promise.resolve();
+				})
+				.catch((err) => {
+					errors.push(err);
+				});
+
+			// Cancel everything
+			const cancelEx = runner.withExclusive(
+				async () => {
+					await Promise.resolve();
+				},
+				{ cancel: true },
+			);
+
+			barrier.resolve();
+			await holdDone.catch(() => {
+				// expected: may be cancelled
+			});
+			await ex1;
+			await ex2;
+			await cancelEx;
+
+			// Both pending waiters should have been rejected with E_CANCELED
+			expect(errors).to.have.lengthOf(2);
+			expect(errors[0]).to.equal(E_CANCELED);
+			expect(errors[1]).to.equal(E_CANCELED);
+		});
+
+		it('withExclusive({ cancel }) invalidates pending triggers', async () => {
+			const order: string[] = [];
+			const barrier = deferred();
+
+			const runner = new ExclusiveRunner(async () => {
+				order.push('normal');
+				await Promise.resolve();
+			});
+
+			// Hold the semaphore
+			const holdDone = runner.withExclusive(async () => {
+				order.push('holding');
+				await barrier.promise;
+			});
+			await tick();
+
+			// Queue normal triggers
+			runner.trigger();
+			runner.trigger();
+
+			// withExclusive({ cancel }) should reject pending triggers and invalidate them
+			const cancelEx = runner.withExclusive(
+				async () => {
+					order.push('cancel-exclusive');
+					await Promise.resolve();
+				},
+				{ cancel: true },
+			);
+
+			barrier.resolve();
+			await holdDone.catch(() => {
+				// expected: may be cancelled
+			});
+			await cancelEx;
+			await tick();
+
+			// The pending normal triggers should have been cancelled.
+			// Only holding and cancel-exclusive should have run.
+			expect(order).to.deep.equal(['holding', 'cancel-exclusive']);
 		});
 	});
 

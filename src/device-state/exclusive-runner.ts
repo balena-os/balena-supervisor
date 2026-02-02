@@ -2,6 +2,8 @@ import { Semaphore, E_CANCELED } from 'async-mutex';
 
 import log from '../lib/supervisor-console';
 
+export { E_CANCELED };
+
 export const NORMAL_PRIORITY = 0;
 export const HIGH_PRIORITY = 1;
 
@@ -21,6 +23,12 @@ export class ExclusiveRunner<
 	// Only trigger-initiated calls are cancellable via trigger({ cancel }).
 	// withExclusive cannot be cancelled by this AbortController.
 	private runningTrigger: AbortController | null = null;
+	// This AbortController is used to cancel in-flight withExclusive calls.
+	private runningExclusive: AbortController | null = null;
+	// Cancellation token for pending (queued but not yet running) triggers.
+	// When cancel is requested, the current controller is aborted and replaced,
+	// so any previously queued triggers see an aborted signal and skip execution.
+	private pendingTriggers = new AbortController();
 
 	constructor(
 		private fn: (opts: FnArgs & { abortSignal: AbortSignal }) => Promise<void>,
@@ -34,7 +42,7 @@ export class ExclusiveRunner<
 	 * Queue fn at normal priority.
 	 * FnArgs fields are passed through to fn.
 	 * If cancel=true, aborts the currently running trigger-initiated call
-	 * before triggering a new call.
+	 * and invalidates all pending trigger callbacks before triggering a new call.
 	 * Does not affect running or pending withExclusive calls.
 	 */
 	trigger(
@@ -43,11 +51,21 @@ export class ExclusiveRunner<
 		const { cancel: _, ...fnArgs } = opts;
 		if (opts.cancel) {
 			this.runningTrigger?.abort();
+			this.pendingTriggers.abort();
+			this.pendingTriggers = new AbortController();
 		}
+
+		// This captures the signal at call time so that the correct aborted
+		// pending signal is checked accurately in old trigger calls.
+		const { signal: pendingSignal } = this.pendingTriggers;
 
 		void this.semaphore
 			.runExclusive(
 				async () => {
+					// Skip if a cancel has invalidated this queued trigger.
+					if (pendingSignal.aborted) {
+						return;
+					}
 					const ac = new AbortController();
 					this.runningTrigger = ac;
 					try {
@@ -76,12 +94,36 @@ export class ExclusiveRunner<
 	 * Run an awaitable callback exclusively at high priority.
 	 * Used for high priority sequences which execute before normal triggers.
 	 * "High priority sequences" include user actions such as restart or purge.
-	 * Not cancellable by trigger().
+	 * Provides an AbortSignal to the callback. Not cancellable by trigger().
+	 *
+	 * If cancel=true, aborts the currently running trigger or exclusive,
+	 * invalidates all pending triggers, and rejects all pending waiters
+	 * (both trigger and exclusive) with E_CANCELED.
 	 */
-	async withExclusive(fn: () => Promise<void>): Promise<void> {
+	async withExclusive(
+		fn: (abortSignal: AbortSignal) => Promise<void>,
+		{ cancel = false }: { cancel?: boolean } = {},
+	): Promise<void> {
+		if (cancel) {
+			this.runningTrigger?.abort();
+			this.runningExclusive?.abort();
+			this.pendingTriggers.abort();
+			this.pendingTriggers = new AbortController();
+			this.semaphore.cancel();
+		}
+
+		const ac = new AbortController();
 		return this.semaphore.runExclusive(
 			async () => {
-				await fn();
+				this.runningExclusive = ac;
+				try {
+					await fn(ac.signal);
+				} catch (err) {
+					ac.abort();
+					throw err;
+				} finally {
+					this.runningExclusive = null;
+				}
 			},
 			1,
 			HIGH_PRIORITY,
