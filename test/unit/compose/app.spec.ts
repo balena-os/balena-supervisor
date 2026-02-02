@@ -227,6 +227,27 @@ describe('compose/app', () => {
 			});
 		});
 
+		it('should emit noop instead of kill for services already stopping during app removal', async () => {
+			const svc1 = await createService({ serviceName: 'one' });
+			svc1.status = 'Stopping';
+			const svc2 = await createService({ serviceName: 'two' });
+
+			const current = createApp({ services: [svc1, svc2] });
+			const steps = current.stepsToRemoveApp({
+				...defaultContext,
+				lock: mockLock,
+			});
+
+			// svc2 is not stopping, so it should get a kill step
+			const [killStep] = expectSteps('kill', steps, 1);
+			expect(killStep)
+				.to.have.property('current')
+				.that.deep.includes({ serviceName: 'two' });
+
+			// svc1 is already stopping, so it should get a noop instead
+			expectSteps('noop', steps, 1);
+		});
+
 		it('should not output a kill step for a service which is already stopping when changing a volume', async () => {
 			const service = await createService({
 				serviceName: 'test',
