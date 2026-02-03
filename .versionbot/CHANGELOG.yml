@@ -1,4 +1,23 @@
 - commits:
+    - subject: Remove reference links in update-locking.md
+      hash: bbfdfce778f2867562a45dacdfeac27692403291
+      body: >
+        The files in the `docs` folder are fetched by our documentation repo so
+        we need to remove reference links since they are not supported by our
+        new docs platform.
+
+
+        See
+        https://balena.fibery.io/Work/Project/Migrate-the-docs-to-Gitbook-2116
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Jonathan Berger
+      nested: []
+  version: 17.4.6
+  title: ""
+  date: 2026-02-03T14:01:13.541Z
+- commits:
     - subject: Remove object-capturing closure in triggerFetch abortSignal
       hash: 93baefd7be429fa23e79ad576e0d932c234ba437
       body: |
