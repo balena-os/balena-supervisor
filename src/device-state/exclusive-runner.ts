@@ -96,21 +96,18 @@ export class ExclusiveRunner<
 	 * "High priority sequences" include user actions such as restart or purge.
 	 * Provides an AbortSignal to the callback. Not cancellable by trigger().
 	 *
-	 * If cancel=true, aborts the currently running trigger or exclusive,
+	 * Aborts the currently running trigger or exclusive,
 	 * invalidates all pending triggers, and rejects all pending waiters
 	 * (both trigger and exclusive) with E_CANCELED.
 	 */
 	async withExclusive(
 		fn: (abortSignal: AbortSignal) => Promise<void>,
-		{ cancel = false }: { cancel?: boolean } = {},
 	): Promise<void> {
-		if (cancel) {
-			this.runningTrigger?.abort();
-			this.runningExclusive?.abort();
-			this.pendingTriggers.abort();
-			this.pendingTriggers = new AbortController();
-			this.semaphore.cancel();
-		}
+		this.runningTrigger?.abort();
+		this.runningExclusive?.abort();
+		this.pendingTriggers.abort();
+		this.pendingTriggers = new AbortController();
+		this.semaphore.cancel();
 
 		const ac = new AbortController();
 		return this.semaphore.runExclusive(

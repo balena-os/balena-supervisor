@@ -739,7 +739,7 @@ export const applyTarget = async ({
 export async function withExclusiveApply(
 	fn: (abortSignal: AbortSignal) => Promise<void>,
 ): Promise<void> {
-	return stateApply.withExclusive(fn, { cancel: true });
+	return stateApply.withExclusive(fn);
 }
 
 export function triggerApplyTarget({

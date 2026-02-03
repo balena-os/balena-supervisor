@@ -260,7 +260,7 @@ describe('ExclusiveRunner', () => {
 	});
 
 	describe('priority', () => {
-		it('withExclusive runs before queued normal triggers', async () => {
+		it('withExclusive cancels pending triggers and runs at high priority', async () => {
 			const order: string[] = [];
 			const initialBarrier = deferred();
 
@@ -269,42 +269,36 @@ describe('ExclusiveRunner', () => {
 				await Promise.resolve();
 			});
 
-			// Start an initial normal apply that holds the semaphore
+			// Start an exclusive that holds the semaphore
 			const holdingSemaphore = runner.withExclusive(async () => {
 				order.push('holding');
 				await initialBarrier.promise;
 			});
 			await tick();
 
-			// Queue normal triggers first
-			runner.trigger();
+			// Queue a normal trigger
 			runner.trigger();
 
-			// Queue exclusive calls after
-			const ex1 = runner.withExclusive(async () => {
-				order.push('exclusive-1');
+			// withExclusive cancels the pending trigger and queues at high priority
+			const ex = runner.withExclusive(async () => {
+				order.push('exclusive');
 				await Promise.resolve();
 			});
-			const ex2 = runner.withExclusive(async () => {
-				order.push('exclusive-2');
-				await Promise.resolve();
-			});
+
+			// Queue another normal trigger after the exclusive
+			runner.trigger();
 
 			// Release the initial holder
 			initialBarrier.resolve();
-			await holdingSemaphore;
-			await ex1;
-			await ex2;
+			await holdingSemaphore.catch(() => {
+				// expected: may be cancelled
+			});
+			await ex;
 			await tick();
 
-			// Both exclusive calls should have run before any normal triggers
-			expect(order).to.deep.equal([
-				'holding',
-				'exclusive-1',
-				'exclusive-2',
-				'normal',
-				'normal',
-			]);
+			// The pre-cancel trigger was invalidated; exclusive ran first,
+			// then the post-cancel trigger
+			expect(order).to.deep.equal(['holding', 'exclusive', 'normal']);
 		});
 	});
 
@@ -413,7 +407,7 @@ describe('ExclusiveRunner', () => {
 			expect(calls).to.deep.equal([0, 1]);
 		});
 
-		it('trigger({ cancel }) does not cancel pending withExclusive calls', async () => {
+		it('trigger({ cancel }) does not prevent a subsequent withExclusive from running', async () => {
 			const order: string[] = [];
 			const barrier = deferred();
 
@@ -429,29 +423,30 @@ describe('ExclusiveRunner', () => {
 			});
 			await tick();
 
-			// Queue a pending exclusive
+			// Queue a normal trigger, then cancel it
+			runner.trigger();
+			runner.trigger({ cancel: true });
+
+			// Queue an exclusive after the trigger cancel
 			const exDone = runner.withExclusive(async () => {
 				order.push('exclusive');
 				await Promise.resolve();
 			});
 
-			// Queue a normal trigger, then cancel
-			runner.trigger();
-			runner.trigger({ cancel: true });
-
 			// Release the holder
 			barrier.resolve();
-			await holdDone;
+			await holdDone.catch(() => {
+				// expected: may be cancelled
+			});
 			await exDone;
 			await tick();
 
-			// The pending exclusive should still run; the pending normal trigger should be skipped
-			// but the cancel trigger itself queues a new normal call
+			// The exclusive should still run after trigger cancel
 			expect(order[0]).to.equal('holding');
 			expect(order[1]).to.equal('exclusive');
 		});
 
-		it('withExclusive({ cancel }) aborts the running trigger', async () => {
+		it('withExclusive aborts the running trigger', async () => {
 			let triggerAborted = false;
 			const barrier = deferred();
 
@@ -466,12 +461,9 @@ describe('ExclusiveRunner', () => {
 			await tick();
 			expect(triggerAborted).to.be.false;
 
-			const exDone = runner.withExclusive(
-				async () => {
-					await Promise.resolve();
-				},
-				{ cancel: true },
-			);
+			const exDone = runner.withExclusive(async () => {
+				await Promise.resolve();
+			});
 
 			barrier.resolve();
 			await exDone;
@@ -479,7 +471,7 @@ describe('ExclusiveRunner', () => {
 			expect(triggerAborted).to.be.true;
 		});
 
-		it('withExclusive({ cancel }) aborts a running exclusive', async () => {
+		it('withExclusive aborts a running exclusive', async () => {
 			let firstExAborted = false;
 			const barrier = deferred();
 
@@ -495,17 +487,14 @@ describe('ExclusiveRunner', () => {
 					await barrier.promise;
 				})
 				.catch(() => {
-					// expected: cancelled by withExclusive({ cancel })
+					// expected: cancelled by subsequent withExclusive
 				});
 			await tick();
 			expect(firstExAborted).to.be.false;
 
-			const secondEx = runner.withExclusive(
-				async () => {
-					await Promise.resolve();
-				},
-				{ cancel: true },
-			);
+			const secondEx = runner.withExclusive(async () => {
+				await Promise.resolve();
+			});
 
 			barrier.resolve();
 			await firstEx;
@@ -514,7 +503,7 @@ describe('ExclusiveRunner', () => {
 			expect(firstExAborted).to.be.true;
 		});
 
-		it('withExclusive({ cancel }) rejects all pending waiters with E_CANCELED', async () => {
+		it('withExclusive rejects all pending waiters with E_CANCELED', async () => {
 			const barrier = deferred();
 			const errors: unknown[] = [];
 
@@ -528,7 +517,7 @@ describe('ExclusiveRunner', () => {
 			});
 			await tick();
 
-			// Queue pending exclusive waiters
+			// Queue pending exclusive waiters — each cancels the previous
 			const ex1 = runner
 				.withExclusive(async () => {
 					await Promise.resolve();
@@ -544,13 +533,9 @@ describe('ExclusiveRunner', () => {
 					errors.push(err);
 				});
 
-			// Cancel everything
-			const cancelEx = runner.withExclusive(
-				async () => {
-					await Promise.resolve();
-				},
-				{ cancel: true },
-			);
+			const cancelEx = runner.withExclusive(async () => {
+				await Promise.resolve();
+			});
 
 			barrier.resolve();
 			await holdDone.catch(() => {
@@ -560,13 +545,14 @@ describe('ExclusiveRunner', () => {
 			await ex2;
 			await cancelEx;
 
-			// Both pending waiters should have been rejected with E_CANCELED
+			// ex1 and ex2 should have been rejected with E_CANCELED
+			// by subsequent withExclusive calls
 			expect(errors).to.have.lengthOf(2);
 			expect(errors[0]).to.equal(E_CANCELED);
 			expect(errors[1]).to.equal(E_CANCELED);
 		});
 
-		it('withExclusive({ cancel }) invalidates pending triggers', async () => {
+		it('withExclusive invalidates pending triggers', async () => {
 			const order: string[] = [];
 			const barrier = deferred();
 
@@ -586,14 +572,11 @@ describe('ExclusiveRunner', () => {
 			runner.trigger();
 			runner.trigger();
 
-			// withExclusive({ cancel }) should reject pending triggers and invalidate them
-			const cancelEx = runner.withExclusive(
-				async () => {
-					order.push('cancel-exclusive');
-					await Promise.resolve();
-				},
-				{ cancel: true },
-			);
+			// withExclusive should reject pending triggers and invalidate them
+			const cancelEx = runner.withExclusive(async () => {
+				order.push('cancel-exclusive');
+				await Promise.resolve();
+			});
 
 			barrier.resolve();
 			await holdDone.catch(() => {
