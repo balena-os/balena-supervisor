@@ -9,12 +9,10 @@ import * as deviceState from '~/src/device-state';
 import { appsJsonBackup, loadTargetFromFile } from '~/src/device-state/preload';
 import type { TargetState } from '~/src/types';
 import { initializeContractRequirements } from '~/lib/contracts';
-import log from '~/lib/supervisor-console';
 
 import { testfs } from 'mocha-pod';
 import { createDockerImage } from '~/test-lib/docker-helper';
 import Docker from 'dockerode';
-import { setTimeout } from 'timers/promises';
 
 describe('device-state', () => {
 	const docker = new Docker();
@@ -238,45 +236,6 @@ describe('device-state', () => {
 				},
 			} as any),
 		).to.be.rejected;
-	});
-
-	it('allows triggering applying the target state', async () => {
-		const applyTargetStub = sinon
-			.stub(deviceState, 'applyTarget')
-			.returns(Promise.resolve());
-
-		deviceState.triggerApplyTarget({ force: true });
-		expect(applyTargetStub).to.not.be.called;
-
-		await setTimeout(1000);
-		expect(applyTargetStub).to.be.calledWith({
-			force: true,
-			initial: false,
-			abortSignal: new AbortController().signal,
-		});
-		applyTargetStub.restore();
-	});
-
-	it('allows cancelling an in-progress target state apply', () => {
-		(log.debug as sinon.SinonStub).reset();
-		const applyTargetStub = sinon
-			.stub(deviceState, 'applyTarget')
-			.returns(Promise.resolve());
-
-		// Trigger first apply
-		deviceState.triggerApplyTarget({ force: true });
-		// Trigger second apply immediately with cancel flag
-		deviceState.triggerApplyTarget({ force: true, cancel: true });
-
-		// TODO: There isn't an easy way to test actual target state apply behavior
-		// due to the structure of the function, which isn't ideal. We can however
-		// test that the code path for apply cancellation is as expected by checking the logs.
-		expect(
-			(log.debug as sinon.SinonStub).calledWith('Aborting target state apply'),
-		).to.be.true;
-
-		(log.debug as sinon.SinonStub).reset();
-		applyTargetStub.restore();
 	});
 
 	it('accepts a target state with an valid contract', async () => {

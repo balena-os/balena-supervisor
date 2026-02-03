@@ -230,7 +230,9 @@ class AppImpl implements App {
 			}
 
 			return Object.values(this.services).map((service) =>
-				generateStep('kill', { current: service }),
+				service.status === 'Stopping'
+					? generateStep('noop', {})
+					: generateStep('kill', { current: service }),
 			);
 		}
 		if (Object.keys(this.networks).length > 0) {

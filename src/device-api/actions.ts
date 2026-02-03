@@ -106,16 +106,28 @@ export const doRestart = async (appId: number, force = false) => {
 	const services = app.services;
 
 	try {
-		// Set target so that services get deleted
-		app.services = [];
-		await deviceState.applyIntermediateTarget(currentState, { force });
-		// Restore services
-		app.services = services;
-		return deviceState.applyIntermediateTarget(currentState, {
-			keepVolumes: false,
-			force,
+		await deviceState.withExclusiveApply(async (abortSignal) => {
+			// Remove services
+			app.services = [];
+			deviceState.setIntermediateTarget(currentState);
+			await deviceState.applyTarget({
+				intermediate: true,
+				force,
+				abortSignal,
+			});
+
+			// Recreate services
+			app.services = services;
+			deviceState.setIntermediateTarget(currentState);
+			await deviceState.applyTarget({
+				intermediate: true,
+				keepVolumes: false,
+				force,
+				abortSignal,
+			});
 		});
 	} finally {
+		deviceState.setIntermediateTarget(null);
 		deviceState.triggerApplyTarget();
 	}
 };
@@ -147,21 +159,27 @@ export const doPurge = async (appId: number, force = false) => {
 	delete currentState.local.apps[appId];
 
 	try {
-		// Purposely tell the apply function to delete volumes so
-		// they can get deleted even in local mode
-		await deviceState.applyIntermediateTarget(currentState, {
-			keepVolumes: false,
-			force,
+		await deviceState.withExclusiveApply(async (abortSignal) => {
+			// Purposely tell the apply function to delete volumes so
+			// they can get deleted even in local mode
+			deviceState.setIntermediateTarget(currentState);
+			await deviceState.applyTarget({
+				intermediate: true,
+				keepVolumes: false,
+				force,
+				abortSignal,
+			});
+
+			// Purge the extra-firmware system volume
+			log.info('Purging extra-firmware volume');
+			await extraFirmware.remove();
+			await extraFirmware.create();
+
+			// Restore user app after purge
+			currentState.local.apps[appId] = app;
+			deviceState.setIntermediateTarget(currentState);
+			await deviceState.applyTarget({ intermediate: true, abortSignal });
 		});
-
-		// Purge the extra-firmware system volume
-		log.info('Purging extra-firmware volume');
-		await extraFirmware.remove();
-		await extraFirmware.create();
-
-		// Restore user app after purge
-		currentState.local.apps[appId] = app;
-		await deviceState.applyIntermediateTarget(currentState);
 		logger.logSystemMessage('Purged data', { appId }, 'Purge data success');
 	} catch (err: any) {
 		logger.logSystemMessage(
@@ -171,6 +189,7 @@ export const doPurge = async (appId: number, force = false) => {
 		);
 		throw err;
 	} finally {
+		deviceState.setIntermediateTarget(null);
 		deviceState.triggerApplyTarget();
 	}
 };

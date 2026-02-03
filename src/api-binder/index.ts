@@ -157,19 +157,20 @@ export async function start() {
 	// Update and apply new target state
 	TargetState.emitter.on(
 		'target-state-update',
-		async (targetState, force, isFromApi, cancel) => {
+		// isFromApi is used in poll.ts so can't be removed yet, but isn't used here
+		async (targetState, force, _isFromApi, cancel) => {
 			try {
 				await deviceState.setTarget(targetState);
-				deviceState.triggerApplyTarget({ force, isFromApi, cancel });
+				deviceState.triggerApplyTarget({ force, cancel });
 			} catch (err) {
 				handleTargetUpdateError(err);
 			}
 		},
 	);
 	// Apply new target state
-	TargetState.emitter.on('target-state-apply', (force, isFromApi, cancel) => {
+	TargetState.emitter.on('target-state-apply', (force, _isFromApi, cancel) => {
 		try {
-			deviceState.triggerApplyTarget({ force, isFromApi, cancel });
+			deviceState.triggerApplyTarget({ force, cancel });
 		} catch (err) {
 			handleTargetUpdateError(err);
 		}
