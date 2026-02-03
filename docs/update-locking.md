@@ -75,7 +75,7 @@ lockFile.lock('/tmp/balena/updates.lock', function(err) {
 
 #### Python
 
-In Python you can use the [`lockfile` library][lockfile-library]
+In Python you can use the [`lockfile` library](http://pythonhosted.org/lockfile/lockfile.html#examples)
 ```python
 from lockfile import LockFile
 lock = LockFile("/tmp/balena/updates")
@@ -88,13 +88,9 @@ Check the link for more examples and other Python libraries that provide locking
 
 The update lock can be overridden in case you need to force an update, for instance, if your app has hung in a critical section.
 
-The recommended way to do this is to use the 'Override the update lock ...' toggle in the [Fleet or Device Configuration][device-configuration] page. Go to the configuration page of the device or fleet, locate the 'Override the update lock ...' item from the list, click the activate button, and set the toggle to enabled. After disabling the toggle, update locks may be set again and will be respected.
+The recommended way to do this is to use the 'Override the update lock ...' toggle in the [Fleet or Device Configuration](https://docs.balena.io/learn/manage/configuration/#managing-device-configuration-variables) page. Go to the configuration page of the device or fleet, locate the 'Override the update lock ...' item from the list, click the activate button, and set the toggle to enabled. After disabling the toggle, update locks may be set again and will be respected.
 
-Also, you can programatically override locks one time by querying the `/v1/update` endpoint of the [Supervisor HTTP API][supervisor-api], with `{ "force": true }` as body. Note that this will not set the lock override config var.
+Also, you can programatically override locks one time by querying the `/v1/update` endpoint of the [Supervisor HTTP API](https://docs.balena.io/reference/supervisor/supervisor-api), with `{ "force": true }` as body. Note that this will not set the lock override config var.
 
 Please note that setting the override is a one-time action. Locks set previously are deleted upon setting the config var, and will need to be recreated.
 
-
-[device-configuration]:/learn/manage/configuration/#managing-device-configuration-variables
-[supervisor-api]:/reference/supervisor/supervisor-api
-[lockfile-library]:http://pythonhosted.org/lockfile/lockfile.html#examples
