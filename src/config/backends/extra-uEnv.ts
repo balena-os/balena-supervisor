@@ -94,11 +94,34 @@ export class ExtraUEnv extends ConfigBackend {
 			return true;
 		});
 
-		// Write new extra_uEnv configuration
-		await hostUtils.writeToBoot(
-			ExtraUEnv.bootConfigPath,
-			ExtraUEnv.configToString(supportedOptions),
-		);
+		// Read existing file contents to preserve unmanaged entries
+		let existingRaw = new Map<string, string>();
+		try {
+			const confContents = await ExtraUEnv.readBootConfigPath();
+			existingRaw = ExtraUEnv.parseRawEntries(confContents);
+		} catch {
+			// If the file can't be read, start from empty
+		}
+
+		const newManaged = ExtraUEnv.configToMap(supportedOptions);
+		const merged = new Map<string, string>(existingRaw);
+
+		// For each managed key, update or remove it
+		for (const entry of Object.values(ExtraUEnv.entries)) {
+			if (newManaged.has(entry.key)) {
+				merged.set(entry.key, newManaged.get(entry.key)!);
+			} else {
+				merged.delete(entry.key);
+			}
+		}
+
+		// Write merged result
+		let configString = '';
+		for (const [key, value] of merged) {
+			configString += `${key}=${value}\n`;
+		}
+
+		await hostUtils.writeToBoot(ExtraUEnv.bootConfigPath, configString);
 	}
 
 	public isSupportedConfig(config: string): boolean {
@@ -212,16 +235,20 @@ export class ExtraUEnv extends ConfigBackend {
 		}
 	}
 
-	private static configToString(configs: ConfigOptions): string {
-		// Get Map of ConfigOptions object
-		const configMap = ExtraUEnv.configToMap(configs);
-		// Iterator over configMap and concat to configString
-		let configString = '';
-		for (const [key, value] of configMap) {
-			// Append new config
-			configString += `${key}=${value}\n`;
+	private static parseRawEntries(configFile: string): Map<string, string> {
+		const entries = new Map<string, string>();
+		if (configFile.length === 0) {
+			return entries;
 		}
-		return configString;
+		const lines = configFile.split(LINE_REGEX);
+		for (const line of lines) {
+			const match = line.match(OPTION_REGEX);
+			if (match != null) {
+				const [, key, value] = match;
+				entries.set(key, value);
+			}
+		}
+		return entries;
 	}
 
 	private static configToMap(configs: ConfigOptions): Map<string, string> {
