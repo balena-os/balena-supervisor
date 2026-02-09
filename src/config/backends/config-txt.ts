@@ -215,7 +215,11 @@ export class ConfigTxt extends ConfigBackend {
 		// Split dtoverlays from their params to avoid running into char limits
 		// and write at the end to prevent overriding the base overlay
 		if (opts.dtoverlay != null) {
-			for (const entry of opts.dtoverlay) {
+			for (let entry of opts.dtoverlay) {
+				entry = entry.trim();
+				if (entry.length === 0) {
+					continue;
+				}
 				const [overlay, ...params] = entry.split(',');
 				confStatements.push(`dtoverlay=${overlay}`);
 				confStatements.push(...params.map((p) => `dtparam=${p}`));
@@ -251,9 +255,16 @@ export class ConfigTxt extends ConfigBackend {
 	public processConfigVarValue(key: string, value: string): string | string[] {
 		if (isArrayConfig(key)) {
 			if (!value.startsWith('"')) {
+				if (key === 'dtoverlay' && value.trim().length === 0) {
+					return [];
+				}
 				return [value];
 			} else {
-				return JSON.parse(`[${value}]`);
+				const res: string[] = JSON.parse(`[${value}]`);
+				if (key === 'dtoverlay') {
+					return res.filter((s) => s.trim().length > 0);
+				}
+				return res;
 			}
 		}
 		return value;

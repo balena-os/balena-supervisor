@@ -229,6 +229,30 @@ describe('device-config', () => {
 			expect(logSpy).to.not.be.called;
 		});
 
+		it('ignores empty dtoverlay when comparing current and target state', async () => {
+			const current = {
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+				HOST_CONFIG_foobar: 'baz',
+			};
+			const target = {
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+				HOST_CONFIG_dtoverlay: '',
+				HOST_CONFIG_foobar: 'baz',
+			};
+
+			expect(
+				// @ts-expect-error accessing private value
+				deviceConfig.bootConfigChangeRequired(
+					configTxtBackend,
+					current,
+					target,
+				),
+			).to.equal(false);
+			expect(logSpy).to.not.be.called;
+		});
+
 		it('writes the target config.txt', async () => {
 			const current = {
 				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',

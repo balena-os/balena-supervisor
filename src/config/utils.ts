@@ -33,6 +33,7 @@ export function envToBootConfig(
 		.mapValues((val, key) =>
 			configBackend.processConfigVarValue(key, val || ''),
 		)
+		.pickBy((val) => !Array.isArray(val) || val.length > 0)
 		.value();
 }
 
