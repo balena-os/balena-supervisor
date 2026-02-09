@@ -187,7 +187,6 @@ export class ExtraUEnv extends ConfigBackend {
 		);
 		// Check if we found a corresponding option for this entry
 		if (typeof optionKey !== 'string') {
-			log.warn(`Could not parse unsupported option: ${optionArray[0]}`);
 			return {};
 		}
 		return { [optionKey]: VALUE };
