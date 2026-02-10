@@ -33,9 +33,10 @@ describe('config/utils', () => {
 
 		// Get list of backends
 		const devices = await configUtils.getSupportedBackends();
-		expect(devices.length).to.equal(2);
-		expect(devices[0].constructor.name).to.equal('ConfigTxt');
-		expect(devices[1].constructor.name).to.equal('SplashImage');
+		expect(devices.length).to.equal(3);
+		expect(devices[0].constructor.name).to.equal('ExtraUEnv');
+		expect(devices[1].constructor.name).to.equal('ConfigTxt');
+		expect(devices[2].constructor.name).to.equal('SplashImage');
 
 		await tFs.restore();
 		// TO-DO: When we have a device that will match for multiple backends

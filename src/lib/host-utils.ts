@@ -41,7 +41,7 @@ export const pathOnState = withBase(constants.stateMountPoint);
 export const pathExistsOnState = async (p: string) =>
 	await exists(pathOnState(p));
 
-class CodedError extends Error {
+export class CodedError extends Error {
 	constructor(
 		msg: string,
 		readonly code: number | string,

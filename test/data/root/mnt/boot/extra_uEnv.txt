@@ -1,0 +1,2 @@
+custom_fdt_file=/path/to/mycustom.dtb
+extra_os_cmdline=isolcpus=1 splash console=tty5
