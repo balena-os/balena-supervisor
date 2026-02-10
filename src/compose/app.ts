@@ -942,18 +942,13 @@ class AppImpl implements App {
 		// different to a dependency which is in the servicePairs below, as these
 		// are services which are changing). We could have a dependency which is
 		// starting up, but is not yet running.
-		const depCreatedButNotStarted = _.some(this.services, (svc) => {
-			if (target.dependsOn?.includes(svc.serviceName)) {
-				if (
-					svc.status === 'Installing' ||
-					svc.startedAt == null ||
-					svc.createdAt == null ||
-					svc.startedAt < svc.createdAt
-				) {
-					return true;
-				}
-			}
-		});
+		const depCreatedButNotStarted = this.services.some(
+			(svc) =>
+				// assume the service has been started at some point if the status is not
+				// in the list below
+				target.dependsOn?.includes(svc.serviceName) &&
+				['Installing', 'Installed'].includes(svc.status),
+		);
 
 		if (depCreatedButNotStarted) {
 			return false;

@@ -1556,6 +1556,7 @@ describe('compose/app', () => {
 						},
 						{
 							state: {
+								status: 'Installed',
 								containerId: 'dep-id',
 							},
 						},
@@ -1574,6 +1575,7 @@ describe('compose/app', () => {
 					}),
 					await createService({
 						appId: 1,
+						running: false,
 						serviceName: 'dep',
 					}),
 				],
@@ -1607,10 +1609,8 @@ describe('compose/app', () => {
 						{ appId: 1, serviceName: 'dep' },
 						{
 							state: {
+								status: 'exited',
 								containerId: 'dep-id',
-								createdAt: new Date(Date.now() - 5 * 1000),
-								// Container was started 5 after creation
-								startedAt: new Date(),
 							},
 						},
 					),
