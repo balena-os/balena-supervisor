@@ -1,4 +1,27 @@
 - commits:
+    - subject: Preserve unmanaged fields in extra_uEnv.txt
+      hash: 475a8d19978cfad2409f9daf3429f34980e9d2c9
+      body: |
+        meta-balena PR #3754 added an extra field to extra_uEnv.txt
+        for managing the extra-firmware volume loading, but the Supervisor
+        doesn't play well with unmanaged fields in this file.
+
+        This commit changes the Supervisor to preserve unmanaged fields
+        in extra_uEnv.txt while overwriting managed fields if a new value
+        is set.
+      footer:
+        See: https://github.com/balena-os/meta-balena/pull/3754
+        see: https://github.com/balena-os/meta-balena/pull/3754
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.5.2
+  title: ""
+  date: 2026-02-10T18:51:54.852Z
+- commits:
     - subject: Do not rely on container timestamps to check for dependency start
       hash: 5aa64126ab059505b6456cd9b170a3d609db4b75
       body: |
