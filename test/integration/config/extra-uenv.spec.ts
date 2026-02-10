@@ -124,12 +124,11 @@ describe('config/extra-uEnv', () => {
 
 	it('sets new config values', async () => {
 		const tfs = await testfs({
-			// This config contains a value set from something else
-			// We to make sure the Supervisor is enforcing the source of truth (the cloud)
-			// So after setting new values this unsupported/not set value should be gone
+			// This config contains values set from something else
+			// Managed values should be updated, but unmanaged entries should be preserved
 			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	    	extra_os_cmdline=rootwait isolcpus=3,4
-	     other_service=set_this_value
+	     extra_os_firmware_class_path=/var/lib/docker/volumes/extra-firmware/_data
 			`,
 		}).enable();
 
@@ -141,10 +140,12 @@ describe('config/extra-uEnv', () => {
 		});
 
 		// Confirm that the file was written correctly
+		// - extra_os_cmdline should contain only the new isolcpus value with unmanaged values removed
+		// - extra_os_firmware_class_path (unrecognized top-level entry) should be preserved
 		await expect(
 			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
 		).to.eventually.equal(
-			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2\n',
+			'extra_os_cmdline=isolcpus=2\nextra_os_firmware_class_path=/var/lib/docker/volumes/extra-firmware/_data\ncustom_fdt_file=/boot/mycustomdtb.dtb\n',
 		);
 
 		expect(log.warn).to.have.been.calledWith(
@@ -180,14 +181,38 @@ describe('config/extra-uEnv', () => {
 			splash: '', // collection entry so should be concatted to other collections of this entry
 		});
 
+		// other_service (unrecognized top-level entry) should be preserved
 		await expect(
 			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
 		).to.eventually.equal(
-			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2 console=tty0 splash\n',
+			'other_service=set_this_value\ncustom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2 console=tty0 splash\n',
 		);
 
 		// @ts-expect-error accessing private value
 		ExtraUEnv.supportedConfigs = previousSupportedConfigs;
+
+		await tfs.restore();
+	});
+
+	it('preserves extra fields when no managed items are in opts', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
+	    	extra_os_cmdline=rootwait splash
+	     extra_os_firmware_class_path=/var/lib/docker/volumes/extra-firmware/_data
+			`,
+		}).enable();
+
+		// Set config with no managed values — managed keys should be removed,
+		// but unrecognized top-level entries should be preserved
+		await backend.setBootConfig({});
+
+		// only isolcpus in extra_os_cmdline is managed so extra_os_cmdline gets removed if not isolcpus
+		// the unrecognized top-level entry should be preserved
+		await expect(
+			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
+		).to.eventually.equal(
+			'extra_os_firmware_class_path=/var/lib/docker/volumes/extra-firmware/_data\n',
+		);
 
 		await tfs.restore();
 	});
