@@ -1,4 +1,21 @@
 - commits:
+    - subject: Do not rely on container timestamps to check for dependency start
+      hash: 5aa64126ab059505b6456cd9b170a3d609db4b75
+      body: |
+        The start/stop timestamps have shown to be unreliable way to determine
+        if the container has been started in the past. This shifts to relying
+        only on the service status. A service that has `Installing` or
+        `Installed` status has not yet been started, otherwise we can assume the
+        container was started in the past.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: felipe
+      nested: []
+  version: 17.5.1
+  title: ""
+  date: 2026-02-10T17:51:16.705Z
+- commits:
     - subject: Make withExclusive always cancel pending and running calls
       hash: ea413682fe81abf2e6ecbfb54ebbb6fcbf7b3264
       body: |
