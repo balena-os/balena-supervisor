@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update webpack to v5.104.1 [SECURITY]
+      hash: 0caf4e6422336ab8ddb362afb62daacadc884124
+      body: |
+        Update webpack from 5.97.1 to 5.104.1
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.5.3
+  title: ""
+  date: 2026-02-15T16:35:00.854Z
+- commits:
     - subject: Preserve unmanaged fields in extra_uEnv.txt
       hash: 475a8d19978cfad2409f9daf3429f34980e9d2c9
       body: |
