@@ -5,6 +5,19 @@ excerpt: Locking updates to the release that is running on your balenaOS devices
 
 # Update locks
 
+There are **two independent locking mechanisms** on balenaOS devices, both using the same lock file path (`/tmp/balena/updates.lock`):
+
+| Mechanism | What it prevents | How it works | Checked by |
+|-----------|-----------------|--------------|------------|
+| **lockfile** | **Application updates** and **config-change reboots**. Supervisor will not kill/restart your services | Lock is "held" when the file **exists** (created with `O_EXCL` or the `lockfile` binary) | Supervisor |
+| **flock** | **Host OS update reboots** (e.g. `safe_reboot`, `hostapp-update`) | Lock is held when a process holds an exclusive `flock()` on the file | Host OS scripts |
+
+During critical operations, both mechanisms can be used together for full protection against app updates, config-change reboots, **and** host OS update reboots.
+
+For details on the flock mechanism (host OS update reboots), see the [OS update locks documentation in meta-balena](https://github.com/balena-os/meta-balena/blob/master/README.md#os-update-locks).
+
+## Lockfile (application updates)
+
 Locking updates means that the balena Supervisor will not be able to kill the services running on the device for an update. This is meant to be used at critical sections of your code where you don't want the process to be interrupted, or to ensure that updates are installed only at certain times. Moreover, any configuration changes that will reboot the device won't trigger reboots if locks are applied. Config changes not requiring a reboot will be applied as usual.
 
 In order to do this, users can create a lockfile in a way that it has exclusive access, which will prevent the device Supervisor from killing and restarting the app. As with any other lockfile, the Supervisor itself will create such a file before killing the app, so you should only create it in exclusive mode. This means that the lockfile should only be created if it doesn't already exist. The exclusive access is achieved by opening the lockfile with the [O_EXCL and O_CREAT flags](https://linux.die.net/man/3/open), and several tools exist to simplify this process with examples given [below](#creating-the-lockfile).
@@ -42,12 +55,6 @@ One simple way to create a lockfile is using [lockfile](https://linux.die.net/ma
 lockfile /tmp/balena/updates.lock
 # ... (do things)
 rm -f /tmp/balena/updates.lock
-```
-
-Another tool is [flock](https://linux.die.net/man/1/flock) (available for example in Debian from the `linux-utils` package):
-
-```shell
-flock /tmp/balena/updates.lock -c '... (command to run while locked)'
 ```
 
 For more examples and explanation of the functionality, check the links to the specific tools above.
@@ -93,4 +100,3 @@ The recommended way to do this is to use the 'Override the update lock ...' togg
 Also, you can programatically override locks one time by querying the `/v1/update` endpoint of the [Supervisor HTTP API](https://docs.balena.io/reference/supervisor/supervisor-api), with `{ "force": true }` as body. Note that this will not set the lock override config var.
 
 Please note that setting the override is a one-time action. Locks set previously are deleted upon setting the config var, and will need to be recreated.
-
