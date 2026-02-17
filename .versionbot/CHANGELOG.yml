@@ -1,4 +1,27 @@
 - commits:
+    - subject: Rewrite lock mechanism doc to include flock as well
+      hash: cf6b80f4da3f6cf7df00113fd82713382d0be55e
+      body: >
+        Support ticket 5869, shows that there's two distinct locking mechanism.
+
+        One for app update locking and configuration change reboot (supervisor):
+        lockfile
+
+        One for os update reboot (os's safe_reboot): flock
+
+
+        This modification hopefully clarify this situation.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Yann CARDAILLAC <yann.cardaillac@balena.io>
+        signed-off-by: Yann CARDAILLAC <yann.cardaillac@balena.io>
+      author: Yann CARDAILLAC
+      nested: []
+  version: 17.6.0
+  title: ""
+  date: 2026-02-17T14:55:58.846Z
+- commits:
     - subject: Update webpack to v5.104.1 [SECURITY]
       hash: 0caf4e6422336ab8ddb362afb62daacadc884124
       body: |
