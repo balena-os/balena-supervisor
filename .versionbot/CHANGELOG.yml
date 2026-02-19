@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update systeminformation to v5.30.8 [SECURITY]
+      hash: 90ee858e0e8feddcd520b59ae5e8e6a433c7e16c
+      body: |
+        Update systeminformation from 5.27.14 to 5.30.8
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.6.1
+  title: ""
+  date: 2026-02-19T18:52:53.065Z
+- commits:
     - subject: Rewrite lock mechanism doc to include flock as well
       hash: cf6b80f4da3f6cf7df00113fd82713382d0be55e
       body: >
