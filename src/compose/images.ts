@@ -737,12 +737,13 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 
 async function markAsSupervised(image: Image): Promise<void> {
 	const formattedImage = format(image);
+	const { dockerImageId, ...imageWithoutId } = formattedImage;
 	await db.upsertModel(
 		'image',
 		formattedImage,
 		// TODO: Upsert to new values only when they already match? This is likely a bug
 		// and currently acts like an "insert if not exists"
-		formattedImage,
+		imageWithoutId,
 	);
 }
 
