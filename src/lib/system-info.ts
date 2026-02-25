@@ -39,8 +39,10 @@ export async function getStorageInfo(): Promise<{
 	}
 
 	let used = 0;
+	const seen = new Set<string>();
 	for (const partition of fsInfo) {
-		if (partition.fs.startsWith(mainFs)) {
+		if (partition.fs.startsWith(mainFs) && !seen.has(partition.fs)) {
+			seen.add(partition.fs);
 			used += partition.used;
 		}
 	}
