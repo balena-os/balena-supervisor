@@ -1,4 +1,24 @@
 - commits:
+    - subject: Fix storage usage over-reporting caused by duplicate mount points
+      hash: b1c33d54f45998d6fc403b2637d35f0931e44d7a
+      body: |
+        systeminformation v5.30.8 no longer deduplicates fsSize() entries
+        that share the same device but have different mount points. This
+        caused getStorageInfo() to sum the `used` value multiple times for
+        the same block device, inflating reported storage usage.
+
+        Deduplicate fsSize() entries by device path before summing usage.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.6.2
+  title: ""
+  date: 2026-02-25T23:04:51.224Z
+- commits:
     - subject: Update systeminformation to v5.30.8 [SECURITY]
       hash: 90ee858e0e8feddcd520b59ae5e8e6a433c7e16c
       body: |
