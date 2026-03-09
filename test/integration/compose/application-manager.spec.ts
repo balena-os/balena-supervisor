@@ -2960,6 +2960,7 @@ describe('compose/application-manager', () => {
 								ubuntu: {
 									image: 'ubuntu:latest',
 									status: 'Running',
+									download_progress: 100,
 								},
 								alpine: {
 									image: 'alpine:latest',

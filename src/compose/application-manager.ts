@@ -1075,6 +1075,10 @@ export async function getState(): Promise<AppsReport> {
 		// - downloaded
 		// - applying changes
 		// - done
+		// NOTE: during an update there are multiple releases reported for the same app.
+		// The backend also uses the precedence above to calculate the device update status.
+		// If two apps are being reported and one is `downloading`, then the device update status
+		// will be `downloading`.
 		if (svc.status === 'Aborted') {
 			releases[commit].update_status = 'aborted';
 		} else if (
@@ -1085,7 +1089,7 @@ export async function getState(): Promise<AppsReport> {
 			releases[commit].update_status = 'downloading';
 		} else if (
 			!['aborted', 'downloading'].includes(releases[commit].update_status) &&
-			(svc.download_progress === 100 || svc.status === 'Downloaded')
+			svc.status.toLowerCase() === 'downloaded'
 		) {
 			releases[commit].update_status = 'downloaded';
 		} else if (
