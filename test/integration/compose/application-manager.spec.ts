@@ -2903,6 +2903,81 @@ describe('compose/application-manager', () => {
 			});
 		});
 
+		it('reports done if all services have been started', async () => {
+			getImagesState.resolves([
+				{
+					name: 'ubuntu:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Downloaded',
+					downloadProgress: 100,
+				},
+				{
+					name: 'node:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'node',
+					status: 'Downloaded',
+				},
+				{
+					name: 'alpine:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Downloaded',
+				},
+			]);
+			getServicesState.resolves([
+				{
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Running',
+					createdAt: new Date('2021-09-01T13:00:00'),
+				},
+				{
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Running',
+					createdAt: new Date('2021-09-01T13:00:00'),
+				},
+				{
+					appUuid: 'myapp',
+					commit: 'latestrelease',
+					serviceName: 'node',
+					status: 'Exited',
+					createdAt: new Date('2021-09-01T12:00:00'),
+				},
+			]);
+
+			expect(await applicationManager.getState()).to.deep.equal({
+				myapp: {
+					releases: {
+						latestrelease: {
+							services: {
+								ubuntu: {
+									image: 'ubuntu:latest',
+									status: 'Running',
+									download_progress: 100,
+								},
+								alpine: {
+									image: 'alpine:latest',
+									status: 'Running',
+								},
+								node: {
+									image: 'node:latest',
+									status: 'Exited',
+								},
+							},
+							update_status: 'done',
+						},
+					},
+				},
+			});
+		});
+
 		it('reports aborted state if one of the services/images status is aborted', async () => {
 			getImagesState.resolves([
 				{
