@@ -1,4 +1,18 @@
 - commits:
+    - subject: Only report download progress if service status is `Downloading`
+      hash: 1c3efc9316405aa81e9ace790f62202e068e7204
+      body: |
+        The value is useless for the backend otherwise and this also prevents
+        calculating the wrong update status for reporting.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 17.6.3
+  title: ""
+  date: 2026-03-10T08:08:26.569Z
+- commits:
     - subject: Fix storage usage over-reporting caused by duplicate mount points
       hash: b1c33d54f45998d6fc403b2637d35f0931e44d7a
       body: |
