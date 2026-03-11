@@ -1,4 +1,20 @@
 - commits:
+    - subject: "mount-partitions: create data directory"
+      hash: ed4406538db54c7d8be6d7e0c596f1db8007742d
+      body: |
+        This allows to stop bind mounting the data partition from the hostOS
+        just to create this directory.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+      nested: []
+  version: 17.6.4
+  title: ""
+  date: 2026-03-11T14:32:12.132Z
+- commits:
     - subject: Only report download progress if service status is `Downloading`
       hash: 1c3efc9316405aa81e9ace790f62202e068e7204
       body: |
