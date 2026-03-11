@@ -189,6 +189,7 @@ export DATA_MOUNTPOINT
 # Handle the case of such a Supervisor volume already existing.
 # NOTE: After this PR, it should be good to remove the OS's /data/database.sqlite mount.
 if [ ! -f /data/database.sqlite ] && [ "${TEST}" != 1 ]; then
+    mkdir -p /data
     mkdir -p "${DATA_MOUNTPOINT}/resin-data/balena-supervisor"
     mount -o bind,shared "${DATA_MOUNTPOINT}"/resin-data/balena-supervisor /data
 fi
