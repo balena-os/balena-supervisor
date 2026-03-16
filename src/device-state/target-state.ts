@@ -55,12 +55,12 @@ const writeLockTarget = () =>
 	});
 function usingReadLockTarget<T extends () => any, U extends ReturnType<T>>(
 	fn: T,
-): Bluebird<UnwrappedPromise<U>> {
+): Bluebird<Awaited<U>> {
 	return Bluebird.using(readLockTarget, () => fn());
 }
 function usingWriteLockTarget<T extends () => any, U extends ReturnType<T>>(
 	fn: T,
-): Bluebird<UnwrappedPromise<U>> {
+): Bluebird<Awaited<U>> {
 	return Bluebird.using(writeLockTarget, () => fn());
 }
 

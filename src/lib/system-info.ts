@@ -224,9 +224,9 @@ export async function getSystemMetrics() {
 	};
 }
 
-type SystemChecks = UnwrappedPromise<ReturnType<typeof getSystemChecks>>;
+type SystemChecks = Awaited<ReturnType<typeof getSystemChecks>>;
 
-type SystemMetrics = UnwrappedPromise<ReturnType<typeof getSystemMetrics>>;
+type SystemMetrics = Awaited<ReturnType<typeof getSystemMetrics>>;
 
 export type SystemInfo = SystemChecks & SystemMetrics;
 
