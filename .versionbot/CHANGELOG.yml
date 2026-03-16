@@ -1,4 +1,16 @@
 - commits:
+    - subject: "Tests: add nodejs 24 to the automated nodejs test matrix"
+      hash: cb31b637b160478267e37e771b2f4b39aeb3d571
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.5
+  title: ""
+  date: 2026-03-16T19:29:14.409Z
+- commits:
     - subject: "mount-partitions: create data directory"
       hash: ed4406538db54c7d8be6d7e0c596f1db8007742d
       body: |
