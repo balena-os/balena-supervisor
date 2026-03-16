@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update @types/dockerode to 3.3.47
+      hash: 4bd37b1c9e4ea5f1a4a97b52e0d205beebe8f6c1
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.8
+  title: ""
+  date: 2026-03-16T21:36:56.640Z
+- commits:
     - subject: Relax UUID regex in deconstructDockerName
       hash: a86e1c27f4e37cfb288620e6e5a48806b5c9be96
       body: |
