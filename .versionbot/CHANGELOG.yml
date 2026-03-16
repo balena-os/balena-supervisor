@@ -1,4 +1,16 @@
 - commits:
+    - subject: "Typings: replace `UnwrappedPromise` with typescript built-in `Awaited`"
+      hash: ba9632d782bd0e39513c5f37e2f0d88df73ef61d
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.6
+  title: ""
+  date: 2026-03-16T20:06:17.467Z
+- commits:
     - subject: "Tests: add nodejs 24 to the automated nodejs test matrix"
       hash: cb31b637b160478267e37e771b2f4b39aeb3d571
       body: ""
