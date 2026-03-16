@@ -73,8 +73,8 @@ export async function supervisorNetworkReady(): Promise<boolean> {
 		// The inspect may fail even if the interface exist due to docker corruption
 		const network = await docker.getNetwork(iface).inspect();
 		const result =
-			network.Options['com.docker.network.bridge.name'] === iface &&
-			network.IPAM.Config[0].Subnet === subnet &&
+			network.Options?.['com.docker.network.bridge.name'] === iface &&
+			network.IPAM?.Config?.[0].Subnet === subnet &&
 			network.IPAM.Config[0].Gateway === gateway;
 		return result;
 	} catch (e: unknown) {
@@ -90,14 +90,14 @@ export async function ensureSupervisorNetwork(): Promise<void> {
 	try {
 		const net = await docker.getNetwork(iface).inspect();
 		if (
-			net.Options['com.docker.network.bridge.name'] !== iface ||
-			net.IPAM.Config[0].Subnet !== subnet ||
-			net.IPAM.Config[0].Gateway !== gateway
+			net.Options?.['com.docker.network.bridge.name'] !== iface ||
+			net.IPAM?.Config?.[0]?.Subnet !== subnet ||
+			net.IPAM?.Config?.[0]?.Gateway !== gateway
 		) {
 			// Remove network if its configs aren't correct
 			await docker.getNetwork(iface).remove();
 			// This will throw a 404 if network has been removed completely
-			return await docker.getNetwork(iface).inspect();
+			await docker.getNetwork(iface).inspect();
 		}
 	} catch (e: unknown) {
 		if (!isNotFoundError(e)) {

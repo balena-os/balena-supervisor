@@ -168,9 +168,9 @@ export function getStopSignal(
 
 // TODO: Move healthcheck stuff into separate module
 export function dockerHealthcheckToServiceHealthcheck(
-	healthcheck?: Dockerode.DockerHealthcheck,
+	healthcheck?: Dockerode.HealthConfig,
 ): ServiceHealthcheck {
-	if (healthcheck == null || _.isEmpty(healthcheck)) {
+	if (healthcheck?.Test == null) {
 		return { test: ['NONE'] };
 	}
 	const serviceHC: ServiceHealthcheck = {
@@ -247,10 +247,7 @@ export function getHealthcheck(
 ): ServiceHealthcheck {
 	// get the image info healtcheck
 	const imageServiceHealthcheck = dockerHealthcheckToServiceHealthcheck(
-		// This eslint disable is required because dockerode doesn't define Config.Healthcheck,
-		// and can be removed once that type is added to @types/dockerode
-		// eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
-		_.get(imageInfo, 'Config.Healthcheck'),
+		imageInfo?.Config?.Healthcheck,
 	);
 	const composeServiceHealthcheck =
 		composeHealthcheckToServiceHealthcheck(composeHealthcheck);
@@ -265,7 +262,7 @@ export function getHealthcheck(
 
 export function serviceHealthcheckToDockerHealthcheck(
 	healthcheck: ServiceHealthcheck,
-): Dockerode.DockerHealthcheck {
+): Dockerode.HealthConfig {
 	return {
 		Test: healthcheck.test,
 		Interval: healthcheck.interval,
