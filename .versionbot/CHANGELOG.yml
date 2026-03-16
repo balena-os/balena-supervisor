@@ -1,4 +1,20 @@
 - commits:
+    - subject: Relax UUID regex in deconstructDockerName
+      hash: a86e1c27f4e37cfb288620e6e5a48806b5c9be96
+      body: |
+        The regex required at least 32 hex characters, which caused
+        failures for some network mockerode tests.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 17.6.7
+  title: ""
+  date: 2026-03-16T21:15:27.993Z
+- commits:
     - subject: "Typings: replace `UnwrappedPromise` with typescript built-in `Awaited`"
       hash: ba9632d782bd0e39513c5f37e2f0d88df73ef61d
       body: ""
