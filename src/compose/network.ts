@@ -99,7 +99,9 @@ class NetworkImpl implements Network {
 					...(conf.Subnet && { subnet: conf.Subnet }),
 					...(conf.Gateway && { gateway: conf.Gateway }),
 					...(conf.IPRange && { ipRange: conf.IPRange }),
-					...(conf.AuxAddress && { auxAddress: conf.AuxAddress }),
+					...('AuxAddress' in conf && conf.AuxAddress
+						? { auxAddress: conf.AuxAddress as string }
+						: {}),
 				})),
 				options: network.IPAM?.Options ?? {},
 			},

@@ -78,7 +78,8 @@ describe('compose/network: integration tests', () => {
 			await network.remove();
 
 			// The network should no longer exist
-			await expect(docker.getNetwork(dockerNetwork).inspect()).to.be.rejected;
+			await expect(docker.getNetwork(dockerNetwork.Id).inspect()).to.be
+				.rejected;
 		});
 
 		it('throws the error if there is a problem while creating the network', async () => {

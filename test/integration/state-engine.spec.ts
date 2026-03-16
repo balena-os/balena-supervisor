@@ -252,9 +252,9 @@ describe('state engine', () => {
 		const customNet = await docker.getNetwork('123_default').inspect();
 		expect(customNet).to.have.property('IPAM');
 		expect(customNet.IPAM).to.have.property('Config').that.has.lengthOf(1);
-		expect(customNet.IPAM.Config[0].Gateway).to.equal('192.168.91.1');
-		expect(customNet.IPAM.Config[0].Subnet).to.equal('192.168.91.0/24');
-		expect(customNet.IPAM.Driver).to.equal('default');
+		expect(customNet.IPAM!.Config![0].Gateway).to.equal('192.168.91.1');
+		expect(customNet.IPAM!.Config![0].Subnet).to.equal('192.168.91.0/24');
+		expect(customNet.IPAM).to.have.property('Driver').that.equals('default');
 	});
 
 	it('updates an app with two services with a network change where the only change is a custom ipam config addition', async () => {
@@ -318,9 +318,9 @@ describe('state engine', () => {
 		const defaultNet = await docker.getNetwork('123_default').inspect();
 		expect(defaultNet).to.have.property('IPAM');
 		expect(defaultNet.IPAM).to.have.property('Config').that.has.lengthOf(1);
-		expect(defaultNet.IPAM.Config[0].Gateway).to.not.equal('192.168.91.1');
-		expect(defaultNet.IPAM.Config[0].Subnet).to.not.equal('192.168.91.0/24');
-		expect(defaultNet.IPAM.Driver).to.equal('default');
+		expect(defaultNet.IPAM!.Config![0].Gateway).to.not.equal('192.168.91.1');
+		expect(defaultNet.IPAM!.Config![0].Subnet).to.not.equal('192.168.91.0/24');
+		expect(defaultNet.IPAM).to.have.property('Driver').that.equals('default');
 
 		// Network should not have custom ipam label
 		expect(defaultNet)
@@ -368,9 +368,9 @@ describe('state engine', () => {
 		const customNet = await docker.getNetwork('123_default').inspect();
 		expect(customNet).to.have.property('IPAM');
 		expect(customNet.IPAM).to.have.property('Config').that.has.lengthOf(1);
-		expect(customNet.IPAM.Config[0].Gateway).to.equal('192.168.91.1');
-		expect(customNet.IPAM.Config[0].Subnet).to.equal('192.168.91.0/24');
-		expect(customNet.IPAM.Driver).to.equal('default');
+		expect(customNet.IPAM!.Config![0].Gateway).to.equal('192.168.91.1');
+		expect(customNet.IPAM!.Config![0].Subnet).to.equal('192.168.91.0/24');
+		expect(customNet.IPAM).to.have.property('Driver').that.equals('default');
 
 		// Network should have custom ipam label
 		expect(customNet)
@@ -438,9 +438,9 @@ describe('state engine', () => {
 		const customNet = await docker.getNetwork('123_default').inspect();
 		expect(customNet).to.have.property('IPAM');
 		expect(customNet.IPAM).to.have.property('Config').that.has.lengthOf(1);
-		expect(customNet.IPAM.Config[0].Gateway).to.equal('192.168.91.1');
-		expect(customNet.IPAM.Config[0].Subnet).to.equal('192.168.91.0/24');
-		expect(customNet.IPAM.Driver).to.equal('default');
+		expect(customNet.IPAM!.Config![0].Gateway).to.equal('192.168.91.1');
+		expect(customNet.IPAM!.Config![0].Subnet).to.equal('192.168.91.0/24');
+		expect(customNet.IPAM).to.have.property('Driver').that.equals('default');
 
 		// Network should have custom ipam label
 		expect(customNet)
@@ -489,9 +489,9 @@ describe('state engine', () => {
 		const defaultNet = await docker.getNetwork('123_default').inspect();
 		expect(defaultNet).to.have.property('IPAM');
 		expect(defaultNet.IPAM).to.have.property('Config').that.has.lengthOf(1);
-		expect(defaultNet.IPAM.Config[0].Gateway).to.not.equal('192.168.91.1');
-		expect(defaultNet.IPAM.Config[0].Subnet).to.not.equal('192.168.91.0/24');
-		expect(defaultNet.IPAM.Driver).to.equal('default');
+		expect(defaultNet.IPAM!.Config![0].Gateway).to.not.equal('192.168.91.1');
+		expect(defaultNet.IPAM!.Config![0].Subnet).to.not.equal('192.168.91.0/24');
+		expect(defaultNet.IPAM).to.have.property('Driver').that.equals('default');
 
 		// Network should not have custom ipam label
 		expect(defaultNet)
