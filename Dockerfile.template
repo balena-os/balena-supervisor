@@ -1,8 +1,8 @@
 ARG ARCH=%%BALENA_ARCH%%
 ARG FATRW_VERSION=0.2.21
-ARG NODE="nodejs~=22"
+ARG NODE="nodejs~=24"
 ARG NPM="npm~=11"
-ARG ALPINE_VERSION="3.22"
+ARG ALPINE_VERSION="3.23"
 
 ###################################################
 # Build the supervisor dependencies
