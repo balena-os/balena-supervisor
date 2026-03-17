@@ -71,13 +71,13 @@ describe('compose/app', () => {
 			// expectation
 			expect(
 				createVolumeSteps.filter(
-					(step: any) => step.target && step.target.name === 'test-volume',
+					(step: any) => step.target?.name === 'test-volume',
 				),
 			).to.have.lengthOf(1);
 
 			expect(
 				createVolumeSteps.filter(
-					(step: any) => step.target && step.target.name === 'test-volume-2',
+					(step: any) => step.target?.name === 'test-volume-2',
 				),
 			).to.have.lengthOf(1);
 		});
