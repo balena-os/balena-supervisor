@@ -1,4 +1,18 @@
 - commits:
+    - subject: Update alpine to 3.22 to get latest nodejs 22.x / npm 11.x
+      hash: 2c46b1c6e64638367e493e8463ce86be2e13e722
+      body: |
+        alpine 3.21 is stuck on nodejs v22.15.1 whilst alpine 3.22 currently
+        has nodejs v22.22.0
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.9
+  title: ""
+  date: 2026-03-17T14:19:59.406Z
+- commits:
     - subject: Update @types/dockerode to 3.3.47
       hash: 4bd37b1c9e4ea5f1a4a97b52e0d205beebe8f6c1
       body: ""
