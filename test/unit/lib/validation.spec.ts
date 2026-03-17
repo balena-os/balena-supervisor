@@ -348,6 +348,7 @@ describe('validation', () => {
 			});
 		});
 
+		// This test fails if io-ts is bumped to ^2.2.21 due to https://github.com/gcanti/io-ts/pull/705 now ignoring unknown keys for records/stripping them rather than rejecting.
 		it('rejects app with invalid environment', () => {
 			expect(
 				isRight(

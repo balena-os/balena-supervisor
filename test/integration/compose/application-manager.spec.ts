@@ -1819,12 +1819,8 @@ describe('compose/application-manager', () => {
 		);
 
 		// Expect a start step for both apps
-		expect(
-			steps.filter((s: any) => s.target && s.target.appId === 1),
-		).to.have.lengthOf(0);
-		expect(
-			steps.filter((s: any) => s.image && s.image.appId === 1),
-		).to.have.lengthOf(0);
+		expect(steps.filter((s: any) => s.target?.appId === 1)).to.have.lengthOf(0);
+		expect(steps.filter((s: any) => s.image?.appId === 1)).to.have.lengthOf(0);
 		expect(
 			steps.filter(
 				(s: any) =>

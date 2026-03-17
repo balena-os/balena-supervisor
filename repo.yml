@@ -26,3 +26,7 @@ upstream:
     url: 'https://github.com/balena-io-modules/typed-error'
   - repo: 'contrato'
     url: 'https://github.com/balena-io/contrato'
+  - repo: '@balena/systemd'
+    url: 'https://github.com/balena-io-modules/node-systemd'
+  - repo: '@balena/compose'
+    url: 'https://github.com/balena-io-modules/balena-compose'

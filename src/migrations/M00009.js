@@ -6,7 +6,7 @@ export async function up(knex) {
 
 	// If there are legacy apps we let the database normalization function
 	// populate the correct values
-	if (legacyAppsPresent && legacyAppsPresent.value === 'true') {
+	if (legacyAppsPresent?.value === 'true') {
 		return;
 	}
 
