@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update to nodejs 24.x, alpine 3.23
+      hash: 6e8d0aca0ab590d069b245da5de9d1c85436bf21
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.11
+  title: ""
+  date: 2026-03-18T15:05:41.978Z
+- commits:
     - subject: Update dependencies
       hash: 7a1612b72b75eb8bf55e1f2fbb1380727a5f4fb4
       body: |
