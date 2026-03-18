@@ -1,4 +1,18 @@
 - commits:
+    - subject: Remove legacy tests as they are not being run and no longer work
+      hash: ef00b34d9b1db588a265103893c94922c84173be
+      body: |
+        They have been unable to run since 2024-12-06 when a source file was
+        moved and the import was not updated
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.12
+  title: ""
+  date: 2026-03-18T15:45:31.738Z
+- commits:
     - subject: Update to nodejs 24.x, alpine 3.23
       hash: 6e8d0aca0ab590d069b245da5de9d1c85436bf21
       body: ""
