@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import type { SinonSpy } from 'sinon';
+import * as fs from 'node:fs';
 
 import { expect } from 'chai';
 import { createContainer } from '~/test-lib/mockerode';
@@ -10,30 +11,37 @@ import * as ServiceT from '~/src/compose/types/service';
 import * as constants from '~/lib/constants';
 import log from '~/src/lib/supervisor-console';
 
-/* eslint-disable @typescript-eslint/no-require-imports */
+const loadJson = (path: string) =>
+	JSON.parse(fs.readFileSync(require.resolve(path), 'utf-8'));
+
 const configs = {
 	simple: {
-		compose: require('~/test-data/docker-states/simple/compose.json'),
-		imageInfo: require('~/test-data/docker-states/simple/imageInfo.json'),
-		inspect: require('~/test-data/docker-states/simple/inspect.json'),
+		compose: loadJson('~/test-data/docker-states/simple/compose.json'),
+		imageInfo: loadJson('~/test-data/docker-states/simple/imageInfo.json'),
+		inspect: loadJson('~/test-data/docker-states/simple/inspect.json'),
 	},
 	entrypoint: {
-		compose: require('~/test-data/docker-states/entrypoint/compose.json'),
-		imageInfo: require('~/test-data/docker-states/entrypoint/imageInfo.json'),
-		inspect: require('~/test-data/docker-states/entrypoint/inspect.json'),
+		compose: loadJson('~/test-data/docker-states/entrypoint/compose.json'),
+		imageInfo: loadJson('~/test-data/docker-states/entrypoint/imageInfo.json'),
+		inspect: loadJson('~/test-data/docker-states/entrypoint/inspect.json'),
 	},
 	networkModeService: {
-		compose: require('~/test-data/docker-states/network-mode-service/compose.json'),
-		imageInfo: require('~/test-data/docker-states/network-mode-service/imageInfo.json'),
-		inspect: require('~/test-data/docker-states/network-mode-service/inspect.json'),
+		compose: loadJson(
+			'~/test-data/docker-states/network-mode-service/compose.json',
+		),
+		imageInfo: loadJson(
+			'~/test-data/docker-states/network-mode-service/imageInfo.json',
+		),
+		inspect: loadJson(
+			'~/test-data/docker-states/network-mode-service/inspect.json',
+		),
 	},
 	init: {
-		compose: require('~/test-data/docker-states/init/compose.json'),
-		imageInfo: require('~/test-data/docker-states/init/imageInfo.json'),
-		inspect: require('~/test-data/docker-states/init/inspect.json'),
+		compose: loadJson('~/test-data/docker-states/init/compose.json'),
+		imageInfo: loadJson('~/test-data/docker-states/init/imageInfo.json'),
+		inspect: loadJson('~/test-data/docker-states/init/inspect.json'),
 	},
 };
-/* eslint-enable @typescript-eslint/no-require-imports */
 
 describe('compose/service: unit tests', () => {
 	describe('Creating a service instance from a compose object', () => {
