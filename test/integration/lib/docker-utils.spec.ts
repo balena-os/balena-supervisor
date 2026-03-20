@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import { stub } from 'sinon';
 
-import * as dockerUtils from '~/lib/docker-utils';
-import { createDockerImage, cleanupDocker } from '~/test-lib/docker-helper';
+import * as dockerUtils from '#lib/docker-utils.js';
+import { createDockerImage, cleanupDocker } from '#test-lib/docker-helper.js';
 import Docker from 'dockerode';
 
 describe('lib/docker-utils', () => {

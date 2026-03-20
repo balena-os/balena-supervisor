@@ -2,11 +2,11 @@ import express from 'express';
 import request from 'supertest';
 import { expect } from 'chai';
 
-import * as config from '~/src/config';
-import * as testDb from '~/src/db';
-import * as apiKeys from '~/lib/api-keys';
-import * as middleware from '~/src/device-api/middleware';
-import type { AuthorizedRequest } from '~/lib/api-keys';
+import * as config from '#src/config/index.js';
+import * as testDb from '#src/db.js';
+import * as apiKeys from '#lib/api-keys.js';
+import * as middleware from '#src/device-api/middleware/index.js';
+import type { AuthorizedRequest } from '#lib/api-keys.js';
 
 describe('device-api/api-keys', () => {
 	let app: express.Application;

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { equals, diff, prune, shallowDiff } from '~/lib/json';
+import { equals, diff, prune, shallowDiff } from '#lib/json.js';
 
 describe('JSON utils', () => {
 	describe('equals', () => {

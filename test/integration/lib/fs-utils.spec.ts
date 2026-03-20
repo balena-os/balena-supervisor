@@ -5,7 +5,7 @@ import type { TestFs } from 'mocha-pod';
 import { testfs } from 'mocha-pod';
 import { watch } from 'chokidar';
 
-import * as fsUtils from '~/lib/fs-utils';
+import * as fsUtils from '#lib/fs-utils.js';
 
 describe('lib/fs-utils', () => {
 	const file1 = 'file.1';

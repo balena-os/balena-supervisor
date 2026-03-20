@@ -3,9 +3,9 @@ import request from 'supertest';
 import type { SinonStub } from 'sinon';
 import { expect } from 'chai';
 
-import * as middleware from '~/src/device-api/middleware';
-import { UpdatesLockedError } from '~/lib/errors';
-import log from '~/lib/supervisor-console';
+import * as middleware from '#src/device-api/middleware/index.js';
+import { UpdatesLockedError } from '#lib/errors.js';
+import log from '#lib/supervisor-console.js';
 
 describe('device-api/middleware', () => {
 	let app: express.Application;

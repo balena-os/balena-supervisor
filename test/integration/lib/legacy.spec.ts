@@ -2,9 +2,9 @@ import { expect } from 'chai';
 import { isRight } from 'fp-ts/lib/Either';
 import nock from 'nock';
 
-import { TargetState } from '~/src/types';
-import * as legacy from '~/lib/legacy';
-import * as config from '~/src/config';
+import { TargetState } from '#src/types/index.js';
+import * as legacy from '#lib/legacy.js';
+import * as config from '#src/config/index.js';
 
 describe('lib/legacy', () => {
 	before(async () => {

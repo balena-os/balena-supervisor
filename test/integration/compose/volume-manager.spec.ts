@@ -1,10 +1,10 @@
 import { expect } from 'chai';
 
 import * as sinon from 'sinon';
-import * as volumeManager from '~/src/compose/volume-manager';
-import { Volume } from '~/src/compose/volume';
-import { createDockerImage } from '~/test-lib/docker-helper';
-import * as extraFirmware from '~/lib/extra-firmware';
+import * as volumeManager from '#src/compose/volume-manager.js';
+import { Volume } from '#src/compose/volume.js';
+import { createDockerImage } from '#test-lib/docker-helper.js';
+import * as extraFirmware from '#lib/extra-firmware.js';
 
 import Docker from 'dockerode';
 

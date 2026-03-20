@@ -1,13 +1,13 @@
 import { expect } from 'chai';
 import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
-import { Volume } from '~/src/compose/volume';
-import * as logTypes from '~/lib/log-types';
-import * as logger from '~/src/logging';
+import { Volume } from '#src/compose/volume.js';
+import * as logTypes from '#lib/log-types.js';
+import * as logger from '#src/logging/index.js';
 
 import Docker from 'dockerode';
 
-import { createVolume, withMockerode } from '~/test-lib/mockerode';
+import { createVolume, withMockerode } from '#test-lib/mockerode.js';
 
 describe('compose/volume: integration tests', () => {
 	const docker = new Docker();

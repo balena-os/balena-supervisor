@@ -2,20 +2,20 @@
 import * as _ from 'lodash';
 import rewire from 'rewire';
 
-import { unlinkAll } from '~/lib/fs-utils';
-import * as serviceManager from '~/src/compose/service-manager';
-import * as volumeManager from '~/src/compose/volume-manager';
-import * as commitStore from '~/src/compose/commit';
-import * as config from '~/src/config';
-import * as db from '~/src/db';
-import * as v1 from '~/src/device-api/v1';
-import * as v2 from '~/src/device-api/v2';
-import * as deviceState from '~/src/device-state';
-import SupervisorAPI from '~/src/device-api';
-import type { Service } from '~/src/compose/service';
-import type { Image } from '~/src/compose/images';
+import { unlinkAll } from '#lib/fs-utils.js';
+import * as serviceManager from '#src/compose/service-manager.js';
+import * as volumeManager from '#src/compose/volume-manager.js';
+import * as commitStore from '#src/compose/commit.js';
+import * as config from '#src/config/index.js';
+import * as db from '#src/db.js';
+import * as v1 from '#src/device-api/v1.js';
+import * as v2 from '#src/device-api/v2.js';
+import * as deviceState from '#src/device-state/index.js';
+import SupervisorAPI from '#src/device-api/index.js';
+import type { Service } from '#src/compose/service.js';
+import type { Image } from '#src/compose/images.js';
 
-const apiBinder = rewire('~/src/api-binder');
+const apiBinder = rewire('#src/api-binder/index.js');
 
 const DB_PATH = './test/data/supervisor-api.sqlite';
 

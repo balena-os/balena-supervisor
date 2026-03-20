@@ -7,20 +7,20 @@ import { setTimeout } from 'timers/promises';
 import { testfs } from 'mocha-pod';
 import { promises as fs } from 'fs';
 
-import * as deviceState from '~/src/device-state';
-import * as config from '~/src/config';
-import * as hostConfig from '~/src/host-config';
-import * as apiKeys from '~/lib/api-keys';
-import * as actions from '~/src/device-api/actions';
-import * as TargetState from '~/src/api-binder/poll';
-import * as updateLock from '~/lib/update-lock';
-import { pathOnRoot } from '~/lib/host-utils';
-import { exec } from '~/lib/fs-utils';
-import * as lockfile from '~/lib/lockfile';
-import { cleanupDocker } from '~/test-lib/docker-helper';
-import { getBlink } from '~/lib/blink';
-import type { Blink } from '~/lib/blink';
-import { EXTRA_FIRMWARE_VOLUME_NAME } from '~/lib/extra-firmware';
+import * as deviceState from '#src/device-state/index.js';
+import * as config from '#src/config/index.js';
+import * as hostConfig from '#src/host-config/index.js';
+import * as apiKeys from '#lib/api-keys.js';
+import * as actions from '#src/device-api/actions.js';
+import * as TargetState from '#src/api-binder/poll.js';
+import * as updateLock from '#lib/update-lock.js';
+import { pathOnRoot } from '#lib/host-utils.js';
+import { exec } from '#lib/fs-utils.js';
+import * as lockfile from '#lib/lockfile.js';
+import { cleanupDocker } from '#test-lib/docker-helper.js';
+import { getBlink } from '#lib/blink.js';
+import type { Blink } from '#lib/blink.js';
+import { EXTRA_FIRMWARE_VOLUME_NAME } from '#lib/extra-firmware.js';
 
 export async function dbusSend(
 	dest: string,

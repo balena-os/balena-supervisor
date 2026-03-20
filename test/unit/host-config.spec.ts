@@ -2,15 +2,15 @@ import { expect } from 'chai';
 import { stripIndent } from 'common-tags';
 import type { SinonStub } from 'sinon';
 
-import * as hostConfig from '~/src/host-config';
-import { RedsocksConf } from '~/src/host-config/proxy';
+import * as hostConfig from '#src/host-config/index.js';
+import { RedsocksConf } from '#src/host-config/proxy.js';
 import {
 	type RedsocksConfig,
 	type ProxyConfig,
 	LegacyHostConfiguration,
 	DnsInput,
-} from '~/src/host-config/types';
-import log from '~/lib/supervisor-console';
+} from '#src/host-config/types.js';
+import log from '#lib/supervisor-console.js';
 
 describe('RedsocksConf', () => {
 	describe('stringify', () => {

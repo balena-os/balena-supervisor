@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import * as t from 'io-ts';
 
-import { withDefault } from '~/src/types';
+import { withDefault } from '#src/types/index.js';
 
 describe('types', () => {
 	describe('withDefault', () => {

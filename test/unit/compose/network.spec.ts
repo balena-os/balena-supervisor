@@ -1,10 +1,10 @@
 import { expect } from 'chai';
 import type * as sinon from 'sinon';
 
-import { Network } from '~/src/compose/network';
-import type { NetworkInspectInfo } from '~/src/compose/types';
+import { Network } from '#src/compose/network.js';
+import type { NetworkInspectInfo } from '#src/compose/types/index.js';
 
-import { log } from '~/lib/supervisor-console';
+import { log } from '#lib/supervisor-console.js';
 
 describe('compose/network', () => {
 	describe('creating a network from a compose object', () => {

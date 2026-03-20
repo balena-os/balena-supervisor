@@ -1,8 +1,8 @@
 import { expect } from 'chai';
-import type { Image } from '~/src/compose/images';
-import { Network } from '~/src/compose/network';
-import { Volume } from '~/src/compose/volume';
-import { type Lock } from '~/lib/update-lock';
+import type { Image } from '#src/compose/images.js';
+import { Network } from '#src/compose/network.js';
+import { Volume } from '#src/compose/volume.js';
+import { type Lock } from '#lib/update-lock.js';
 
 import {
 	createService,
@@ -11,7 +11,7 @@ import {
 	DEFAULT_NETWORK,
 	expectSteps,
 	expectNoStep,
-} from '~/test-lib/state-helper';
+} from '#test-lib/state-helper.js';
 
 const defaultContext = {
 	keepVolumes: false,

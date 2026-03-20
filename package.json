@@ -29,6 +29,12 @@
     "prepare": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module"
   },
   "private": true,
+  "imports": {
+    "#src/*": "./src/*",
+    "#lib/*": "./src/lib/*",
+    "#test-lib/*": "./test/lib/*",
+    "#test-data/*": "./test/data/*"
+  },
   "dependencies": {
     "@balena/systemd": "^0.5.11",
     "async-mutex": "^0.5.0",

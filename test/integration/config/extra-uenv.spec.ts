@@ -3,9 +3,9 @@ import { expect } from 'chai';
 import { testfs } from 'mocha-pod';
 import { promises as fs } from 'fs';
 
-import * as hostUtils from '~/lib/host-utils';
-import log from '~/lib/supervisor-console';
-import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
+import * as hostUtils from '#lib/host-utils.js';
+import log from '#lib/supervisor-console.js';
+import { ExtraUEnv } from '#src/config/backends/extra-uEnv.js';
 
 describe('config/extra-uEnv', () => {
 	const backend = new ExtraUEnv();

@@ -4,8 +4,8 @@ import { stub } from 'sinon';
 import { promises as fs } from 'fs';
 import systeminformation from 'systeminformation';
 
-import * as fsUtils from '~/lib/fs-utils';
-import * as sysInfo from '~/lib/system-info';
+import * as fsUtils from '#lib/fs-utils.js';
+import * as sysInfo from '#lib/system-info.js';
 
 describe('System information', () => {
 	before(() => {

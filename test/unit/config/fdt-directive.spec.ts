@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { FDTDirective } from '~/src/config/backends/extlinux-file';
+import { FDTDirective } from '#src/config/backends/extlinux-file.js';
 
 describe('FDT directive', () => {
 	const directive = new FDTDirective();

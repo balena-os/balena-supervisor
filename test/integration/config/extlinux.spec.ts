@@ -3,8 +3,8 @@ import { stripIndent } from 'common-tags';
 import { expect } from 'chai';
 import { testfs } from 'mocha-pod';
 
-import * as hostUtils from '~/lib/host-utils';
-import { Extlinux } from '~/src/config/backends/extlinux';
+import * as hostUtils from '#lib/host-utils.js';
+import { Extlinux } from '#src/config/backends/extlinux.js';
 
 describe('config/extlinux', () => {
 	it('should correctly parse an extlinux.conf file', async () => {

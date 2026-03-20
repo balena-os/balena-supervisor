@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import * as conversion from '~/lib/conversions';
+import * as conversion from '#lib/conversions.js';
 
 describe('lib/conversions', function () {
 	describe('envArrayToObject', function () {

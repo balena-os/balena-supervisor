@@ -2,10 +2,10 @@ import { promises as fs } from 'fs';
 import { expect } from 'chai';
 import { testfs } from 'mocha-pod';
 
-import * as hostUtils from '~/lib/host-utils';
+import * as hostUtils from '#lib/host-utils.js';
 
-import log from '~/lib/supervisor-console';
-import { Odmdata } from '~/src/config/backends/odmdata';
+import log from '#lib/supervisor-console.js';
+import { Odmdata } from '#src/config/backends/odmdata.js';
 
 describe('config/odmdata', () => {
 	const backend = new Odmdata();

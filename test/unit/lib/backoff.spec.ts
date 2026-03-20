@@ -1,9 +1,9 @@
 import { assert, expect } from 'chai';
 import * as sinon from 'sinon';
 
-import { StatusError } from '~/lib/errors';
-import type { OnFailureInfo } from '~/lib/backoff';
-import { withBackoff } from '~/lib/backoff';
+import { StatusError } from '#lib/errors.js';
+import type { OnFailureInfo } from '#lib/backoff.js';
+import { withBackoff } from '#lib/backoff.js';
 
 const DEFAULT_OPTIONS = {
 	maxRetries: 5,

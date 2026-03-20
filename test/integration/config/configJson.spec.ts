@@ -3,8 +3,8 @@ import type { TestFs } from 'mocha-pod';
 import { testfs } from 'mocha-pod';
 import { promises as fs } from 'fs';
 
-import ConfigJsonConfigBackend from '~/src/config/configJson';
-import { schema } from '~/src/config/schema';
+import ConfigJsonConfigBackend from '#src/config/configJson.js';
+import { schema } from '#src/config/schema.js';
 
 describe('ConfigJsonConfigBackend', () => {
 	const CONFIG_PATH = '/mnt/boot/config.json';

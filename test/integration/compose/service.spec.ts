@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
-import { Service } from '~/src/compose/service';
-import * as apiKeys from '~/lib/api-keys';
+import { Service } from '#src/compose/service.js';
+import * as apiKeys from '#lib/api-keys.js';
 
 describe('compose/service: integration tests', () => {
 	describe('Feature labels', () => {

@@ -5,19 +5,19 @@ import type { SinonStub, SinonSpy } from 'sinon';
 import { stub, spy } from 'sinon';
 import { expect } from 'chai';
 
-import * as deviceConfig from '~/src/device-state/device-config';
-import * as fsUtils from '~/lib/fs-utils';
-import * as logger from '~/src/logging';
-import { Extlinux } from '~/src/config/backends/extlinux';
-import { ConfigTxt } from '~/src/config/backends/config-txt';
-import { Odmdata } from '~/src/config/backends/odmdata';
-import { ConfigFs } from '~/src/config/backends/config-fs';
-import { SplashImage } from '~/src/config/backends/splash-image';
-import { pathOnBoot, pathOnRoot } from '~/lib/host-utils';
+import * as deviceConfig from '#src/device-state/device-config.js';
+import * as fsUtils from '#lib/fs-utils.js';
+import * as logger from '#src/logging/index.js';
+import { Extlinux } from '#src/config/backends/extlinux.js';
+import { ConfigTxt } from '#src/config/backends/config-txt.js';
+import { Odmdata } from '#src/config/backends/odmdata.js';
+import { ConfigFs } from '#src/config/backends/config-fs.js';
+import { SplashImage } from '#src/config/backends/splash-image.js';
+import { pathOnBoot, pathOnRoot } from '#lib/host-utils.js';
 import {
 	configJsonPath as configJson,
 	hostOSVersionPath as osRelease,
-} from '~/src/lib/constants';
+} from '#src/lib/constants.js';
 
 import { testfs } from 'mocha-pod';
 

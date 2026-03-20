@@ -3,7 +3,7 @@ import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 
 import { expect } from 'chai';
-import * as network from '~/src/network';
+import * as network from '#src/network.js';
 
 describe('network', () => {
 	describe('getIPAddresses', () => {

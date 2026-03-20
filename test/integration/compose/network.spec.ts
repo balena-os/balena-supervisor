@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
-import { Network } from '~/src/compose/network';
-import { createNetwork, withMockerode } from '~/test-lib/mockerode';
+import { Network } from '#src/compose/network.js';
+import { createNetwork, withMockerode } from '#test-lib/mockerode.js';
 
 import Docker from 'dockerode';
 

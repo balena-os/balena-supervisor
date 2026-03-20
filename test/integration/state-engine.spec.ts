@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 import Docker from 'dockerode';
-import type { TargetStateV2 } from '~/lib/legacy';
+import type { TargetStateV2 } from '#lib/legacy.js';
 import request from 'supertest';
 import { setTimeout as delay } from 'timers/promises';
-import { exec } from '~/lib/fs-utils';
+import { exec } from '#lib/fs-utils.js';
 
 const BALENA_SUPERVISOR_ADDRESS =
 	process.env.BALENA_SUPERVISOR_ADDRESS ?? 'http://balena-supervisor:48484';

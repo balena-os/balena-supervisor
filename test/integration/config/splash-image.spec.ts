@@ -3,9 +3,9 @@ import type { TestFs } from 'mocha-pod';
 import { testfs } from 'mocha-pod';
 
 import { expect } from 'chai';
-import * as hostUtils from '~/lib/host-utils';
-import { SplashImage } from '~/src/config/backends/splash-image';
-import log from '~/lib/supervisor-console';
+import * as hostUtils from '#lib/host-utils.js';
+import { SplashImage } from '#src/config/backends/splash-image.js';
+import log from '#lib/supervisor-console.js';
 
 describe('config/splash-image', () => {
 	const backend = new SplashImage();

@@ -1,8 +1,8 @@
 import type * as express from 'express';
 import request from 'supertest';
 
-import * as apiKeys from '~/lib/api-keys';
-import * as deviceApi from '~/src/device-api';
+import * as apiKeys from '#lib/api-keys.js';
+import * as deviceApi from '#src/device-api/index.js';
 
 describe('device-api/index', () => {
 	let api: express.Application;

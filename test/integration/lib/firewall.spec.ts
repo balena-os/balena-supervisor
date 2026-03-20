@@ -2,17 +2,17 @@ import _ from 'lodash';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import * as config from '~/src/config';
-import * as logger from '~/src/logging';
-import * as iptablesMock from '~/test-lib/mocked-iptables';
-import * as dbFormat from '~/src/device-state/db-format';
+import * as config from '#src/config/index.js';
+import * as logger from '#src/logging/index.js';
+import * as iptablesMock from '#test-lib/mocked-iptables.js';
+import * as dbFormat from '#src/device-state/db-format.js';
 
-import * as iptables from '~/lib/iptables';
-import * as firewall from '~/lib/firewall';
-import * as constants from '~/lib/constants';
-import type { Rule } from '~/lib/iptables';
-import { RuleAction } from '~/lib/iptables';
-import { log } from '~/lib/supervisor-console';
+import * as iptables from '#lib/iptables.js';
+import * as firewall from '#lib/firewall.js';
+import * as constants from '#lib/constants.js';
+import type { Rule } from '#lib/iptables.js';
+import { RuleAction } from '#lib/iptables.js';
+import { log } from '#lib/supervisor-console.js';
 
 describe('lib/firewall', function () {
 	let loggerSpy: sinon.SinonSpy;

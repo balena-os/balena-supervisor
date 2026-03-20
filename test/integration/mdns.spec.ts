@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { promisify } from 'util';
 
-import '~/src/mdns';
+import '#src/mdns.js';
 
 describe('MDNS', () => {
 	it('resolves global domain names', async () => {
