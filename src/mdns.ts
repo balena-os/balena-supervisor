@@ -1,3 +1,4 @@
+import type { LookupAddress } from 'dns';
 import { NOTFOUND } from 'dns';
 import * as mdnsResolver from 'mdns-resolver';
 
@@ -8,12 +9,13 @@ class DnsLookupError extends Error {
 }
 
 interface DnsLookupCallback {
-	(err: any): void;
-	(err: undefined | null, address: string, family: number): void;
+	(err: NodeJS.ErrnoException): void;
 	(
-		err: undefined | null,
-		addresses: Array<{ address: string; family: number }>,
+		err: NodeJS.ErrnoException | null,
+		address: string | LookupAddress,
+		family: number,
 	): void;
+	(err: NodeJS.ErrnoException | null, addresses: LookupAddress[]): void;
 }
 
 interface DnsLookupOpts {
@@ -45,7 +47,7 @@ async function mdnsLookup(
 		const families = (() => {
 			// strictly defined...
 			if (opts === 4 || opts === 6) {
-				return [opts as number];
+				return [opts];
 			}
 
 			// opts is passed, not a number and the `family` parameter is passed...
@@ -104,32 +106,35 @@ async function mdnsLookup(
 (() => {
 	// We disable linting for the next line. The require call
 	// is necesary for monkey-patching the dns module
-	const dns = require('dns'); // eslint-disable-line
+	const dns = require('dns') as typeof import('dns'); // eslint-disable-line
 	const { lookup } = dns;
 
-	dns.lookup = (
-		name: string,
-		opts: Partial<DnsLookupOpts> | number | null | undefined,
-		cb: DnsLookupCallback,
-	) => {
-		if (typeof cb !== 'function') {
-			return lookup(name, {}, opts);
+	dns.lookup = ((name, opts, cb?) => {
+		if (typeof opts === 'function') {
+			lookup(name, opts);
+			return;
 		}
 
+		const $cb = cb as DnsLookupCallback;
+		// We need to cast opts to `any` because things get weird with the overloaded function signatures, particularly with 2 vs 3 parameters. This isn't ideal but
+		// it is better than the previous version where everything was implicitly `any`
+		const $opts = opts as any;
+
 		// Try a regular dns lookup first
-		return lookup(name, opts, (error: any, address: string, family: number) => {
-			if (error == null) {
-				cb(null, address, family);
+		lookup(name, $opts, ((...args: Parameters<DnsLookupCallback>) => {
+			if (args[0] == null) {
+				$cb(...args);
 				return;
 			}
 
 			// If the regular lookup fails, we perform a mdns lookup if the
 			// name ends with .local
 			if (name?.endsWith('.local')) {
-				return mdnsLookup(name, opts, cb);
+				void mdnsLookup(name, $opts, $cb);
+				return;
 			}
 
-			cb(error);
-		});
-	};
+			$cb(...args);
+		}) as DnsLookupCallback);
+	}) as typeof lookup;
 })();
