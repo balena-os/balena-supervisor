@@ -21,7 +21,7 @@
     "test:compose": "(ARCH=$(./build-utils/detect-arch.sh) docker compose -f docker-compose.yml -f docker-compose.test.yml run --build --rm sut || docker compose logs); npm run compose:down",
     "test": "npm run lint && npm run test:build && npm run test:unit",
     "compose:down": "docker compose -f docker-compose.yml -f docker-compose.test.yml down --volumes",
-    "release": "tsc --project tsconfig.release.json && mv build/src/* build",
+    "release": "tsc --project tsconfig.release.json",
     "sync": "ts-node --files sync/sync.ts",
     "clean": "rimraf build",
     "install-native-deps": "./build-utils/install-dbus.sh",
