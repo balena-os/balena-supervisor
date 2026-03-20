@@ -1,4 +1,16 @@
 - commits:
+    - subject: "Build: avoid needing to `mv` all files immediately after compiling"
+      hash: 2b8aae3baf74b8f8cfb02d0493ed67ec4d65c756
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.14
+  title: ""
+  date: 2026-03-20T18:48:37.000Z
+- commits:
     - subject: "Tests: switch from `require` to `fs` for loading JSON fixtures"
       hash: ab40ec04d42b4ba9b365d85f380bf2886ac31db3
       body: |
