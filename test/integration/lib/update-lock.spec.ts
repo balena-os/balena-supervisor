@@ -4,10 +4,10 @@ import { promises as fs } from 'fs';
 import { setTimeout } from 'timers/promises';
 import { testfs } from 'mocha-pod';
 
-import * as updateLock from '~/lib/update-lock';
-import { Lockable } from '~/lib/update-lock';
-import { isENOENT, UpdatesLockedError } from '~/lib/errors';
-import { pathOnRoot, pathOnState } from '~/lib/host-utils';
+import * as updateLock from '#lib/update-lock.js';
+import { Lockable } from '#lib/update-lock.js';
+import { isENOENT, UpdatesLockedError } from '#lib/errors.js';
+import { pathOnRoot, pathOnState } from '#lib/host-utils.js';
 
 describe('lib/update-lock', () => {
 	describe('abortIfHUPInProgress', () => {

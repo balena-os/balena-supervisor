@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import * as uname from '~/lib/uname';
+import * as uname from '#lib/uname.js';
 
 describe('lib/uname', () => {
 	describe('parseKernelSlug', () => {

@@ -3,17 +3,17 @@ import { stripIndent } from 'common-tags';
 import { testfs } from 'mocha-pod';
 import type { SinonStub } from 'sinon';
 
-import { PowerFanConfig } from '~/src/config/backends/power-fan';
-import { Extlinux } from '~/src/config/backends/extlinux';
-import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
-import { ConfigTxt } from '~/src/config/backends/config-txt';
-import { ConfigFs } from '~/src/config/backends/config-fs';
-import { Odmdata } from '~/src/config/backends/odmdata';
-import { SplashImage } from '~/src/config/backends/splash-image';
-import ConfigJsonConfigBackend from '~/src/config/configJson';
-import { schema } from '~/src/config/schema';
-import * as hostUtils from '~/lib/host-utils';
-import log from '~/lib/supervisor-console';
+import { PowerFanConfig } from '#src/config/backends/power-fan.js';
+import { Extlinux } from '#src/config/backends/extlinux.js';
+import { ExtraUEnv } from '#src/config/backends/extra-uEnv.js';
+import { ConfigTxt } from '#src/config/backends/config-txt.js';
+import { ConfigFs } from '#src/config/backends/config-fs.js';
+import { Odmdata } from '#src/config/backends/odmdata.js';
+import { SplashImage } from '#src/config/backends/splash-image.js';
+import ConfigJsonConfigBackend from '#src/config/configJson.js';
+import { schema } from '#src/config/schema.js';
+import * as hostUtils from '#lib/host-utils.js';
+import log from '#lib/supervisor-console.js';
 
 const SUPPORTED_DEVICE_TYPES = [
 	'jetson-agx-orin-devkit',
@@ -95,7 +95,7 @@ describe('config/power-fan', () => {
 	it('correctly gets boot configs if power mode is not set', async () => {
 		await testfs({
 			[CONFIG_PATH]: stripIndent`
-            {   
+            {
                 "os": {
 					"extra": "field",
                     "fan": {
@@ -115,7 +115,7 @@ describe('config/power-fan', () => {
 	it('correctly gets boot configs if fan profile is not set', async () => {
 		await testfs({
 			[CONFIG_PATH]: stripIndent`
-            {   
+            {
                 "os": {
 					"extra": "field",
                     "power": {
@@ -135,7 +135,7 @@ describe('config/power-fan', () => {
 	it('correctly gets boot configs if no relevant boot configs are set', async () => {
 		await testfs({
 			[CONFIG_PATH]: stripIndent`
-            {   
+            {
                 "os": {
 					"extra": "field"
 				}
@@ -149,7 +149,7 @@ describe('config/power-fan', () => {
 
 	it('ignores unrelated fields in config.json when getting boot configs', async () => {
 		const configStr = stripIndent`
-		{   
+		{
 			"apiEndpoint": "https://api.balena-cloud.com",
 			"uuid": "deadbeef",
 			"os": {
@@ -365,7 +365,7 @@ describe('config/power-fan', () => {
 			// Note that extra fields in os.power and os.fan are removed when setting, as os.power
 			// and os.fan are considered managed by the Supervisor.
 			[CONFIG_PATH]: stripIndent`
-			{   
+			{
 				"apiEndpoint": "https://api.balena-cloud.com",
 				"uuid": "deadbeef",
 				"os": {
@@ -437,7 +437,7 @@ describe('config/power-fan', () => {
 	it('does not touch fields besides os.power and os.fan in config.json when removing boot configs', async () => {
 		await testfs({
 			[CONFIG_PATH]: stripIndent`
-			{   
+			{
 				"apiEndpoint": "https://api.balena-cloud.com",
 				"uuid": "deadbeef",
 				"os": {

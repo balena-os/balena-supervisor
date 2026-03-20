@@ -4,9 +4,9 @@ import type { SinonStub } from 'sinon';
 import { testfs } from 'mocha-pod';
 
 import { expect } from 'chai';
-import Log from '~/lib/supervisor-console';
-import * as network from '~/src/network';
-import * as constants from '~/lib/constants';
+import Log from '#lib/supervisor-console.js';
+import * as network from '#src/network.js';
+import * as constants from '#lib/constants.js';
 
 describe('network', () => {
 	it('checks VPN connection status', async () => {

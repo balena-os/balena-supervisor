@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 import { isRight } from 'fp-ts/lib/Either';
-import { App } from '~/src/compose/app';
-import { Network } from '~/src/compose/network';
-import * as config from '~/src/config';
-import * as testDb from '~/src/db';
-import * as dbFormat from '~/src/device-state/db-format';
-import { TargetApps } from '~/src/types/state';
+import { App } from '#src/compose/app.js';
+import { Network } from '#src/compose/network.js';
+import * as config from '#src/config/index.js';
+import * as testDb from '#src/db.js';
+import * as dbFormat from '#src/device-state/db-format.js';
+import { TargetApps } from '#src/types/state.js';
 
 function getDefaultNetwork(appId: number) {
 	return [Network.fromComposeObject('default', appId, 'deadbeef', {})];

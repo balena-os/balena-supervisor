@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 import * as semver from 'semver';
 
-import supervisorVersion from '~/lib/supervisor-version';
+import supervisorVersion from '#lib/supervisor-version.js';
 
 describe('lib/contracts', () => {
-	type Contracts = typeof import('~/src/lib/contracts');
-	const contracts = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
+	type Contracts = typeof import('#src/lib/contracts.js');
+	const contracts = require('#src/lib/contracts.js') as Contracts; // eslint-disable-line
 	const OS_VERSION = '5.5.5+rev3';
 	before(() => {
 		contracts.initializeContractRequirements({
@@ -795,7 +795,7 @@ describe('lib/contracts', () => {
 
 	describe('L4T version resolution', () => {
 		const seedEngine = (version: string) => {
-			const engine = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
+			const engine = require('#src/lib/contracts.js') as Contracts; // eslint-disable-line
 			engine.initializeContractRequirements({
 				supervisorVersion,
 				deviceType: 'intel-nuc',
@@ -904,7 +904,7 @@ describe('lib/contracts', () => {
 
 	describe('Kernel version and slug resolution', () => {
 		const seedEngine = (version: string, slug: string) => {
-			const engine = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
+			const engine = require('#src/lib/contracts.js') as Contracts; // eslint-disable-line
 			engine.initializeContractRequirements({
 				supervisorVersion,
 				deviceType: 'intel-nuc',

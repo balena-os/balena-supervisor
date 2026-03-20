@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 
-import * as hostConfig from '~/src/host-config';
-import * as actions from '~/src/device-api/actions';
+import * as hostConfig from '#src/host-config/index.js';
+import * as actions from '#src/device-api/actions.js';
 
 describe('device-api/actions', () => {
 	describe('runs healthchecks', () => {

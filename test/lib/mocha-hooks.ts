@@ -1,5 +1,5 @@
 import * as sinon from 'sinon';
-import log from '~/lib/supervisor-console';
+import log from '#lib/supervisor-console.js';
 
 /**
  * Mocha runs these hooks before/after each test suite (beforeAll/afterAll)

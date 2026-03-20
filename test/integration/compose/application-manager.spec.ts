@@ -1,14 +1,14 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import Docker from 'dockerode';
-import * as applicationManager from '~/src/compose/application-manager';
-import * as imageManager from '~/src/compose/images';
-import * as serviceManager from '~/src/compose/service-manager';
-import { Network } from '~/src/compose/network';
-import * as networkManager from '~/src/compose/network-manager';
-import { Volume } from '~/src/compose/volume';
-import * as config from '~/src/config';
-import { createDockerImage } from '~/test-lib/docker-helper';
+import * as applicationManager from '#src/compose/application-manager.js';
+import * as imageManager from '#src/compose/images.js';
+import * as serviceManager from '#src/compose/service-manager.js';
+import { Network } from '#src/compose/network.js';
+import * as networkManager from '#src/compose/network-manager.js';
+import { Volume } from '#src/compose/volume.js';
+import * as config from '#src/config/index.js';
+import { createDockerImage } from '#test-lib/docker-helper.js';
 import {
 	createService,
 	createImage,
@@ -17,9 +17,9 @@ import {
 	DEFAULT_NETWORK,
 	expectSteps,
 	expectNoStep,
-} from '~/test-lib/state-helper';
-import type { InstancedAppState } from '~/src/compose/types';
-import * as extraFirmware from '~/lib/extra-firmware';
+} from '#test-lib/state-helper.js';
+import type { InstancedAppState } from '#src/compose/types/index.js';
+import * as extraFirmware from '#lib/extra-firmware.js';
 
 // TODO: application manager inferNextSteps still queries some stuff from
 // the engine instead of receiving that information as parameter. Refactoring

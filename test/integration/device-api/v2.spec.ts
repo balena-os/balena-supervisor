@@ -4,17 +4,17 @@ import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 import request from 'supertest';
 
-import * as config from '~/src/config';
-import * as db from '~/src/db';
-import * as apiKeys from '~/lib/api-keys';
-import * as deviceApi from '~/src/device-api';
-import * as actions from '~/src/device-api/actions';
-import * as v2 from '~/src/device-api/v2';
+import * as config from '#src/config/index.js';
+import * as db from '#src/db.js';
+import * as apiKeys from '#lib/api-keys.js';
+import * as deviceApi from '#src/device-api/index.js';
+import * as actions from '#src/device-api/actions.js';
+import * as v2 from '#src/device-api/v2.js';
 import {
 	UpdatesLockedError,
 	NotFoundError,
 	BadRequestError,
-} from '~/lib/errors';
+} from '#lib/errors.js';
 
 // All routes that require Authorization are integration tests due to
 // the api-key module relying on the database.

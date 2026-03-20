@@ -1,17 +1,17 @@
 import { expect } from 'chai';
 import { testfs } from 'mocha-pod';
 
-import * as configUtils from '~/src/config/utils';
-import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
-import { Extlinux } from '~/src/config/backends/extlinux';
-import { ConfigTxt } from '~/src/config/backends/config-txt';
-import { ConfigFs } from '~/src/config/backends/config-fs';
-import { SplashImage } from '~/src/config/backends/splash-image';
-import { PowerFanConfig } from '~/src/config/backends/power-fan';
-import { configJsonBackend } from '~/src/config';
-import type { ConfigBackend } from '~/src/config/backends/backend';
+import * as configUtils from '#src/config/utils.js';
+import { ExtraUEnv } from '#src/config/backends/extra-uEnv.js';
+import { Extlinux } from '#src/config/backends/extlinux.js';
+import { ConfigTxt } from '#src/config/backends/config-txt.js';
+import { ConfigFs } from '#src/config/backends/config-fs.js';
+import { SplashImage } from '#src/config/backends/splash-image.js';
+import { PowerFanConfig } from '#src/config/backends/power-fan.js';
+import { configJsonBackend } from '#src/config/index.js';
+import type { ConfigBackend } from '#src/config/backends/backend.js';
 
-import * as hostUtils from '~/lib/host-utils';
+import * as hostUtils from '#lib/host-utils.js';
 
 const keys = <T extends object>(obj: T) => Object.keys(obj) as Array<keyof T>;
 

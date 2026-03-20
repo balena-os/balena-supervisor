@@ -8,9 +8,9 @@ import {
 	NumericIdentifier,
 	TargetApps,
 	TargetState,
-} from '~/src/types';
+} from '#src/types/index.js';
 
-import * as validation from '~/lib/validation';
+import * as validation from '#lib/validation.js';
 
 describe('validation', () => {
 	describe('checkBooleanish', () => {

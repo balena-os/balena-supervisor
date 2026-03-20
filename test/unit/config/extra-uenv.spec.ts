@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
+import { ExtraUEnv } from '#src/config/backends/extra-uEnv.js';
 
 describe('config/extra-uEnv', () => {
 	const backend = new ExtraUEnv();

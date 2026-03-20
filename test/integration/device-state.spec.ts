@@ -1,17 +1,20 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { promises as fs } from 'fs';
-import { UpdatesLockedError } from '~/lib/errors';
-import * as fsUtils from '~/lib/fs-utils';
-import * as updateLock from '~/lib/update-lock';
-import * as config from '~/src/config';
-import * as deviceState from '~/src/device-state';
-import { appsJsonBackup, loadTargetFromFile } from '~/src/device-state/preload';
-import type { TargetState } from '~/src/types';
-import { initializeContractRequirements } from '~/lib/contracts';
+import { UpdatesLockedError } from '#lib/errors.js';
+import * as fsUtils from '#lib/fs-utils.js';
+import * as updateLock from '#lib/update-lock.js';
+import * as config from '#src/config/index.js';
+import * as deviceState from '#src/device-state/index.js';
+import {
+	appsJsonBackup,
+	loadTargetFromFile,
+} from '#src/device-state/preload.js';
+import type { TargetState } from '#src/types/index.js';
+import { initializeContractRequirements } from '#lib/contracts.js';
 
 import { testfs } from 'mocha-pod';
-import { createDockerImage } from '~/test-lib/docker-helper';
+import { createDockerImage } from '#test-lib/docker-helper.js';
 import Docker from 'dockerode';
 
 describe('device-state', () => {

@@ -3,7 +3,7 @@ import { stub } from 'sinon';
 import { expect } from 'chai';
 import childProcess from 'child_process';
 
-import { spawnJournalctl } from '~/lib/journald';
+import { spawnJournalctl } from '#lib/journald.js';
 
 describe('lib/journald', () => {
 	let spawn: SinonStub;

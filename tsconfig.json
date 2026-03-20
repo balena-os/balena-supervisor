@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": "./",
+    "rootDir": "./",
     "target": "ES2024",
     "module": "node20",
     "strict": true,
@@ -11,21 +11,7 @@
     "outDir": "./build/",
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "allowJs": true,
-    "paths": {
-      "~/src/*": [
-        "src/*"
-      ],
-      "~/lib/*": [
-        "src/lib/*"
-      ],
-      "~/test-lib/*": [
-        "test/lib/*"
-      ],
-      "~/test-data/*": [
-        "test/data/*"
-      ]
-    }
+    "allowJs": true
   },
   "include": [
     "src/**/*",

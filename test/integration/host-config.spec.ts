@@ -7,19 +7,19 @@ import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 import * as fs from 'fs/promises';
 
-import { get, patch } from '~/src/host-config';
-import * as config from '~/src/config';
-import * as applicationManager from '~/src/compose/application-manager';
-import type { InstancedAppState } from '~/src/compose/types';
-import * as updateLock from '~/lib/update-lock';
-import { UpdatesLockedError } from '~/lib/errors';
-import * as dbus from '~/lib/dbus';
-import { pathOnBoot, pathOnRoot } from '~/lib/host-utils';
+import { get, patch } from '#src/host-config/index.js';
+import * as config from '#src/config/index.js';
+import * as applicationManager from '#src/compose/application-manager.js';
+import type { InstancedAppState } from '#src/compose/types/index.js';
+import * as updateLock from '#lib/update-lock.js';
+import { UpdatesLockedError } from '#lib/errors.js';
+import * as dbus from '#lib/dbus.js';
+import { pathOnBoot, pathOnRoot } from '#lib/host-utils.js';
 import {
 	createApps,
 	createService,
 	DEFAULT_NETWORK,
-} from '~/test-lib/state-helper';
+} from '#test-lib/state-helper.js';
 
 describe('host-config', () => {
 	let tFs: TestFs.Disabled;

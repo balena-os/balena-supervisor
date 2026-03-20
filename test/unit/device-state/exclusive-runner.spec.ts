@@ -5,8 +5,8 @@ import type { SinonStub } from 'sinon';
 import {
 	ExclusiveRunner,
 	E_CANCELED,
-} from '~/src/device-state/exclusive-runner';
-import log from '~/lib/supervisor-console';
+} from '#src/device-state/exclusive-runner.js';
+import log from '#lib/supervisor-console.js';
 
 // Create a deferred promise that can be resolved externally.
 function deferred() {

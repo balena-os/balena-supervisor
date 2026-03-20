@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import type { TestFs } from 'mocha-pod';
 import { testfs } from 'mocha-pod';
 
-import * as osRelease from '~/lib/os-release';
+import * as osRelease from '#lib/os-release.js';
 
 describe('lib/os-release', () => {
 	let tfs: TestFs.Enabled;

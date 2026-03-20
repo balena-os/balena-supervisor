@@ -3,8 +3,8 @@ import { expect } from 'chai';
 import { stub } from 'sinon';
 import childProcess from 'child_process';
 
-import * as firewall from '~/lib/firewall';
-import * as iptables from '~/lib/iptables';
+import * as firewall from '#lib/firewall.js';
+import * as iptables from '#lib/iptables.js';
 import { EventEmitter } from 'events';
 import { Writable } from 'stream';
 

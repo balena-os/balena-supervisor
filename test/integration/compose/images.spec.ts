@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 
-import * as imageManager from '~/src/compose/images';
-import { createImage, withMockerode } from '~/test-lib/mockerode';
-import { createDockerImage } from '~/test-lib/docker-helper';
+import * as imageManager from '#src/compose/images.js';
+import { createImage, withMockerode } from '#test-lib/mockerode.js';
+import { createDockerImage } from '#test-lib/docker-helper.js';
 
 import Docker from 'dockerode';
-import * as db from '~/src/db';
+import * as db from '#src/db.js';
 
 // TODO: this code is duplicated in multiple tests
 // create a test module with all helper functions like this

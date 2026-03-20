@@ -4,20 +4,20 @@ import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 import request from 'supertest';
 
-import * as config from '~/src/config';
-import * as db from '~/src/db';
-import * as hostConfig from '~/src/host-config';
-import type { Service } from '~/src/compose/service';
-import * as apiKeys from '~/lib/api-keys';
-import * as deviceApi from '~/src/device-api';
-import * as actions from '~/src/device-api/actions';
-import * as v1 from '~/src/device-api/v1';
+import * as config from '#src/config/index.js';
+import * as db from '#src/db.js';
+import * as hostConfig from '#src/host-config/index.js';
+import type { Service } from '#src/compose/service.js';
+import * as apiKeys from '#lib/api-keys.js';
+import * as deviceApi from '#src/device-api/index.js';
+import * as actions from '#src/device-api/actions.js';
+import * as v1 from '#src/device-api/v1.js';
 import {
 	UpdatesLockedError,
 	NotFoundError,
 	BadRequestError,
-} from '~/lib/errors';
-import log from '~/lib/supervisor-console';
+} from '#lib/errors.js';
+import log from '#lib/supervisor-console.js';
 
 // All routes that require Authorization are integration tests due to
 // the api-key module relying on the database.

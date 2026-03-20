@@ -1,10 +1,10 @@
 import express from 'express';
 import request from 'supertest';
 
-import * as config from '~/src/config';
-import * as testDb from '~/src/db';
-import * as apiKeys from '~/lib/api-keys';
-import * as middleware from '~/src/device-api/middleware';
+import * as config from '#src/config/index.js';
+import * as testDb from '#src/db.js';
+import * as apiKeys from '#lib/api-keys.js';
+import * as middleware from '#src/device-api/middleware/index.js';
 
 describe('device-api/middleware', () => {
 	let app: express.Application;

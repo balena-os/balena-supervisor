@@ -5,8 +5,8 @@ import { testfs } from 'mocha-pod';
 import * as os from 'os';
 import * as path from 'path';
 import { stub } from 'sinon';
-import * as lockfile from '~/lib/lockfile';
-import * as fsUtils from '~/lib/fs-utils';
+import * as lockfile from '#lib/lockfile.js';
+import * as fsUtils from '#lib/fs-utils.js';
 
 const NOBODY_UID = 65534;
 

@@ -1,15 +1,15 @@
-import { App } from '~/src/compose/app';
-import * as imageManager from '~/src/compose/images';
-import type { Image } from '~/src/compose/images';
-import { Network } from '~/src/compose/network';
-import { Service } from '~/src/compose/service';
-import type { ServiceComposeConfig } from '~/src/compose/types/service';
-import type { Volume } from '~/src/compose/volume';
+import { App } from '#src/compose/app.js';
+import * as imageManager from '#src/compose/images.js';
+import type { Image } from '#src/compose/images.js';
+import { Network } from '#src/compose/network.js';
+import { Service } from '#src/compose/service.js';
+import type { ServiceComposeConfig } from '#src/compose/types/service.js';
+import type { Volume } from '#src/compose/volume.js';
 import type {
 	CompositionStep,
 	CompositionStepAction,
-} from '~/src/compose/composition-steps';
-import type { InstancedAppState } from '~/src/compose/types';
+} from '#src/compose/composition-steps.js';
+import type { InstancedAppState } from '#src/compose/types/index.js';
 
 export const DEFAULT_NETWORK = Network.fromComposeObject(
 	'default',

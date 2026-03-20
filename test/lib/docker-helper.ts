@@ -3,7 +3,7 @@ import * as tar from 'tar-stream';
 import { strict as assert } from 'assert';
 import { setTimeout } from 'timers/promises';
 
-import { isStatusError } from '~/lib/errors';
+import { isStatusError } from '#lib/errors.js';
 
 // Creates an image from scratch with just some labels
 export async function createDockerImage(

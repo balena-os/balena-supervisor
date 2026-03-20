@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { Odmdata } from '~/src/config/backends/odmdata';
+import { Odmdata } from '#src/config/backends/odmdata.js';
 
 describe('config/odmdata', () => {
 	const backend = new Odmdata();

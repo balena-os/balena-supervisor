@@ -2,10 +2,10 @@ import { testfs } from 'mocha-pod';
 import { stripIndent } from 'common-tags';
 
 import { expect } from 'chai';
-import * as hostUtils from '~/lib/host-utils';
+import * as hostUtils from '#lib/host-utils.js';
 
 import { promises as fs } from 'fs';
-import { ConfigTxt } from '~/src/config/backends/config-txt';
+import { ConfigTxt } from '#src/config/backends/config-txt.js';
 
 describe('config/config-txt', () => {
 	it('correctly parses a config.txt file', async () => {

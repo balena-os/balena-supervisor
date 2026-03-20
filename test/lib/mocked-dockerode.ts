@@ -5,7 +5,7 @@ process.env.DOCKER_HOST = 'unix:///your/dockerode/mocks/are/not/working';
 import Dockerode from 'dockerode';
 import { Stream } from 'stream';
 import _ from 'lodash';
-import { NotFoundError } from '~/lib/errors';
+import { NotFoundError } from '#lib/errors.js';
 
 const overrides: Dictionary<(...args: any[]) => Resolvable<any>> = {};
 

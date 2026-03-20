@@ -5,11 +5,11 @@ import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 import Docker from 'dockerode';
 
-import * as extraFirmware from '~/lib/extra-firmware';
-import ConfigJsonConfigBackend from '~/src/config/configJson';
-import { schema } from '~/src/config/schema';
-import log from '~/lib/supervisor-console';
-import { InternalInconsistencyError } from '~/lib/errors';
+import * as extraFirmware from '#lib/extra-firmware.js';
+import ConfigJsonConfigBackend from '#src/config/configJson.js';
+import { schema } from '#src/config/schema.js';
+import log from '#lib/supervisor-console.js';
+import { InternalInconsistencyError } from '#lib/errors.js';
 
 describe('lib/extra-firmware', () => {
 	const CONFIG_PATH = '/mnt/boot/config.json';
