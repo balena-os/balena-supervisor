@@ -103,10 +103,8 @@ async function mdnsLookup(
 // This was originally wrapped in a do block in
 // coffeescript, and it's not clear now why that was the
 // case, so I'm going to maintain that behaviour
-(() => {
-	// We disable linting for the next line. The require call
-	// is necesary for monkey-patching the dns module
-	const dns = require('dns') as typeof import('dns'); // eslint-disable-line
+void (async () => {
+	const { default: dns } = await import('dns');
 	const { lookup } = dns;
 
 	dns.lookup = ((name, opts, cb?) => {

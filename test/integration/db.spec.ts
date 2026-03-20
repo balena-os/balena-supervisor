@@ -5,6 +5,8 @@ import { promises as fs } from 'fs';
 import { expect } from 'chai';
 import * as constants from '~/lib/constants';
 
+let cacheBust = 0;
+
 async function createOldDatabase(path: string) {
 	const db = knex({
 		client: 'sqlite3',
@@ -45,12 +47,10 @@ async function restoreDb() {
 	await fs.unlink(constants.databasePath).catch(() => {
 		/* NOOP */
 	});
-	// Reset the module cache to allow the database to be initialized again
-	delete require.cache[require.resolve('~/src/db')];
 }
 
 // Utility method to use along with `require`
-type Db = typeof import('~/src/db');
+type Db = { default: typeof import('../../src/db') };
 
 describe('db', () => {
 	afterEach(async () => {
@@ -58,8 +58,9 @@ describe('db', () => {
 	});
 
 	it('creates a database at the path passed on creation', async () => {
-		// eslint-disable-next-line
-		const testDb = require('~/src/db') as Db;
+		const { default: testDb } = (await import(
+			`../../src/db.js?cacheBust=${cacheBust++}`
+		)) as Db;
 		await testDb.initialized();
 		await expect(fs.access(constants.databasePath)).to.not.be.rejected;
 	});
@@ -67,8 +68,9 @@ describe('db', () => {
 	it('migrations add new fields and removes old ones in an old database', async () => {
 		// Create a database with an older schema
 		const knexForDB = await createOldDatabase(constants.databasePath);
-		// eslint-disable-next-line
-		const testDb = require('~/src/db') as Db;
+		const { default: testDb } = (await import(
+			`../../src/db.js?cacheBust=${cacheBust++}`
+		)) as Db;
 		await testDb.initialized();
 		await Promise.all([
 			expect(knexForDB.schema.hasColumn('app', 'appId')).to.eventually.be.true,
@@ -91,8 +93,9 @@ describe('db', () => {
 	});
 
 	it('creates a deviceConfig table with a single default value', async () => {
-		// eslint-disable-next-line
-		const testDb = require('~/src/db') as Db;
+		const { default: testDb } = (await import(
+			`../../src/db.js?cacheBust=${cacheBust++}`
+		)) as Db;
 		await testDb.initialized();
 		const deviceConfig = await testDb.models('deviceConfig').select();
 		expect(deviceConfig).to.have.lengthOf(1);
@@ -100,8 +103,9 @@ describe('db', () => {
 	});
 
 	it('allows performing transactions', async () => {
-		// eslint-disable-next-line
-		const testDb = require('~/src/db') as Db;
+		const { default: testDb } = (await import(
+			`../../src/db.js?cacheBust=${cacheBust++}`
+		)) as Db;
 		await testDb.initialized();
 		return testDb.transaction((trx) => expect(trx.commit()).to.be.fulfilled);
 	});

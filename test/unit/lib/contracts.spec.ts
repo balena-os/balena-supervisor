@@ -1,11 +1,10 @@
 import { expect } from 'chai';
 import * as semver from 'semver';
+import * as contracts from '~/src/lib/contracts';
 
 import supervisorVersion from '~/lib/supervisor-version';
 
 describe('lib/contracts', () => {
-	type Contracts = typeof import('~/src/lib/contracts');
-	const contracts = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
 	const OS_VERSION = '5.5.5+rev3';
 	before(() => {
 		contracts.initializeContractRequirements({
@@ -795,15 +794,14 @@ describe('lib/contracts', () => {
 
 	describe('L4T version resolution', () => {
 		const seedEngine = (version: string) => {
-			const engine = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
-			engine.initializeContractRequirements({
+			contracts.initializeContractRequirements({
 				supervisorVersion,
 				deviceType: 'intel-nuc',
 				deviceArch: 'amd64',
 				l4tVersion: version,
 			});
 
-			return engine;
+			return contracts;
 		};
 
 		it('should allow semver matching even when l4t does not fulfill semver', () => {
@@ -904,15 +902,14 @@ describe('lib/contracts', () => {
 
 	describe('Kernel version and slug resolution', () => {
 		const seedEngine = (version: string, slug: string) => {
-			const engine = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
-			engine.initializeContractRequirements({
+			contracts.initializeContractRequirements({
 				supervisorVersion,
 				deviceType: 'intel-nuc',
 				deviceArch: 'amd64',
 				kernelVersion: version,
 				kernelSlug: slug,
 			});
-			return engine;
+			return contracts;
 		};
 		const KERNEL_VERSION = '5.15.150';
 		const KERNEL_SLUG = 'linux';
