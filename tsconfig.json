@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": "./",
+    "rootDir": "./",
     "target": "ES2024",
     "module": "node20",
     "strict": true,
@@ -12,18 +12,20 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowJs": true,
+    "noUnusedParameters": true,
+    "noUnusedLocals": true,
     "paths": {
       "~/src/*": [
-        "src/*"
+        "./src/*"
       ],
       "~/lib/*": [
-        "src/lib/*"
+        "./src/lib/*"
       ],
       "~/test-lib/*": [
-        "test/lib/*"
+        "./test/lib/*"
       ],
       "~/test-data/*": [
-        "test/data/*"
+        "./test/data/*"
       ]
     }
   },

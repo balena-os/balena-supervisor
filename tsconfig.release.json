@@ -1,9 +1,7 @@
 {
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
-		"noUnusedParameters": true,
-		"noUnusedLocals": true,
-		"preserveConstEnums": true,
+		"rootDir": "./src",
 		"removeComments": true
 	},
 	"include": ["src/**/*", "typings/**/*.d.ts"]
