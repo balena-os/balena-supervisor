@@ -1,4 +1,18 @@
 - commits:
+    - subject: "Tests: switch from `require` to `fs` for loading JSON fixtures"
+      hash: ab40ec04d42b4ba9b365d85f380bf2886ac31db3
+      body: |
+        This is more compatible with ESM, albeit the `require.resolve` will
+        need to be updated
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.13
+  title: ""
+  date: 2026-03-20T18:10:29.656Z
+- commits:
     - subject: Remove legacy tests as they are not being run and no longer work
       hash: ef00b34d9b1db588a265103893c94922c84173be
       body: |
