@@ -1,4 +1,26 @@
 - commits:
+    - subject: "mdns-lookup: improve typings"
+      hash: e997a8aa3d1a3c01faec6edfa53e56996372d5bf
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: "mdns-lookup: remove setting explicit `verbatim: true` as it already
+        defaults true"
+      hash: 2a388e1711628fc4a9be0ef8161ffc87884396f0
+      body: |
+        The default was changed to true in nodejs 17.0.0
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.16
+  title: ""
+  date: 2026-03-24T20:44:07.749Z
+- commits:
     - subject: Update migration.ts
       hash: 922493b91d4cd4d5f17f09af66e948b62496a84d
       body: |
