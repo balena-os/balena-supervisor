@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update migration.ts
+      hash: 922493b91d4cd4d5f17f09af66e948b62496a84d
+      body: |
+        Fix inverted variable bug
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: giuseppe443
+      nested: []
+  version: 17.6.15
+  title: ""
+  date: 2026-03-24T19:43:46.569Z
+- commits:
     - subject: "Build: avoid needing to `mv` all files immediately after compiling"
       hash: 2b8aae3baf74b8f8cfb02d0493ed67ec4d65c756
       body: ""
