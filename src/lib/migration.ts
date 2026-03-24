@@ -29,7 +29,7 @@ export async function loadBackupFromMigration(
 		// TODO: this code is only single-app compatible
 		const [uuid] = Object.keys(localDevice?.apps);
 
-		if (uuid) {
+		if (!uuid) {
 			throw new BackupError('No apps in the target state');
 		}
 
