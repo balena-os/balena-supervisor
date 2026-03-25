@@ -2,7 +2,6 @@ import { stripIndent } from 'common-tags';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import _ from 'lodash';
-import type { PinejsClientRequest } from 'pinejs-client-request';
 
 import * as config from '../config';
 import * as eventTracker from '../event-tracker';
@@ -294,7 +293,7 @@ async function pinDevice({ app, commit }: DevicePinInfo) {
 			resource: 'device',
 			id: deviceId,
 			body: {
-				should_be_running__release: releaseId,
+				is_pinned_on__release: releaseId,
 			},
 		});
 
@@ -480,7 +479,7 @@ async function reportInitialName(
 	}
 }
 
-let balenaApi: PinejsClientRequest | null = null;
+let balenaApi: Awaited<ReturnType<typeof apiHelper.getBalenaApi>> | null = null;
 
 export const initialized = _.once(async () => {
 	await config.initialized();

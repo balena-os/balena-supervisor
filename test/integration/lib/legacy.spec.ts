@@ -196,7 +196,7 @@ describe('lib/legacy', () => {
 			const apiEndpoint = await config.get('apiEndpoint');
 
 			nock(apiEndpoint)
-				.get('/v6/application(1)?$select=uuid')
+				.get('/v7/application(1)?$select=uuid')
 				.reply(200, { d: [{ uuid: 'some-uuid' }] });
 
 			const target = await legacy.fromV2TargetState(

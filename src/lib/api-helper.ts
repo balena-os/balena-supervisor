@@ -16,14 +16,9 @@ import {
 import log from './supervisor-console';
 import memoizee from 'memoizee';
 import url from 'url';
+import type { BalenaModel } from 'balena-sdk';
 
 export type KeyExchangeOpts = config.ConfigType<'provisioningOptions'>;
-
-export interface Device {
-	id: number;
-
-	[key: string]: unknown;
-}
 
 export const getBalenaApi = memoizee(
 	async () => {
@@ -34,12 +29,12 @@ export const getBalenaApi = memoizee(
 			'currentApiKey',
 		]);
 
-		const baseUrl = url.resolve(apiEndpoint, '/v6/');
+		const baseUrl = url.resolve(apiEndpoint, '/v7/');
 		const passthrough = structuredClone(await request.getRequestOptions());
 		passthrough.headers = passthrough.headers ?? {};
 		passthrough.headers.Authorization = `Bearer ${currentApiKey}`;
 		log.info(`API Binder bound to: ${baseUrl}`);
-		return new PinejsClientRequest({
+		return new PinejsClientRequest<BalenaModel>({
 			apiPrefix: baseUrl,
 			passthrough,
 		});
@@ -48,7 +43,7 @@ export const getBalenaApi = memoizee(
 );
 
 export const fetchDevice = async (
-	balenaApi: PinejsClientRequest,
+	balenaApi: PinejsClientRequest<BalenaModel>,
 	uuid: string,
 	apiKey: string,
 	timeout: number,
@@ -59,24 +54,26 @@ export const fetchDevice = async (
 		);
 	}
 
-	const reqOpts = {
-		resource: 'device',
-		options: {
-			$filter: {
-				uuid,
-			},
-		},
-		passthrough: {
-			headers: {
-				Authorization: `Bearer ${apiKey}`,
-			},
-		},
-	};
-
 	try {
-		const [device] = (await pTimeout(balenaApi.get(reqOpts), {
-			milliseconds: timeout,
-		})) as Device[];
+		const [device] = await pTimeout(
+			balenaApi.get({
+				resource: 'device',
+				options: {
+					$select: 'id',
+					$filter: {
+						uuid,
+					},
+				},
+				passthrough: {
+					headers: {
+						Authorization: `Bearer ${apiKey}`,
+					},
+				},
+			}),
+			{
+				milliseconds: timeout,
+			},
+		);
 
 		if (device == null) {
 			throw new DeviceNotFoundError();
@@ -89,9 +86,9 @@ export const fetchDevice = async (
 };
 
 export const exchangeKeyAndGetDeviceOrRegenerate = async (
-	balenaApi: PinejsClientRequest,
+	balenaApi: PinejsClientRequest<BalenaModel>,
 	opts: KeyExchangeOpts,
-): Promise<Device> => {
+) => {
 	try {
 		const device = await exchangeKeyAndGetDevice(balenaApi, opts);
 		log.debug('Key exchange succeeded');
@@ -106,9 +103,9 @@ export const exchangeKeyAndGetDeviceOrRegenerate = async (
 };
 
 export const exchangeKeyAndGetDevice = async (
-	balenaApi: PinejsClientRequest,
+	balenaApi: PinejsClientRequest<BalenaModel>,
 	opts: Partial<KeyExchangeOpts>,
-): Promise<Device> => {
+) => {
 	const uuid = opts.uuid;
 	const apiRequestTimeout = opts.apiRequestTimeout;
 	if (!(uuid && apiRequestTimeout)) {
@@ -144,7 +141,7 @@ export const exchangeKeyAndGetDevice = async (
 		);
 	}
 
-	let device: Device;
+	let device: Awaited<ReturnType<typeof fetchDevice>>;
 	try {
 		device = await fetchDevice(
 			balenaApi,
@@ -183,12 +180,12 @@ export const exchangeKeyAndGetDevice = async (
 };
 
 export const provision = async (
-	balenaApi: PinejsClientRequest,
+	balenaApi: PinejsClientRequest<BalenaModel>,
 	opts: KeyExchangeOpts,
 ) => {
 	await config.initialized();
 
-	let device: Device | null = null;
+	let device: Awaited<ReturnType<typeof exchangeKeyAndGetDevice>> | undefined;
 
 	if (
 		opts.registered_at == null ||
@@ -265,6 +262,4 @@ export const provision = async (
 		await config.set(configToUpdate);
 		eventTracker.track('Device bootstrap success');
 	}
-
-	return device;
 };
