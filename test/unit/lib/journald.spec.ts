@@ -60,8 +60,8 @@ describe('lib/journald', () => {
 
 		expect(actualCommand).deep.equal(expectedCommand);
 
-		expectedOptionalArgs.forEach((arg) => {
+		for (const arg of expectedOptionalArgs) {
 			expect(actualOptionalArgs).to.include(arg);
-		});
+		}
 	});
 });

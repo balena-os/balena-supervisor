@@ -450,7 +450,7 @@ function groupComponents(
 
 	const allUuids: string[] = [];
 	const allAppIds: number[] = [];
-	everyComponent.forEach(({ appId, appUuid }) => {
+	for (const { appId, appUuid } of everyComponent) {
 		// Pre-populate the groupings
 		grouping[appId] = {
 			services: [],
@@ -462,13 +462,13 @@ function groupComponents(
 			allUuids.push(appUuid);
 		}
 		allAppIds.push(appId);
-	});
+	}
 
 	// First we try to group everything by it's uuid, but if any component does
 	// not have a uuid, we fall back to the old appId style
 	if (everyComponent.length === allUuids.length) {
 		const uuidGroups: { [uuid: string]: AppGroup[0] } = {};
-		new Set(allUuids).forEach((uuid) => {
+		for (const uuid of new Set(allUuids)) {
 			const uuidServices = services.filter(
 				({ appUuid: sUuid }) => uuid === sUuid,
 			);
@@ -484,7 +484,7 @@ function groupComponents(
 				networks: uuidNetworks,
 				volumes: uuidVolumes,
 			};
-		});
+		}
 
 		for (const uuid of Object.keys(uuidGroups)) {
 			// There's a chance that the uuid and the appId is different, and this
@@ -505,7 +505,7 @@ function groupComponents(
 		const appVols = Object.groupBy(volumes, ({ appId }) => appId);
 		const appNets = Object.groupBy(networks, ({ appId }) => appId);
 
-		_.uniq(allAppIds).forEach((appId) => {
+		for (const appId of _.uniq(allAppIds)) {
 			grouping[appId].services = grouping[appId].services.concat(
 				appSvcs[appId] ?? [],
 			);
@@ -515,7 +515,7 @@ function groupComponents(
 			grouping[appId].volumes = grouping[appId].volumes.concat(
 				appVols[appId] ?? [],
 			);
-		});
+		}
 	}
 
 	return grouping;
@@ -820,7 +820,7 @@ function saveAndRemoveImages(
 
 function getAppContainerIds(currentApps: InstancedAppState) {
 	const containerIds: { [appId: number]: Dictionary<string> } = {};
-	Object.keys(currentApps).forEach((appId) => {
+	for (const appId of Object.keys(currentApps)) {
 		const intAppId = parseInt(appId, 10);
 		const app = currentApps[intAppId];
 		const services = app.services || [];
@@ -832,7 +832,7 @@ function getAppContainerIds(currentApps: InstancedAppState) {
 			}),
 			{},
 		);
-	});
+	}
 
 	return containerIds;
 }

@@ -81,56 +81,58 @@ export function convertToRestoreRulesFormat(rules: Rule[]): string {
 		iptablesRestore.push(`*${table}`);
 
 		// define our chains for this table...
-		tables[table]!.map((rule) => rule.chain)
-			.filter((chain, index, self) => {
+		for (const chain of tables[table]!.map((rule) => rule.chain).filter(
+			($chain, index, self) => {
 				if (
-					chain === undefined ||
-					['INPUT', 'FORWARD', 'OUTPUT'].includes(chain)
+					$chain === undefined ||
+					['INPUT', 'FORWARD', 'OUTPUT'].includes($chain)
 				) {
 					return false;
 				}
 
-				return self.indexOf(chain) === index;
-			})
-			.forEach((chain) => {
-				iptablesRestore.push(`:${chain} - [0:0]`);
-			});
+				return self.indexOf($chain) === index;
+			},
+		)) {
+			iptablesRestore.push(`:${chain} - [0:0]`);
+		}
 
 		// add the rules...
-		tables[table]!.map((rule) => {
-			const args: string[] = [];
+		iptablesRestore.push(
+			...tables[table]!.map((rule) => {
+				const args: string[] = [];
 
-			if (rule.action) {
-				args.push(rule.action);
-			}
-			if (rule.chain) {
-				args.push(rule.chain);
-				// Optionally push a rule to a specific position in the chain
-				if (
-					(rule.action === RuleAction.Insert ||
-						rule.action === RuleAction.Delete) &&
-					rule.id
-				) {
-					args.push(rule.id?.toString() ?? '1');
+				if (rule.action) {
+					args.push(rule.action);
 				}
-			}
-			if (rule.proto) {
-				args.push(`-p ${rule.proto}`);
-			}
-			if (rule.matches) {
-				rule.matches.forEach((match) => args.push(match));
-			}
-			// TODO: Enable this once the support for it can be confirmed...
-			// if (rule.comment) {
-			// 	args.push('-m comment');
-			// 	args.push(`--comment "${rule.comment}"`);
-			// }
-			if (rule.target) {
-				args.push(`-j ${rule.target}`);
-			}
+				if (rule.chain) {
+					args.push(rule.chain);
+					// Optionally push a rule to a specific position in the chain
+					if (
+						(rule.action === RuleAction.Insert ||
+							rule.action === RuleAction.Delete) &&
+						rule.id
+					) {
+						args.push(rule.id?.toString() ?? '1');
+					}
+				}
+				if (rule.proto) {
+					args.push(`-p ${rule.proto}`);
+				}
+				if (rule.matches) {
+					args.push(...rule.matches);
+				}
+				// TODO: Enable this once the support for it can be confirmed...
+				// if (rule.comment) {
+				// 	args.push('-m comment');
+				// 	args.push(`--comment "${rule.comment}"`);
+				// }
+				if (rule.target) {
+					args.push(`-j ${rule.target}`);
+				}
 
-			return args.join(' ');
-		}).forEach((rule) => iptablesRestore.push(rule));
+				return args.join(' ');
+			}),
+		);
 	}
 
 	// commit the changes...
@@ -305,9 +307,9 @@ async function applyRules(rules: Rule | Rule[], adaptor: RuleAdaptor) {
 	};
 
 	const processedRules: Rule[] = [];
-	_.castArray(rules).forEach((rule) => {
+	for (const rule of _.castArray(rules)) {
 		processRule(rule, processedRules);
-	});
+	}
 
 	await adaptor(processedRules);
 }

@@ -97,15 +97,15 @@ function updateSupervisorAccessRules(
 	const matchesIntf = localMode
 		? [[]]
 		: interfaces.map((intf) => [`-i ${intf}`]);
-	matchesIntf.forEach((intf) =>
+	for (const intf of matchesIntf) {
 		supervisorAccessRules.push({
 			comment: 'Supervisor API',
 			action: iptables.RuleAction.Append,
 			proto: 'tcp',
 			matches: [`--dport ${port}`, ...intf],
 			target: 'ACCEPT',
-		}),
-	);
+		});
+	}
 
 	// now block access to the port for any interface, since the above should have allowed legitimate traffic...
 	supervisorAccessRules.push({

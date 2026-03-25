@@ -343,13 +343,13 @@ describe('lib/firewall', function () {
 			expectRule: (rule: iptablesMock.Testable<Rule>) => number,
 		) => {
 			rules = _.castArray(rules);
-			rules.forEach((rule) => {
+			for (const rule of rules) {
 				const ruleIdx = expectRule(rule);
 
 				// make sure we reject AFTER the rule...
 				const rejectAllRuleIdx = expectRule(rejectAllRule);
 				expect(ruleIdx).is.lessThan(rejectAllRuleIdx);
-			});
+			}
 		};
 
 		it('should have a rule to allow DNS traffic from the balena0 interface', async () => {
@@ -359,7 +359,7 @@ describe('lib/firewall', function () {
 					await config.set({ firewallMode: 'on' });
 					await hasAppliedRules;
 
-					[4, 6].forEach((family: 4 | 6) => {
+					for (const family of [4, 6] as const) {
 						// expect that we have a rule to allow DNS access...
 						checkForRules(
 							{
@@ -371,7 +371,7 @@ describe('lib/firewall', function () {
 							},
 							expectRule,
 						);
-					});
+					}
 				},
 			);
 		});
@@ -383,7 +383,7 @@ describe('lib/firewall', function () {
 					await config.set({ firewallMode: 'on' });
 					await hasAppliedRules;
 
-					[4, 6].forEach((family: 4 | 6) => {
+					for (const family of [4, 6] as const) {
 						// expect that we have a rule to allow SSH access...
 						checkForRules(
 							{
@@ -395,7 +395,7 @@ describe('lib/firewall', function () {
 							},
 							expectRule,
 						);
-					});
+					}
 				},
 			);
 		});
@@ -407,7 +407,7 @@ describe('lib/firewall', function () {
 					await config.set({ firewallMode: 'on' });
 					await hasAppliedRules;
 
-					[4, 6].forEach((family: 4 | 6) => {
+					for (const family of [4, 6] as const) {
 						// expect that we have a rule to allow multicast...
 						checkForRules(
 							{
@@ -418,7 +418,7 @@ describe('lib/firewall', function () {
 							},
 							expectRule,
 						);
-					});
+					}
 				},
 			);
 		});
@@ -430,7 +430,7 @@ describe('lib/firewall', function () {
 					await config.set({ firewallMode: 'on' });
 					await hasAppliedRules;
 
-					[4, 6].forEach((family: 4 | 6) => {
+					for (const family of [4, 6] as const) {
 						// expect that we have a rule to allow balenaEngine access...
 						checkForRules(
 							{
@@ -442,7 +442,7 @@ describe('lib/firewall', function () {
 							},
 							expectRule,
 						);
-					});
+					}
 				},
 			);
 		});
@@ -456,7 +456,7 @@ describe('lib/firewall', function () {
 					await config.set({ localMode: true });
 					await hasAppliedRules;
 
-					[4, 6].forEach((family: 4 | 6) => {
+					for (const family of [4, 6] as const) {
 						// make sure we have a rule to allow traffic on ANY interface
 						const allowRuleIdx = expectRule({
 							proto: 'tcp',
@@ -479,7 +479,7 @@ describe('lib/firewall', function () {
 
 						// we should always reject AFTER we allow
 						expect(allowRuleIdx).to.be.lessThan(rejectRuleIdx);
-					});
+					}
 				},
 			);
 		});
@@ -502,8 +502,8 @@ describe('lib/firewall', function () {
 
 					// ensure we do have a restricted rule for each interface...
 					let allowRuleIdx = -1;
-					constants.allowedInterfaces.forEach((intf) => {
-						[4, 6].forEach((family: 4 | 6) => {
+					for (const intf of constants.allowedInterfaces) {
+						for (const family of [4, 6] as const) {
 							allowRuleIdx = expectRule({
 								chain: 'BALENA-FIREWALL',
 								proto: 'tcp',
@@ -511,8 +511,8 @@ describe('lib/firewall', function () {
 								target: 'ACCEPT',
 								family,
 							});
-						});
-					});
+						}
+					}
 
 					// make sure we have a rule to block traffic on ANY interface also
 					const rejectRuleIdx = expectRule({

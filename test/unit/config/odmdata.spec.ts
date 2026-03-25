@@ -21,53 +21,54 @@ describe('config/odmdata', () => {
 	});
 
 	it('only allows supported configuration modes', () => {
-		[
+		for (const { configName, supported } of [
 			{ configName: 'configuration', supported: true },
 			{ configName: 'mode', supported: false },
 			{ configName: '', supported: false },
-		].forEach(({ configName, supported }) =>
-			expect(backend.isSupportedConfig(configName)).to.equal(supported),
-		);
+		]) {
+			expect(backend.isSupportedConfig(configName)).to.equal(supported);
+		}
 	});
 
 	it('correctly detects boot config variables', () => {
-		[
+		for (const { config, valid } of [
 			{ config: 'HOST_ODMDATA_configuration', valid: true },
 			{ config: 'ODMDATA_configuration', valid: false },
 			{ config: 'HOST_CONFIG_odmdata_configuration', valid: false },
 			{ config: 'HOST_EXTLINUX_rootwait', valid: false },
 			{ config: '', valid: false },
-		].forEach(({ config, valid }) =>
-			expect(backend.isBootConfigVar(config)).to.equal(valid),
-		);
+		]) {
+			expect(backend.isBootConfigVar(config)).to.equal(valid);
+		}
 	});
 
 	it('converts variable to backend formatted name', () => {
-		[
+		for (const { input, output } of [
 			{ input: 'HOST_ODMDATA_configuration', output: 'configuration' },
 			{ input: 'HOST_ODMDATA_', output: null },
 			{ input: 'value', output: null },
-		].forEach(({ input, output }) =>
-			expect(backend.processConfigVarName(input)).to.equal(output),
-		);
+		]) {
+			expect(backend.processConfigVarName(input)).to.equal(output);
+		}
 	});
 
 	it('normalizes variable value', () => {
-		[{ input: { key: 'key', value: 'value' }, output: 'value' }].forEach(
-			({ input, output }) =>
-				expect(backend.processConfigVarValue(input.key, input.value)).to.equal(
-					output,
-				),
-		);
+		for (const { input, output } of [
+			{ input: { key: 'key', value: 'value' }, output: 'value' },
+		]) {
+			expect(backend.processConfigVarValue(input.key, input.value)).to.equal(
+				output,
+			);
+		}
 	});
 
 	it('returns the environment name for config variable', () => {
-		[
+		for (const { input, output } of [
 			{ input: 'configuration', output: 'HOST_ODMDATA_configuration' },
 			{ input: '', output: null },
-		].forEach(({ input, output }) =>
-			expect(backend.createConfigVarName(input)).to.equal(output),
-		);
+		]) {
+			expect(backend.createConfigVarName(input)).to.equal(output);
+		}
 	});
 });
 

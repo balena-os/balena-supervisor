@@ -6,15 +6,15 @@ describe('APPEND directive', () => {
 	const directive = new AppendDirective(supportedConfigValues);
 
 	it('parses valid APPEND value', () => {
-		VALID_VALUES.forEach(({ input, output }) =>
-			expect(directive.parse(input)).to.deep.equal(output),
-		);
+		for (const { input, output } of VALID_VALUES) {
+			expect(directive.parse(input)).to.deep.equal(output);
+		}
 	});
 
 	it('errors when parsing invalid APPEND value', () => {
-		INVALID_VALUES.forEach(({ input, reason }) =>
-			expect(() => directive.parse(input as any)).to.throw(reason),
-		);
+		for (const { input, reason } of INVALID_VALUES) {
+			expect(() => directive.parse(input as any)).to.throw(reason);
+		}
 	});
 
 	it('generates new string from existing string', () => {
@@ -58,9 +58,9 @@ describe('APPEND directive', () => {
 	});
 
 	it('errors when generating with invalid ConfigOptions', () => {
-		INVALID_CONFIGS_OPTIONS.forEach(({ input, reason }) =>
-			expect(() => directive.generate(input)).to.throw(reason),
-		);
+		for (const { input, reason } of INVALID_CONFIGS_OPTIONS) {
+			expect(() => directive.generate(input)).to.throw(reason);
+		}
 	});
 });
 

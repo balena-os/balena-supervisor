@@ -5,10 +5,10 @@ describe('FDT directive', () => {
 	const directive = new FDTDirective();
 
 	it('parses valid FDT value', () => {
-		VALID_VALUES.forEach(({ input, output }) =>
+		for (const { input, output } of VALID_VALUES) {
 			// @ts-expect-error input with no FDT can still be parsed
-			expect(directive.parse(input)).to.deep.equal(output),
-		);
+			expect(directive.parse(input)).to.deep.equal(output);
+		}
 	});
 
 	it('generates value from valid ConfigOptions', () => {
@@ -20,9 +20,9 @@ describe('FDT directive', () => {
 	});
 
 	it('errors when generating with invalid ConfigOptions', () => {
-		INVALID_CONFIGS_OPTIONS.forEach(({ input, reason }) =>
-			expect(() => directive.generate(input as any)).to.throw(reason),
-		);
+		for (const { input, reason } of INVALID_CONFIGS_OPTIONS) {
+			expect(() => directive.generate(input as any)).to.throw(reason);
+		}
 	});
 });
 

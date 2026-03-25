@@ -297,7 +297,7 @@ class AppImpl implements App {
 
 		// Find those components that change between the current and target state
 		// those will have to be removed first and added later
-		target.forEach((tgt) => {
+		for (const tgt of target) {
 			const curr = current.find(
 				(item) => item.name === tgt.name && !item.isEqualConfig(tgt),
 			);
@@ -305,17 +305,17 @@ class AppImpl implements App {
 				outputs.push({ current: curr, target: tgt });
 				toBeUpdated.push(curr.name);
 			}
-		});
+		}
 
 		if (generateRemoves) {
 			const toBeRemoved: string[] = [];
 			// Find those components that are not part of the target state
-			current.forEach((curr) => {
+			for (const curr of current) {
 				if (!target.find((tgt) => tgt.name === curr.name)) {
 					outputs.push({ current: curr });
 					toBeRemoved.push(curr.name);
 				}
-			});
+			}
 
 			// Find duplicates in the current state and remove them
 			current.forEach((item, index) => {
@@ -336,11 +336,11 @@ class AppImpl implements App {
 		}
 
 		// Find newly created components
-		target.forEach((tgt) => {
+		for (const tgt of target) {
 			if (!current.find((curr) => tgt.name === curr.name)) {
 				outputs.push({ target: tgt });
 			}
-		});
+		}
 
 		return outputs;
 	}
@@ -798,9 +798,9 @@ class AppImpl implements App {
 				return [generateStep('updateMetadata', { current, target })];
 			} else {
 				// Otherwise, take lock for all services first
-				this.services.concat(targetServices).forEach((s) => {
+				for (const s of this.services.concat(targetServices)) {
 					appsToLock[target.appId].add(s.serviceName);
-				});
+				}
 				return [];
 			}
 		} else if (target.config.running !== current.config.running) {
@@ -831,9 +831,9 @@ class AppImpl implements App {
 			} else {
 				// Take lock for all services before stopping container
 				if (!servicesLocked) {
-					this.services.concat(targetServices).forEach((s) => {
+					for (const s of this.services.concat(targetServices)) {
 						appsToLock[target.appId].add(s.serviceName);
-					});
+					}
 					return [];
 				}
 				return [generateStep('stop', { current })];
@@ -880,9 +880,9 @@ class AppImpl implements App {
 				)
 			) {
 				if (!servicesLocked) {
-					this.services
-						.concat(targetApp.services)
-						.forEach((svc) => appsToLock[target.appId].add(svc.serviceName));
+					for (const svc of this.services.concat(targetApp.services)) {
+						appsToLock[target.appId].add(svc.serviceName);
+					}
 					return [];
 				}
 				return [generateStep('start', { target })];

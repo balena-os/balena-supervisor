@@ -26,9 +26,9 @@ function generateLockThenKillStep(
 	appsToLock: AppsToLockMap,
 ): CompositionStep[] {
 	if (!servicesLocked) {
-		currentServices.forEach((svc) =>
-			appsToLock[svc.appId].add(svc.serviceName),
-		);
+		for (const svc of currentServices) {
+			appsToLock[svc.appId].add(svc.serviceName);
+		}
 		return [];
 	}
 	return [generateStep('kill', { current })];
