@@ -12,24 +12,40 @@
  * for the .using/.disposer pattern (configJson, poll, target-state, etc).
  */
 
-import Bluebird from 'bluebird';
 import Lock from 'rwlock';
-import type { Release } from 'rwlock';
-
-type LockFn = (key: string | number) => Bluebird<Release>;
 
 const locker = new Lock();
 
-export const takeGlobalLockRW: LockFn = Bluebird.promisify(
-	locker.async.writeLock,
-	{
-		context: locker,
-	},
-);
+const takeGlobalLockRW = (key: string) =>
+	new Promise<Lock.Release>((resolve, reject) => {
+		locker.async.writeLock(key, (err, release) => {
+			if (err) {
+				reject(err);
+			} else {
+				resolve(release);
+			}
+		});
+	});
 
-export const takeGlobalLockRO: LockFn = Bluebird.promisify(
-	locker.async.readLock,
-	{
-		context: locker,
-	},
-);
+const takeGlobalLockRO = (key: string) =>
+	new Promise<Lock.Release>((resolve, reject) => {
+		locker.async.readLock(key, (err, release) => {
+			if (err) {
+				reject(err);
+			} else {
+				resolve(release);
+			}
+		});
+	});
+
+export const takeGlobalLockRWDisposer = async (key: string) => {
+	return {
+		[Symbol.dispose]: await takeGlobalLockRW(key),
+	};
+};
+
+export const takeGlobalLockRODisposer = async (key: string) => {
+	return {
+		[Symbol.dispose]: await takeGlobalLockRO(key),
+	};
+};

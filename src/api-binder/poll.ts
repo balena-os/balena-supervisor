@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
 import url from 'url';
 import { setTimeout } from 'timers/promises';
-import Bluebird from 'bluebird';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 import { Agent } from 'https';
 
@@ -9,7 +8,7 @@ import type { TargetState } from '../types/state';
 import { InternalInconsistencyError } from '../lib/errors';
 import { getGotInstance } from '../lib/request';
 import * as config from '../config';
-import { takeGlobalLockRW } from '../lib/process-lock';
+import { takeGlobalLockRWDisposer } from '../lib/process-lock';
 import * as constants from '../lib/constants';
 import log from '../lib/supervisor-console';
 
@@ -31,10 +30,7 @@ interface TargetStateEvents {
 export const emitter: StrictEventEmitter<EventEmitter, TargetStateEvents> =
 	new EventEmitter();
 
-const lockGetTarget = () =>
-	takeGlobalLockRW('getTarget').disposer((release) => {
-		release();
-	});
+const lockGetTarget = () => takeGlobalLockRWDisposer('getTarget');
 
 type CachedResponse = {
 	etag?: string | string[];
@@ -114,69 +110,69 @@ export const update = async (
 	cancel = false,
 ): Promise<void> => {
 	await config.initialized();
-	return Bluebird.using(lockGetTarget(), async () => {
-		const { uuid, apiEndpoint, apiRequestTimeout, deviceApiKey } =
-			await config.getMany([
-				'uuid',
-				'apiEndpoint',
-				'apiRequestTimeout',
-				'deviceApiKey',
-			]);
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- it's used for resource management..
+	using _lock = await lockGetTarget();
+	const { uuid, apiEndpoint, apiRequestTimeout, deviceApiKey } =
+		await config.getMany([
+			'uuid',
+			'apiEndpoint',
+			'apiRequestTimeout',
+			'deviceApiKey',
+		]);
 
-		if (typeof apiEndpoint !== 'string') {
-			throw new InternalInconsistencyError(
-				'Non-string apiEndpoint passed to ApiBinder.getTargetState',
-			);
-		}
+	if (typeof apiEndpoint !== 'string') {
+		throw new InternalInconsistencyError(
+			'Non-string apiEndpoint passed to ApiBinder.getTargetState',
+		);
+	}
 
-		const endpoint = url.resolve(apiEndpoint, `/device/v3/${uuid}/state`);
-		const got = await getGotInstance();
+	const endpoint = url.resolve(apiEndpoint, `/device/v3/${uuid}/state`);
+	const got = await getGotInstance();
 
-		const { statusCode, headers, body } = await got(endpoint, {
-			retry: { limit: 0 },
-			agent: {
-				https: new Agent({
-					keepAlive: true,
-					timeout: apiRequestTimeout,
-				}),
-			},
-			headers: {
-				Authorization: `Bearer ${deviceApiKey}`,
-				'If-None-Match': cache?.etag,
-			},
-			timeout: {
-				// TODO: We use the same default timeout for all of these in order to have a timeout generally
-				// but it would probably make sense to tune them individually
-				lookup: apiRequestTimeout,
-				connect: apiRequestTimeout,
-				secureConnect: apiRequestTimeout,
-				socket: apiRequestTimeout,
-				send: apiRequestTimeout,
-				response: apiRequestTimeout,
-			},
-		});
-
-		if (statusCode === 304 && cache?.etag != null) {
-			// There's no change so no need to update the cache
-			// only emit the target state if it hasn't been emitted yet
-			cache.emitted = emitTargetState(cache, force, isFromApi, cancel);
-			return;
-		}
-
-		if (statusCode < 200 || statusCode >= 300) {
-			log.error(`Error from the API: ${statusCode}`);
-			throw new ApiResponseError(`Error from the API: ${statusCode}`);
-		}
-
-		cache = {
-			etag: headers.etag,
-			body: body as any,
-		};
-
-		// Emit the target state and update the cache, cancelling any
-		// apply operations that may be in progress
-		cache.emitted = emitTargetState(cache, force, isFromApi, true);
+	const { statusCode, headers, body } = await got(endpoint, {
+		retry: { limit: 0 },
+		agent: {
+			https: new Agent({
+				keepAlive: true,
+				timeout: apiRequestTimeout,
+			}),
+		},
+		headers: {
+			Authorization: `Bearer ${deviceApiKey}`,
+			'If-None-Match': cache?.etag,
+		},
+		timeout: {
+			// TODO: We use the same default timeout for all of these in order to have a timeout generally
+			// but it would probably make sense to tune them individually
+			lookup: apiRequestTimeout,
+			connect: apiRequestTimeout,
+			secureConnect: apiRequestTimeout,
+			socket: apiRequestTimeout,
+			send: apiRequestTimeout,
+			response: apiRequestTimeout,
+		},
 	});
+
+	if (statusCode === 304 && cache?.etag != null) {
+		// There's no change so no need to update the cache
+		// only emit the target state if it hasn't been emitted yet
+		cache.emitted = emitTargetState(cache, force, isFromApi, cancel);
+		return;
+	}
+
+	if (statusCode < 200 || statusCode >= 300) {
+		log.error(`Error from the API: ${statusCode}`);
+		throw new ApiResponseError(`Error from the API: ${statusCode}`);
+	}
+
+	cache = {
+		etag: headers.etag,
+		body: body as any,
+	};
+
+	// Emit the target state and update the cache, cancelling any
+	// apply operations that may be in progress
+	cache.emitted = emitTargetState(cache, force, isFromApi, true);
 };
 
 const poll = async (skipFirstGet = false, fetchErrors = 0): Promise<void> => {

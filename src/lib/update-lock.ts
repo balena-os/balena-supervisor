@@ -7,7 +7,7 @@ import { isENOENT, UpdatesLockedError } from './errors';
 import { pathOnRoot, pathExistsOnState } from './host-utils';
 import { mkdirp } from './fs-utils';
 import * as lockfile from './lockfile';
-import { takeGlobalLockRW } from './process-lock';
+import { takeGlobalLockRWDisposer } from './process-lock';
 import * as logTypes from './log-types';
 import * as logger from '../logging';
 
@@ -73,17 +73,17 @@ async function takeGlobalLockOrFail(
 	maxWaitMs = 0, // 0 === wait forever
 ): Promise<ReadWriteLock.Release> {
 	let abort = false;
-	const lockingPromise = takeGlobalLockRW(appId).then((disposer) => {
+	const lockingPromise = takeGlobalLockRWDisposer(appId).then((disposer) => {
 		// Even if the timer resolves first, takeGlobalLockRW
 		// will eventually resolve and in that case we need to call the disposer
 		// to avoid a deadlock
 		if (abort) {
-			disposer();
+			disposer[Symbol.dispose]();
 			return () => {
 				/* noop */
 			};
 		} else {
-			return disposer;
+			return disposer[Symbol.dispose];
 		}
 	});
 
