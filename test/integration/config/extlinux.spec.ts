@@ -59,12 +59,10 @@ describe('config/extlinux', () => {
 		await tfs.restore();
 	});
 
-	it('only matches supported devices', async () => {
+	it('only matches supported devices', () => {
 		const extLinux = new Extlinux();
 		for (const { deviceType, metaRelease, supported } of MATCH_TESTS) {
-			await expect(
-				extLinux.matches(deviceType, metaRelease),
-			).to.eventually.equal(supported);
+			expect(extLinux.matches(deviceType, metaRelease)).to.equal(supported);
 		}
 	});
 

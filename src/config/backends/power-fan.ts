@@ -52,8 +52,8 @@ export class PowerFanConfig extends ConfigBackend {
 		return name.substring(PowerFanConfig.PREFIX.length);
 	}
 
-	public async matches(deviceType: string): Promise<boolean> {
-		return Promise.resolve(deviceType.includes('-orin-'));
+	public matches(deviceType: string): boolean {
+		return deviceType.includes('-orin-');
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {

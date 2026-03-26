@@ -5,9 +5,9 @@ import { Odmdata } from '~/src/config/backends/odmdata';
 describe('config/odmdata', () => {
 	const backend = new Odmdata();
 
-	it('only matches supported devices', async () => {
+	it('only matches supported devices', () => {
 		for (const { deviceType, match } of MATCH_TESTS) {
-			await expect(backend.matches(deviceType)).to.eventually.equal(match);
+			expect(backend.matches(deviceType)).to.equal(match);
 		}
 	});
 

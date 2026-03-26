@@ -92,8 +92,8 @@ export class ConfigTxt extends ConfigBackend {
 		'avoid_safe_mode',
 	].concat(ConfigTxt.UNSUPPORTED_KEYS);
 
-	public async matches(deviceType: string): Promise<boolean> {
-		return Promise.resolve(
+	public matches(deviceType: string): boolean {
+		return (
 			[
 				'fincm3',
 				'rt-rpi-300',
@@ -103,7 +103,7 @@ export class ConfigTxt extends ConfigBackend {
 				'revpi-connect-s',
 				'revpi-core-3',
 				'revpi-connect-4',
-			].includes(deviceType) || deviceType.startsWith('raspberry'),
+			].includes(deviceType) || deviceType.startsWith('raspberry')
 		);
 	}
 

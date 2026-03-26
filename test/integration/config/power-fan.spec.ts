@@ -42,14 +42,14 @@ describe('config/power-fan', () => {
 		await testfs.restore();
 	});
 
-	it('only matches supported devices', async () => {
+	it('only matches supported devices', () => {
 		powerFanConf = new PowerFanConfig(generateConfigJsonBackend());
 		for (const deviceType of SUPPORTED_DEVICE_TYPES) {
-			expect(await powerFanConf.matches(deviceType)).to.be.true;
+			expect(powerFanConf.matches(deviceType)).to.be.true;
 		}
 
 		for (const deviceType of UNSUPPORTED_DEVICE_TYPES) {
-			expect(await powerFanConf.matches(deviceType)).to.be.false;
+			expect(powerFanConf.matches(deviceType)).to.be.false;
 		}
 	});
 
@@ -95,7 +95,7 @@ describe('config/power-fan', () => {
 	it('correctly gets boot configs if power mode is not set', async () => {
 		await testfs({
 			[CONFIG_PATH]: stripIndent`
-            {   
+            {
                 "os": {
 					"extra": "field",
                     "fan": {
@@ -115,7 +115,7 @@ describe('config/power-fan', () => {
 	it('correctly gets boot configs if fan profile is not set', async () => {
 		await testfs({
 			[CONFIG_PATH]: stripIndent`
-            {   
+            {
                 "os": {
 					"extra": "field",
                     "power": {
@@ -135,7 +135,7 @@ describe('config/power-fan', () => {
 	it('correctly gets boot configs if no relevant boot configs are set', async () => {
 		await testfs({
 			[CONFIG_PATH]: stripIndent`
-            {   
+            {
                 "os": {
 					"extra": "field"
 				}
@@ -149,7 +149,7 @@ describe('config/power-fan', () => {
 
 	it('ignores unrelated fields in config.json when getting boot configs', async () => {
 		const configStr = stripIndent`
-		{   
+		{
 			"apiEndpoint": "https://api.balena-cloud.com",
 			"uuid": "deadbeef",
 			"os": {
@@ -365,7 +365,7 @@ describe('config/power-fan', () => {
 			// Note that extra fields in os.power and os.fan are removed when setting, as os.power
 			// and os.fan are considered managed by the Supervisor.
 			[CONFIG_PATH]: stripIndent`
-			{   
+			{
 				"apiEndpoint": "https://api.balena-cloud.com",
 				"uuid": "deadbeef",
 				"os": {
@@ -437,7 +437,7 @@ describe('config/power-fan', () => {
 	it('does not touch fields besides os.power and os.fan in config.json when removing boot configs', async () => {
 		await testfs({
 			[CONFIG_PATH]: stripIndent`
-			{   
+			{
 				"apiEndpoint": "https://api.balena-cloud.com",
 				"uuid": "deadbeef",
 				"os": {

@@ -151,8 +151,8 @@ export class ConfigFs extends ConfigBackend {
 		return this;
 	}
 
-	public async matches(deviceType: string): Promise<boolean> {
-		return Promise.resolve(ConfigFs.SupportedDeviceTypes.includes(deviceType));
+	public matches(deviceType: string): boolean {
+		return ConfigFs.SupportedDeviceTypes.includes(deviceType);
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {

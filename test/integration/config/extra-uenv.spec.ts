@@ -78,9 +78,7 @@ describe('config/extra-uEnv', () => {
 		}).enable();
 		for (const device of MATCH_TESTS) {
 			// Test device that has extra_uEnv.txt
-			await expect(backend.matches(device.type)).to.eventually.equal(
-				device.supported,
-			);
+			expect(await backend.matches(device.type)).to.equal(device.supported);
 		}
 
 		await tfs.restore();
@@ -92,7 +90,7 @@ describe('config/extra-uEnv', () => {
 		).to.be.rejected;
 		for (const device of MATCH_TESTS) {
 			// Test same device but without extra_uEnv.txt
-			await expect(backend.matches(device.type)).to.eventually.be.false;
+			expect(await backend.matches(device.type)).to.be.false;
 		}
 	});
 

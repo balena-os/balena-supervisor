@@ -39,15 +39,12 @@ export class Extlinux extends ConfigBackend {
 		'(?:' + _.escapeRegExp(Extlinux.bootConfigVarPrefix) + ')(.+)',
 	);
 
-	public async matches(
-		deviceType: string,
-		metaRelease: string | undefined,
-	): Promise<boolean> {
-		return Promise.resolve(
-			// Only test metaRelease with Jetson devices
+	public matches(deviceType: string, metaRelease: string | undefined): boolean {
+		// Only test metaRelease with Jetson devices
+		return (
 			deviceType.startsWith('jetson-') &&
-				typeof metaRelease === 'string' &&
-				semver.lt(metaRelease, EXTLINUX_READONLY),
+			typeof metaRelease === 'string' &&
+			semver.lt(metaRelease, EXTLINUX_READONLY)
 		);
 	}
 
