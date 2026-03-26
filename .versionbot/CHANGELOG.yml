@@ -1,4 +1,16 @@
 - commits:
+    - subject: Convert `forEach` to `for` loops where appropriate
+      hash: d19d4ad99f6397556377eed1d2cabff0fc027d17
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.17
+  title: ""
+  date: 2026-03-26T16:01:14.388Z
+- commits:
     - subject: "mdns-lookup: improve typings"
       hash: e997a8aa3d1a3c01faec6edfa53e56996372d5bf
       body: ""
