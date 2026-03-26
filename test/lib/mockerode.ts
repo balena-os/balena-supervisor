@@ -937,20 +937,20 @@ export function createMockerode(engine: MockEngine) {
 		...dockerodeStubs,
 		...mockEngineStubs,
 		restore: () => {
-			Object.values(dockerodeStubs).forEach((stub) => {
+			for (const stub of Object.values(dockerodeStubs)) {
 				stub.restore();
-			});
-			Object.values(mockEngineStubs).forEach((spy) => {
+			}
+			for (const spy of Object.values(mockEngineStubs)) {
 				spy.restore();
-			});
+			}
 		},
 		resetHistory: () => {
-			Object.values(dockerodeStubs).forEach((stub) => {
+			for (const stub of Object.values(dockerodeStubs)) {
 				stub.resetHistory();
-			});
-			Object.values(mockEngineStubs).forEach((spy) => {
+			}
+			for (const spy of Object.values(mockEngineStubs)) {
 				spy.resetHistory();
-			});
+			}
 		},
 	};
 }

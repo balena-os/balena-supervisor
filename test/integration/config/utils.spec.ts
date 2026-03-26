@@ -43,19 +43,19 @@ describe('config/utils', () => {
 	});
 
 	it('transforms environment variables to boot configs', () => {
-		keys(CONFIGS).forEach((key) => {
+		for (const key of keys(CONFIGS)) {
 			expect(
 				configUtils.envToBootConfig(BACKENDS[key], CONFIGS[key].envVars),
 			).to.deep.equal(CONFIGS[key].bootConfig);
-		});
+		}
 	});
 
 	it('transforms boot configs to environment variables', () => {
-		keys(CONFIGS).forEach((key) => {
+		for (const key of keys(CONFIGS)) {
 			expect(
 				configUtils.bootConfigToEnv(BACKENDS[key], CONFIGS[key].bootConfig),
 			).to.deep.equal(CONFIGS[key].envVars);
-		});
+		}
 	});
 });
 

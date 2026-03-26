@@ -145,7 +145,7 @@ export class ConfigTxt extends ConfigBackend {
 						const [, currParams] = overlayQueue[overlayQueue.length - 1];
 						// The specification allows multiple params in a line
 						const params = value.split(',');
-						params.forEach((param) => {
+						for (const param of params) {
 							if (isBaseParam(param)) {
 								// We make sure to put the base param in the right overlays
 								// since RPI doesn't seem to be too strict about the ordering
@@ -154,7 +154,7 @@ export class ConfigTxt extends ConfigBackend {
 							} else {
 								currParams.push(value);
 							}
-						});
+						}
 					} else if (key === 'dtoverlay') {
 						// Assume that the first element is the overlay name
 						// we don't validate that the value is well formed

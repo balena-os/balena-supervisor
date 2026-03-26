@@ -1458,30 +1458,30 @@ describe('compose/service: unit tests', () => {
 	describe('Service volume types', () => {
 		it('should correctly identify short syntax volumes', () => {
 			// Short binds
-			['/one:/one', '/two:/two:ro', '/three:/three:rw'].forEach((b) => {
+			for (const b of ['/one:/one', '/two:/two:ro', '/three:/three:rw']) {
 				expect(ServiceT.ShortMount.is(b)).to.be.true;
 				expect(ServiceT.ShortBind.is(b)).to.be.true;
 				expect(ServiceT.ShortAnonymousVolume.is(b)).to.be.false;
 				expect(ServiceT.ShortNamedVolume.is(b)).to.be.false;
-			});
+			}
 			// Short anonymous volumes
-			['volume', 'another_volume'].forEach((v) => {
+			for (const v of ['volume', 'another_volume']) {
 				expect(ServiceT.ShortMount.is(v)).to.be.false;
 				expect(ServiceT.ShortBind.is(v)).to.be.false;
 				expect(ServiceT.ShortAnonymousVolume.is(v)).to.be.true;
 				expect(ServiceT.ShortNamedVolume.is(v)).to.be.false;
-			});
+			}
 			// Short named volumes
-			[
+			for (const v of [
 				'another_one:/another/one',
 				'yet_another:/yet/another:ro',
 				'final:/final:rw',
-			].forEach((v) => {
+			]) {
 				expect(ServiceT.ShortMount.is(v)).to.be.true;
 				expect(ServiceT.ShortBind.is(v)).to.be.false;
 				expect(ServiceT.ShortAnonymousVolume.is(v)).to.be.false;
 				expect(ServiceT.ShortNamedVolume.is(v)).to.be.true;
-			});
+			}
 		});
 
 		it('should correctly identify long syntax volumes', () => {
@@ -1495,12 +1495,12 @@ describe('compose/service: unit tests', () => {
 				{ type: 'volume', target: '/four', bind: { propagation: 'slave' } },
 				{ type: 'volume', target: '/five', tmpfs: { size: 200 } },
 			];
-			longAnonymousVols.forEach((v) => {
+			for (const v of longAnonymousVols) {
 				expect(ServiceT.LongAnonymousVolume.is(v)).to.be.true;
 				expect(ServiceT.LongNamedVolume.is(v)).to.be.false;
 				expect(ServiceT.LongBind.is(v)).to.be.false;
 				expect(ServiceT.LongTmpfs.is(v)).to.be.false;
-			});
+			}
 
 			const longNamedVols = [
 				{ type: 'volume', source: 'one', target: '/one' },
@@ -1524,12 +1524,12 @@ describe('compose/service: unit tests', () => {
 					tmpfs: { size: 200 },
 				},
 			];
-			longNamedVols.forEach((v) => {
+			for (const v of longNamedVols) {
 				expect(ServiceT.LongAnonymousVolume.is(v)).to.be.false;
 				expect(ServiceT.LongNamedVolume.is(v)).to.be.true;
 				expect(ServiceT.LongBind.is(v)).to.be.false;
 				expect(ServiceT.LongTmpfs.is(v)).to.be.false;
-			});
+			}
 
 			const longBinds = [
 				{ type: 'bind', source: '/one', target: '/one' },
@@ -1553,12 +1553,12 @@ describe('compose/service: unit tests', () => {
 					tmpfs: { size: 200 },
 				},
 			];
-			longBinds.forEach((v) => {
+			for (const v of longBinds) {
 				expect(ServiceT.LongAnonymousVolume.is(v)).to.be.false;
 				expect(ServiceT.LongNamedVolume.is(v)).to.be.false;
 				expect(ServiceT.LongBind.is(v)).to.be.true;
 				expect(ServiceT.LongTmpfs.is(v)).to.be.false;
-			});
+			}
 
 			const longTmpfs = [
 				{ type: 'tmpfs', target: '/var/tmp' },
@@ -1567,12 +1567,12 @@ describe('compose/service: unit tests', () => {
 				{ type: 'tmpfs', target: '/var/tmp4', bind: { propagation: 'slave' } },
 				{ type: 'tmpfs', target: '/var/tmp4', tmpfs: { size: 200 } },
 			];
-			longTmpfs.forEach((v) => {
+			for (const v of longTmpfs) {
 				expect(ServiceT.LongAnonymousVolume.is(v)).to.be.false;
 				expect(ServiceT.LongNamedVolume.is(v)).to.be.false;
 				expect(ServiceT.LongBind.is(v)).to.be.false;
 				expect(ServiceT.LongTmpfs.is(v)).to.be.true;
-			});
+			}
 
 			// All of the following volume definitions are not allowed by docker-compose
 			const invalids = [
@@ -1585,12 +1585,12 @@ describe('compose/service: unit tests', () => {
 				// Other types besides volume, tmpfs, or bind
 				{ type: 'invalid', source: 'test', target: '/test2' },
 			];
-			invalids.forEach((v) => {
+			for (const v of invalids) {
 				expect(ServiceT.LongAnonymousVolume.is(v)).to.be.false;
 				expect(ServiceT.LongNamedVolume.is(v)).to.be.false;
 				expect(ServiceT.LongBind.is(v)).to.be.false;
 				expect(ServiceT.LongTmpfs.is(v)).to.be.false;
-			});
+			}
 		});
 	});
 });

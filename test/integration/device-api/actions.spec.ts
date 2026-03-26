@@ -290,10 +290,10 @@ describe('manages application lifecycle', () => {
 			containers = await waitForSetup(targetState);
 			// Containers should have correct metadata;
 			// Testing their names should be sufficient.
-			containers.forEach((ctn) => {
+			for (const ctn of containers) {
 				expect(serviceNames.some((name) => new RegExp(name).test(ctn.Name))).to
 					.be.true;
-			});
+			}
 		});
 
 		it('should restart an application by recreating containers', async () => {
@@ -814,10 +814,10 @@ describe('manages application lifecycle', () => {
 			containers = await waitForSetup(targetState);
 			// Containers should have correct metadata;
 			// Testing their names should be sufficient.
-			containers.forEach((ctn) => {
+			for (const ctn of containers) {
 				expect(serviceNames.some((name) => new RegExp(name).test(ctn.Name))).to
 					.be.true;
-			});
+			}
 		});
 
 		it('should restart an application by recreating containers', async () => {

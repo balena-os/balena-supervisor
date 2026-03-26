@@ -134,20 +134,20 @@ describe('config/extlinux', () => {
 
 	it('only allows supported configuration options', () => {
 		const extLinux = new Extlinux();
-		[
+		for (const { configName, supported } of [
 			{ configName: 'isolcpus', supported: true },
 			{ configName: 'fdt', supported: true },
 			{ configName: '', supported: false },
 			{ configName: 'ro', supported: false }, // not allowed to configure
 			{ configName: 'rootwait', supported: false }, // not allowed to configure
-		].forEach(({ configName, supported }) =>
-			expect(extLinux.isSupportedConfig(configName)).to.equal(supported),
-		);
+		]) {
+			expect(extLinux.isSupportedConfig(configName)).to.equal(supported);
+		}
 	});
 
 	it('correctly detects boot config variables', () => {
 		const extLinux = new Extlinux();
-		[
+		for (const { config, valid } of [
 			{ config: 'HOST_EXTLINUX_isolcpus', valid: true },
 			{ config: 'HOST_EXTLINUX_fdt', valid: true },
 			{ config: 'HOST_EXTLINUX_rootwait', valid: true },
@@ -156,14 +156,14 @@ describe('config/extlinux', () => {
 			// TODO: { config: 'HOST_EXTLINUX_', valid: false },
 			{ config: 'DEVICE_EXTLINUX_isolcpus', valid: false },
 			{ config: 'isolcpus', valid: false },
-		].forEach(({ config, valid }) =>
-			expect(extLinux.isBootConfigVar(config)).to.equal(valid),
-		);
+		]) {
+			expect(extLinux.isBootConfigVar(config)).to.equal(valid);
+		}
 	});
 
 	it('converts variable to backend formatted name', () => {
 		const extLinux = new Extlinux();
-		[
+		for (const { input, output } of [
 			{ input: 'HOST_EXTLINUX_isolcpus', output: 'isolcpus' },
 			{ input: 'HOST_EXTLINUX_fdt', output: 'fdt' },
 			{ input: 'HOST_EXTLINUX_rootwait', output: 'rootwait' },
@@ -171,32 +171,33 @@ describe('config/extlinux', () => {
 			{ input: 'HOST_EXTLINUX_', output: 'HOST_EXTLINUX_' },
 			{ input: 'HOST_EXTLINUX_ ', output: ' ' },
 			{ input: 'ROOT_EXTLINUX_isolcpus', output: 'ROOT_EXTLINUX_isolcpus' },
-		].forEach(({ input, output }) =>
-			expect(extLinux.processConfigVarName(input)).to.equal(output),
-		);
+		]) {
+			expect(extLinux.processConfigVarName(input)).to.equal(output);
+		}
 	});
 
 	it('normalizes variable value', () => {
 		const extLinux = new Extlinux();
-		[{ input: { key: 'key', value: 'value' }, output: 'value' }].forEach(
-			({ input, output }) =>
-				expect(extLinux.processConfigVarValue(input.key, input.value)).to.equal(
-					output,
-				),
-		);
+		for (const { input, output } of [
+			{ input: { key: 'key', value: 'value' }, output: 'value' },
+		]) {
+			expect(extLinux.processConfigVarValue(input.key, input.value)).to.equal(
+				output,
+			);
+		}
 	});
 
 	it('returns the environment name for config variable', () => {
 		const extLinux = new Extlinux();
-		[
+		for (const { input, output } of [
 			{ input: 'isolcpus', output: 'HOST_EXTLINUX_isolcpus' },
 			{ input: 'fdt', output: 'HOST_EXTLINUX_fdt' },
 			{ input: 'rootwait', output: 'HOST_EXTLINUX_rootwait' },
 			{ input: '', output: 'HOST_EXTLINUX_' },
 			{ input: '5', output: 'HOST_EXTLINUX_5' },
-		].forEach(({ input, output }) =>
-			expect(extLinux.createConfigVarName(input)).to.equal(output),
-		);
+		]) {
+			expect(extLinux.createConfigVarName(input)).to.equal(output);
+		}
 	});
 });
 

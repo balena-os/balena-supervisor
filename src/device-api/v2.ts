@@ -183,55 +183,53 @@ router.get(
 			const commits: string[] = [];
 
 			// only access scoped apps
-			apps
-				.filter((app) => req.auth.isScoped({ apps: [parseInt(app.appId, 10)] }))
-				.forEach((app) => {
-					const appId = parseInt(app.appId, 10);
-					response[app.name] = {
-						appId,
-						commit: app.commit,
-						services: {},
-					};
+			for (const app of apps.filter(({ appId }) =>
+				req.auth.isScoped({ apps: [parseInt(appId, 10)] }),
+			)) {
+				const appId = parseInt(app.appId, 10);
+				response[app.name] = {
+					appId,
+					commit: app.commit,
+					services: {},
+				};
 
-					appNameById[appId] = app.name;
-					commits.push(app.commit);
-				});
+				appNameById[appId] = app.name;
+				commits.push(app.commit);
+			}
 
 			// only access scoped images
-			imgs
-				.filter(
-					(img) =>
-						req.auth.isScoped({ apps: [img.appId] }) &&
-						// Ensure we are using the apps for the target release
-						commits.includes(img.commit),
-				)
-				.forEach((img) => {
-					const appName = appNameById[img.appId];
-					if (appName == null) {
-						log.warn(
-							`Image found for unknown application!\nImage: ${JSON.stringify(
-								img,
-							)}`,
-						);
-						return;
-					}
+			for (const img of imgs.filter(
+				(i) =>
+					req.auth.isScoped({ apps: [i.appId] }) &&
+					// Ensure we are using the apps for the target release
+					commits.includes(i.commit),
+			)) {
+				const appName = appNameById[img.appId];
+				if (appName == null) {
+					log.warn(
+						`Image found for unknown application!\nImage: ${JSON.stringify(
+							img,
+						)}`,
+					);
+					continue;
+				}
 
-					const svc = _.find(services, (s: Service) => {
-						return s.serviceName === img.serviceName && s.commit === img.commit;
-					});
-
-					let status: string | undefined;
-					if (svc == null) {
-						status = img.status;
-					} else {
-						status = svc.status ?? img.status;
-					}
-					response[appName].services[img.serviceName] = {
-						status,
-						releaseId: img.releaseId,
-						downloadProgress: img.downloadProgress ?? null,
-					};
+				const svc = _.find(services, (s: Service) => {
+					return s.serviceName === img.serviceName && s.commit === img.commit;
 				});
+
+				let status: string | undefined;
+				if (svc == null) {
+					status = img.status;
+				} else {
+					status = svc.status ?? img.status;
+				}
+				response[appName].services[img.serviceName] = {
+					status,
+					releaseId: img.releaseId,
+					downloadProgress: img.downloadProgress ?? null,
+				};
+			}
 
 			res.status(200).json(response);
 		} catch (err) {

@@ -3272,13 +3272,13 @@ describe('compose/application-manager', () => {
 					abortSignal: new AbortController().signal,
 				});
 
-			[startStep1, startStep2, startStep3, startStep4].forEach((step) => {
+			for (const step of [startStep1, startStep2, startStep3, startStep4]) {
 				expect(step).to.have.property('action').that.equals('start');
 				expect(step)
 					.to.have.property('target')
 					.that.has.property('serviceName')
 					.that.is.oneOf(['one', 'two', 'three', 'four']);
-			});
+			}
 			expect(nextSteps).to.have.lengthOf(0);
 		});
 
