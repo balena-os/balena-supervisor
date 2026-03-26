@@ -126,6 +126,7 @@ export async function normaliseLegacyDatabase() {
 				`No compatible releases found in API, removing ${app.appId} from target state`,
 			);
 			await db.models('app').where({ appId: app.appId }).del();
+			continue;
 		}
 
 		// We need to get the app.uuid, release.id, serviceId, image.id and updated imageUrl
