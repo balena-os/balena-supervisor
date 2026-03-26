@@ -1,4 +1,18 @@
 - commits:
+    - subject: Avoid unnecessary `Promise`s in `ConfigBackend.matches` implementations
+      hash: 381b7124840bd52c2753409e1ddd9ce8a6ff2405
+      body: |
+        This reduces some overhead and code size which is easily avoided when
+        using async/await rather than `.then`
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.19
+  title: ""
+  date: 2026-03-26T18:05:24.906Z
+- commits:
     - subject: Switch locks to using native resource management functionality
       hash: 0082941e3cae30d08ef913d218d1746b5adad3b5
       body: ""
