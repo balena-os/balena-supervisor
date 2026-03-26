@@ -1,4 +1,4 @@
-import Bluebird from 'bluebird';
+import pify from 'pify';
 import once from 'lodash/once';
 import requestLib from 'request';
 import resumableRequestLib from 'resumable-request';
@@ -72,8 +72,9 @@ const getRequestInstances = once(async () => {
 
 	const requestHandle = requestLib.defaults(requestOpts);
 
-	const request = Bluebird.promisifyAll(requestHandle, {
+	const request = pify(requestHandle, {
 		multiArgs: true,
+		excludeMain: true,
 	}) as unknown as PromisifiedRequest;
 	const resumable = resumableRequestLib.defaults(resumableOpts);
 
