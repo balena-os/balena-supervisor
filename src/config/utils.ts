@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import Bluebird from 'bluebird';
 
 import * as config from '../config';
 import * as constants from '../lib/constants';
@@ -15,9 +14,13 @@ export async function getSupportedBackends(): Promise<ConfigBackend[]> {
 		getMetaOSRelease(constants.hostOSVersionPath),
 	]);
 	// Return list of configurable backends that match this deviceType and metaRelease
-	return Bluebird.filter(Backends, (backend: ConfigBackend) =>
-		backend.matches(deviceType, metaRelease),
-	);
+	return (
+		await Promise.all(
+			Backends.map(async (backend) =>
+				(await backend.matches(deviceType, metaRelease)) ? backend : undefined,
+			),
+		)
+	).filter((backend) => backend != null);
 }
 
 export function envToBootConfig(

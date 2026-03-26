@@ -1,4 +1,3 @@
-import Bluebird from 'bluebird';
 import _ from 'lodash';
 
 const tryParse = function (obj) {
@@ -101,219 +100,189 @@ const imageForDependentApp = function (app) {
 	};
 };
 
-exports.up = function (knex) {
-	return Bluebird.resolve(
-		knex.schema.createTable('image', (t) => {
-			t.increments('id').primary();
-			t.string('name');
-			t.integer('appId');
-			t.integer('serviceId');
-			t.string('serviceName');
-			t.integer('imageId');
-			t.integer('releaseId');
-			t.boolean('dependent');
+exports.up = async function (knex) {
+	await knex.schema.createTable('image', (t) => {
+		t.increments('id').primary();
+		t.string('name');
+		t.integer('appId');
+		t.integer('serviceId');
+		t.string('serviceName');
+		t.integer('imageId');
+		t.integer('releaseId');
+		t.boolean('dependent');
+	});
+
+	const apps = await knex('app')
+		.select()
+		.whereNot({ markedForDeletion: true })
+		.orWhereNull('markedForDeletion');
+
+	if (apps.length > 0) {
+		await knex('config').insert({
+			key: 'legacyAppsPresent',
+			value: 'true',
+		});
+	}
+
+	// We're in a transaction, and it's easier to drop and recreate
+	// than to migrate each field...
+	await knex.schema.dropTable('app');
+	await knex.schema.createTable('app', (t) => {
+		t.increments('id').primary();
+		t.string('name');
+		t.integer('releaseId');
+		t.string('commit');
+		t.integer('appId');
+		t.json('services');
+		t.json('networks');
+		t.json('volumes');
+	});
+	await Promise.all(
+		apps.map(async (app) => {
+			const migratedApp = singleToMulticontainerApp(app);
+			await knex('app').insert(jsonifyAppFields(migratedApp));
+			await knex('image').insert(imageForApp(migratedApp));
 		}),
-	)
-		.then(() =>
-			knex('app')
-				.select()
-				.whereNot({ markedForDeletion: true })
-				.orWhereNull('markedForDeletion'),
-		)
-		.tap((apps) => {
-			if (apps.length > 0) {
+	);
+	// For some reason dropping a column in this table doesn't work. Anyways, we don't want to store old targetValues.
+	// Instead, on first run the supervisor will store current device config values as targets - so we want to
+	// make the old values that refer to supervisor config be the *current* values, and we do that by inserting
+	// to the config table.
+	const deviceConf = await knex('deviceConfig').select();
+	await knex.schema.dropTable('deviceConfig');
+	const values = JSON.parse(deviceConf[0].values);
+	const configKeys = {
+		RESIN_SUPERVISOR_POLL_INTERVAL: 'appUpdatePollInterval',
+		RESIN_SUPERVISOR_LOCAL_MODE: 'localMode',
+		RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'connectivityCheckEnabled',
+		RESIN_SUPERVISOR_LOG_CONTROL: 'loggingEnabled',
+		RESIN_SUPERVISOR_DELTA: 'delta',
+		RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT: 'deltaRequestTimeout',
+		RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT: 'deltaApplyTimeout',
+		RESIN_SUPERVISOR_DELTA_RETRY_COUNT: 'deltaRetryCount',
+		RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL: 'deltaRequestTimeout',
+		RESIN_SUPERVISOR_OVERRIDE_LOCK: 'lockOverride',
+	};
+	await Promise.all(
+		Object.keys(values).map((envVarName) => {
+			if (configKeys[envVarName] != null) {
 				return knex('config').insert({
-					key: 'legacyAppsPresent',
-					value: 'true',
+					key: configKeys[envVarName],
+					value: values[envVarName],
 				});
 			}
-		})
-		.tap(() => {
-			// We're in a transaction, and it's easier to drop and recreate
-			// than to migrate each field...
-			return knex.schema.dropTable('app').then(() => {
-				return knex.schema.createTable('app', (t) => {
-					t.increments('id').primary();
-					t.string('name');
-					t.integer('releaseId');
-					t.string('commit');
-					t.integer('appId');
-					t.json('services');
-					t.json('networks');
-					t.json('volumes');
-				});
-			});
-		})
-		.map((app) => {
-			const migratedApp = singleToMulticontainerApp(app);
-			return knex('app')
-				.insert(jsonifyAppFields(migratedApp))
-				.then(() => knex('image').insert(imageForApp(migratedApp)));
-		})
-		.then(() => {
-			// For some reason dropping a column in this table doesn't work. Anyways, we don't want to store old targetValues.
-			// Instead, on first run the supervisor will store current device config values as targets - so we want to
-			// make the old values that refer to supervisor config be the *current* values, and we do that by inserting
-			// to the config table.
-			return knex('deviceConfig')
-				.select()
-				.then((deviceConf) => {
-					return knex.schema.dropTable('deviceConfig').then(() => {
-						const values = JSON.parse(deviceConf[0].values);
-						const configKeys = {
-							RESIN_SUPERVISOR_POLL_INTERVAL: 'appUpdatePollInterval',
-							RESIN_SUPERVISOR_LOCAL_MODE: 'localMode',
-							RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'connectivityCheckEnabled',
-							RESIN_SUPERVISOR_LOG_CONTROL: 'loggingEnabled',
-							RESIN_SUPERVISOR_DELTA: 'delta',
-							RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT: 'deltaRequestTimeout',
-							RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT: 'deltaApplyTimeout',
-							RESIN_SUPERVISOR_DELTA_RETRY_COUNT: 'deltaRetryCount',
-							RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL: 'deltaRequestTimeout',
-							RESIN_SUPERVISOR_OVERRIDE_LOCK: 'lockOverride',
-						};
-						return Bluebird.map(Object.keys(values), (envVarName) => {
-							if (configKeys[envVarName] != null) {
-								return knex('config').insert({
-									key: configKeys[envVarName],
-									value: values[envVarName],
-								});
-							}
-						});
-					});
-				})
-				.then(() => {
-					return knex.schema.createTable('deviceConfig', (t) => {
-						t.json('targetValues');
-					});
-				})
-				.then(() => knex('deviceConfig').insert({ targetValues: '{}' }));
-		})
-		.then(() => knex('dependentApp').select())
-		.then((dependentApps) => {
-			return knex.schema
-				.dropTable('dependentApp')
-				.then(() => {
-					return knex.schema.createTable('dependentApp', (t) => {
-						t.increments('id').primary();
-						t.integer('appId');
-						t.integer('parentApp');
-						t.string('name');
-						t.string('commit');
-						t.integer('releaseId');
-						t.integer('imageId');
-						t.string('image');
-						t.json('environment');
-						t.json('config');
-					});
-				})
-				.then(() => {
-					return knex.schema.createTable('dependentAppTarget', (t) => {
-						t.increments('id').primary();
-						t.integer('appId');
-						t.integer('parentApp');
-						t.string('name');
-						t.string('commit');
-						t.integer('releaseId');
-						t.integer('imageId');
-						t.string('image');
-						t.json('environment');
-						t.json('config');
-					});
-				})
-				.then(() => {
-					return Bluebird.map(dependentApps, (app) => {
-						const newApp = {
-							appId: parseInt(app.appId, 10),
-							parentApp: parseInt(app.parentAppId, 10),
-							image: app.imageId,
-							releaseId: null,
-							commit: app.commit,
-							name: app.name,
-							config: JSON.stringify(tryParse(app.config)),
-							environment: JSON.stringify(tryParse(app.environment)),
-						};
-						const image = imageForDependentApp(newApp);
-						return knex('image')
-							.insert(image)
-							.then(() => knex('dependentApp').insert(newApp))
-							.then(() => knex('dependentAppTarget').insert(newApp));
-					});
-				});
-		})
-		.then(() => knex('dependentDevice').select())
-		.then((dependentDevices) => {
-			return knex.schema
-				.dropTable('dependentDevice')
-				.then(() => {
-					return knex.schema.createTable('dependentDevice', (t) => {
-						t.increments('id').primary();
-						t.string('uuid');
-						t.integer('appId');
-						t.string('localId');
-						t.string('device_type');
-						t.string('logs_channel');
-						t.integer('deviceId');
-						t.boolean('is_online');
-						t.string('name');
-						t.string('status');
-						t.string('download_progress');
-						t.integer('is_managed_by');
-						t.dateTime('lock_expiry_date');
-						t.string('commit');
-						t.string('targetCommit');
-						t.json('environment');
-						t.json('targetEnvironment');
-						t.json('config');
-						t.json('targetConfig');
-						t.boolean('markedForDeletion');
-					});
-				})
-				.then(() => {
-					return knex.schema.createTable('dependentDeviceTarget', (t) => {
-						t.increments('id').primary();
-						t.string('uuid');
-						t.string('name');
-						t.json('apps');
-					});
-				})
-				.then(() => {
-					return Bluebird.map(dependentDevices, (device) => {
-						const newDevice = _.clone(device);
-						newDevice.appId = parseInt(device.appId, 10);
-						newDevice.deviceId = parseInt(device.deviceId, 10);
-						if (device.is_managed_by != null) {
-							newDevice.is_managed_by = parseInt(device.is_managed_by, 10);
-						}
-						newDevice.config = JSON.stringify(tryParse(device.config));
-						newDevice.environment = JSON.stringify(
-							tryParse(device.environment),
-						);
-						newDevice.targetConfig = JSON.stringify(
-							tryParse(device.targetConfig),
-						);
-						newDevice.targetEnvironment = JSON.stringify(
-							tryParse(device.targetEnvironment),
-						);
-						newDevice.markedForDeletion ??= false;
-						const deviceTarget = {
-							uuid: device.uuid,
-							name: device.name,
-							apps: {},
-						};
-						deviceTarget.apps[device.appId] = {
-							commit: newDevice.targetCommit,
-							config: newDevice.targetConfig,
-							environment: newDevice.targetEnvironment,
-						};
-						return knex('dependentDevice')
-							.insert(newDevice)
-							.then(() => knex('dependentDeviceTarget').insert(deviceTarget));
-					});
-				});
-		});
+		}),
+	);
+	await knex.schema.createTable('deviceConfig', (t) => {
+		t.json('targetValues');
+	});
+	await knex('deviceConfig').insert({ targetValues: '{}' });
+	const dependentApps = await knex('dependentApp').select();
+	await knex.schema.dropTable('dependentApp');
+	await knex.schema.createTable('dependentApp', (t) => {
+		t.increments('id').primary();
+		t.integer('appId');
+		t.integer('parentApp');
+		t.string('name');
+		t.string('commit');
+		t.integer('releaseId');
+		t.integer('imageId');
+		t.string('image');
+		t.json('environment');
+		t.json('config');
+	});
+	await knex.schema.createTable('dependentAppTarget', (t) => {
+		t.increments('id').primary();
+		t.integer('appId');
+		t.integer('parentApp');
+		t.string('name');
+		t.string('commit');
+		t.integer('releaseId');
+		t.integer('imageId');
+		t.string('image');
+		t.json('environment');
+		t.json('config');
+	});
+	await Promise.all(
+		dependentApps.map(async (app) => {
+			const newApp = {
+				appId: parseInt(app.appId, 10),
+				parentApp: parseInt(app.parentAppId, 10),
+				image: app.imageId,
+				releaseId: null,
+				commit: app.commit,
+				name: app.name,
+				config: JSON.stringify(tryParse(app.config)),
+				environment: JSON.stringify(tryParse(app.environment)),
+			};
+			const image = imageForDependentApp(newApp);
+			await knex('image').insert(image);
+			await knex('dependentApp').insert(newApp);
+			await knex('dependentAppTarget').insert(newApp);
+		}),
+	);
+	const dependentDevices = await knex('dependentDevice').select();
+	await knex.schema.dropTable('dependentDevice');
+	await knex.schema.createTable('dependentDevice', (t) => {
+		t.increments('id').primary();
+		t.string('uuid');
+		t.integer('appId');
+		t.string('localId');
+		t.string('device_type');
+		t.string('logs_channel');
+		t.integer('deviceId');
+		t.boolean('is_online');
+		t.string('name');
+		t.string('status');
+		t.string('download_progress');
+		t.integer('is_managed_by');
+		t.dateTime('lock_expiry_date');
+		t.string('commit');
+		t.string('targetCommit');
+		t.json('environment');
+		t.json('targetEnvironment');
+		t.json('config');
+		t.json('targetConfig');
+		t.boolean('markedForDeletion');
+	});
+	await knex.schema.createTable('dependentDeviceTarget', (t) => {
+		t.increments('id').primary();
+		t.string('uuid');
+		t.string('name');
+		t.json('apps');
+	});
+	await Promise.all(
+		dependentDevices.map(async (device) => {
+			const newDevice = _.clone(device);
+			newDevice.appId = parseInt(device.appId, 10);
+			newDevice.deviceId = parseInt(device.deviceId, 10);
+			if (device.is_managed_by != null) {
+				newDevice.is_managed_by = parseInt(device.is_managed_by, 10);
+			}
+			newDevice.config = JSON.stringify(tryParse(device.config));
+			newDevice.environment = JSON.stringify(tryParse(device.environment));
+			newDevice.targetConfig = JSON.stringify(tryParse(device.targetConfig));
+			newDevice.targetEnvironment = JSON.stringify(
+				tryParse(device.targetEnvironment),
+			);
+			newDevice.markedForDeletion ??= false;
+			const deviceTarget = {
+				uuid: device.uuid,
+				name: device.name,
+				apps: {},
+			};
+			deviceTarget.apps[device.appId] = {
+				commit: newDevice.targetCommit,
+				config: newDevice.targetConfig,
+				environment: newDevice.targetEnvironment,
+			};
+			await knex('dependentDevice').insert(newDevice);
+			await knex('dependentDeviceTarget').insert(deviceTarget);
+		}),
+	);
 };
 
-exports.down = function () {
-	return Promise.reject(new Error('Not implemented'));
+// eslint-disable-next-line @typescript-eslint/require-await
+exports.down = async function () {
+	throw new Error('Not implemented');
 };

@@ -1,4 +1,4 @@
-import Bluebird from 'bluebird';
+import pify from 'pify';
 import once from 'lodash/once';
 import requestLib from 'request';
 import resumableRequestLib from 'resumable-request';
@@ -19,23 +19,23 @@ type PromisifiedRequest = typeof requestLib & {
 	delAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
-	) => Bluebird<[requestLib.Response, any]>;
+	) => Promise<[requestLib.Response, any]>;
 	putAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
-	) => Bluebird<[requestLib.Response, any]>;
+	) => Promise<[requestLib.Response, any]>;
 	postAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
-	) => Bluebird<[requestLib.Response, any]>;
+	) => Promise<[requestLib.Response, any]>;
 	patchAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
-	) => Bluebird<[requestLib.Response, any]>;
+	) => Promise<[requestLib.Response, any]>;
 	getAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
-	) => Bluebird<[requestLib.Response, any]>;
+	) => Promise<[requestLib.Response, any]>;
 };
 
 const getRequestInstances = once(async () => {
@@ -72,8 +72,9 @@ const getRequestInstances = once(async () => {
 
 	const requestHandle = requestLib.defaults(requestOpts);
 
-	const request = Bluebird.promisifyAll(requestHandle, {
+	const request = pify(requestHandle, {
 		multiArgs: true,
+		excludeMain: true,
 	}) as unknown as PromisifiedRequest;
 	const resumable = resumableRequestLib.defaults(resumableOpts);
 

@@ -1,6 +1,6 @@
 import { PinejsClientRequest } from 'pinejs-client-request';
 
-import Bluebird from 'bluebird';
+import pTimeout from 'p-timeout';
 import * as config from '../config';
 import * as eventTracker from '../event-tracker';
 
@@ -74,9 +74,9 @@ export const fetchDevice = async (
 	};
 
 	try {
-		const [device] = (await Bluebird.resolve(balenaApi.get(reqOpts)).timeout(
-			timeout,
-		)) as Device[];
+		const [device] = (await pTimeout(balenaApi.get(reqOpts), {
+			milliseconds: timeout,
+		})) as Device[];
 
 		if (device == null) {
 			throw new DeviceNotFoundError();
@@ -157,19 +157,21 @@ export const exchangeKeyAndGetDevice = async (
 	}
 
 	// We found the device so we can try to register a working device key for it
-	const [res] = await (
-		await request.getRequestInstance()
-	)
-		.postAsync(`${opts.apiEndpoint}/api-key/device/${device.id}/device-key`, {
-			json: true,
-			body: {
-				apiKey: opts.deviceApiKey,
+	const [res] = await pTimeout(
+		(await request.getRequestInstance()).postAsync(
+			`${opts.apiEndpoint}/api-key/device/${device.id}/device-key`,
+			{
+				json: true,
+				body: {
+					apiKey: opts.deviceApiKey,
+				},
+				headers: {
+					Authorization: `Bearer ${opts.provisioningApiKey}`,
+				},
 			},
-			headers: {
-				Authorization: `Bearer ${opts.provisioningApiKey}`,
-			},
-		})
-		.timeout(apiRequestTimeout);
+		),
+		{ milliseconds: apiRequestTimeout },
+	);
 
 	if (res.statusCode !== 200) {
 		throw new ExchangeKeyError(
@@ -211,7 +213,7 @@ export const provision = async (
 			}
 			log.info('New device detected. Provisioning...');
 			try {
-				device = await Bluebird.resolve(
+				device = await pTimeout(
 					deviceRegister.register({
 						applicationId: opts.applicationId,
 						uuid: opts.uuid,
@@ -224,7 +226,10 @@ export const provision = async (
 						osVariant: opts.osVariant,
 						macAddress: opts.macAddress,
 					}),
-				).timeout(opts.apiRequestTimeout);
+					{
+						milliseconds: opts.apiRequestTimeout,
+					},
+				);
 			} catch (err) {
 				if (
 					err instanceof deviceRegister.ApiError &&
