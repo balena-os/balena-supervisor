@@ -1,4 +1,16 @@
 - commits:
+    - subject: Switch locks to using native resource management functionality
+      hash: 0082941e3cae30d08ef913d218d1746b5adad3b5
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.18
+  title: ""
+  date: 2026-03-26T17:08:32.033Z
+- commits:
     - subject: Convert `forEach` to `for` loops where appropriate
       hash: d19d4ad99f6397556377eed1d2cabff0fc027d17
       body: ""
