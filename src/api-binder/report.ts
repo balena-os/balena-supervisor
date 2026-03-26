@@ -18,6 +18,7 @@ import { getRequestInstance } from '../lib/request';
 import { shallowDiff, prune, empty } from '../lib/json';
 import { pathOnRoot } from '../lib/host-utils';
 import { touch, writeAndSyncFile } from '../lib/fs-utils';
+import pTimeout from 'p-timeout';
 
 let lastReport: DeviceState = {};
 let lastReportTime = -Infinity;
@@ -70,9 +71,10 @@ async function report({ body, opts }: StateReport) {
 		body,
 	};
 
-	const [{ statusCode, body: statusMessage, headers }] = await request
-		.patchAsync(endpoint, params)
-		.timeout(apiRequestTimeout);
+	const [{ statusCode, body: statusMessage, headers }] = await pTimeout(
+		request.patchAsync(endpoint, params),
+		{ milliseconds: apiRequestTimeout },
+	);
 
 	if (statusCode < 200 || statusCode >= 300) {
 		throw new StatusError(
