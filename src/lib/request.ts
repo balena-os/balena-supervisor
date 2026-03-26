@@ -19,23 +19,23 @@ type PromisifiedRequest = typeof requestLib & {
 	delAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
-	) => Bluebird<[requestLib.Response, any]>;
+	) => Promise<[requestLib.Response, any]>;
 	putAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
-	) => Bluebird<[requestLib.Response, any]>;
+	) => Promise<[requestLib.Response, any]>;
 	postAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
-	) => Bluebird<[requestLib.Response, any]>;
+	) => Promise<[requestLib.Response, any]>;
 	patchAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
-	) => Bluebird<[requestLib.Response, any]>;
+	) => Promise<[requestLib.Response, any]>;
 	getAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
-	) => Bluebird<[requestLib.Response, any]>;
+	) => Promise<[requestLib.Response, any]>;
 };
 
 const getRequestInstances = once(async () => {
