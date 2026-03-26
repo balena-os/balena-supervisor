@@ -7,7 +7,7 @@ export abstract class ConfigBackend {
 	public abstract matches(
 		deviceType: string,
 		metaRelease?: string,
-	): Promise<boolean>;
+	): Resolvable<boolean>;
 
 	// A function which reads and parses the configuration options from
 	// specific boot config
