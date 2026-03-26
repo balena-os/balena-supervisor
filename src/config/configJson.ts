@@ -1,14 +1,18 @@
-import Bluebird from 'bluebird';
 import _ from 'lodash';
 
 import * as constants from '../lib/constants';
 import * as hostUtils from '../lib/host-utils';
-import { takeGlobalLockRO, takeGlobalLockRW } from '../lib/process-lock';
+import {
+	takeGlobalLockRODisposer,
+	takeGlobalLockRWDisposer,
+} from '../lib/process-lock';
 import type * as Schema from './schema';
 
 export default class ConfigJsonConfigBackend {
-	private readonly readLockConfigJson: () => Bluebird.Disposer<() => void>;
-	private readonly writeLockConfigJson: () => Bluebird.Disposer<() => void>;
+	private readonly readLockConfigJson = () =>
+		takeGlobalLockRODisposer('config.json');
+	private readonly writeLockConfigJson = () =>
+		takeGlobalLockRWDisposer('config.json');
 
 	private readonly schema: Schema.Schema;
 	/**
@@ -25,62 +29,52 @@ export default class ConfigJsonConfigBackend {
 	public constructor(schema: Schema.Schema, configPath?: string) {
 		this.schema = schema;
 		this.configPath = configPath;
-
-		this.writeLockConfigJson = () =>
-			takeGlobalLockRW('config.json').disposer((release) => {
-				release();
-			});
-		this.readLockConfigJson = () =>
-			takeGlobalLockRO('config.json').disposer((release) => {
-				release();
-			});
 	}
 
 	public async set<T extends Schema.SchemaKey>(keyVals: {
 		[key in T]: unknown;
 	}) {
 		await this.init();
-		await Bluebird.using(this.writeLockConfigJson(), async () => {
-			let changed = false;
-			_.forOwn(keyVals, (value, key: T) => {
-				if (this.schema[key] != null && !_.isEqual(this.cache[key], value)) {
-					this.cache[key] = value;
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- it's used for resource management..
+		using _lock = await this.writeLockConfigJson();
+		let changed = false;
+		_.forOwn(keyVals, (value, key: T) => {
+			if (this.schema[key] != null && !_.isEqual(this.cache[key], value)) {
+				this.cache[key] = value;
 
-					if (value == null && this.schema[key].removeIfNull) {
-						delete this.cache[key];
-					}
-
-					changed = true;
+				if (value == null && this.schema[key].removeIfNull) {
+					delete this.cache[key];
 				}
-			});
-			if (changed) {
-				await this.write();
+
+				changed = true;
 			}
 		});
+		if (changed) {
+			await this.write();
+		}
 	}
 
 	public async get(key: Schema.SchemaKey): Promise<unknown> {
 		await this.init();
-		return Bluebird.using(
-			this.readLockConfigJson(),
-			async () => await structuredClone(this.cache[key]),
-		);
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- it's used for resource management..
+		using _lock = await this.readLockConfigJson();
+		return await structuredClone(this.cache[key]);
 	}
 
 	public async remove(key: Schema.SchemaKey) {
 		await this.init();
-		return Bluebird.using(this.writeLockConfigJson(), async () => {
-			let changed = false;
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- it's used for resource management..
+		using _lock = await this.writeLockConfigJson();
+		let changed = false;
 
-			if (this.cache[key] != null) {
-				delete this.cache[key];
-				changed = true;
-			}
+		if (this.cache[key] != null) {
+			delete this.cache[key];
+			changed = true;
+		}
 
-			if (changed) {
-				await this.write();
-			}
-		});
+		if (changed) {
+			await this.write();
+		}
 	}
 
 	private async write(): Promise<void> {

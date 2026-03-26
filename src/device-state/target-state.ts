@@ -1,4 +1,3 @@
-import Bluebird from 'bluebird';
 import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
 
@@ -9,7 +8,10 @@ import * as globalEventBus from '../event-bus';
 import * as deviceConfig from './device-config';
 
 import { TargetStateError } from '../lib/errors';
-import { takeGlobalLockRO, takeGlobalLockRW } from '../lib/process-lock';
+import {
+	takeGlobalLockRODisposer,
+	takeGlobalLockRWDisposer,
+} from '../lib/process-lock';
 import * as dbFormat from './db-format';
 import * as applicationManager from '../compose/application-manager';
 
@@ -45,24 +47,8 @@ function parseTargetState(state: unknown): TargetState {
 let failedUpdates = 0;
 let intermediateTarget: InstancedDeviceState | null = null;
 
-const readLockTarget = () =>
-	takeGlobalLockRO('target').disposer((release) => {
-		release();
-	});
-const writeLockTarget = () =>
-	takeGlobalLockRW('target').disposer((release) => {
-		release();
-	});
-function usingReadLockTarget<T extends () => any, U extends ReturnType<T>>(
-	fn: T,
-): Bluebird<Awaited<U>> {
-	return Bluebird.using(readLockTarget, () => fn());
-}
-function usingWriteLockTarget<T extends () => any, U extends ReturnType<T>>(
-	fn: T,
-): Bluebird<Awaited<U>> {
-	return Bluebird.using(writeLockTarget, () => fn());
-}
+const readLockTarget = () => takeGlobalLockRODisposer('target');
+const writeLockTarget = () => takeGlobalLockRWDisposer('target');
 
 export function resetFailedUpdates() {
 	failedUpdates = 0;
@@ -109,39 +95,39 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 		JSON.stringify(localTarget.config),
 	);
 
-	await usingWriteLockTarget(async () => {
-		await db.transaction(async (trx) => {
-			await config.set({ name: localTarget.name }, trx);
-			await deviceConfig.setTarget(localTarget.config, trx);
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- it's used for resource management..
+	using _lock = await writeLockTarget();
+	await db.transaction(async (trx) => {
+		await config.set({ name: localTarget.name }, trx);
+		await deviceConfig.setTarget(localTarget.config, trx);
 
-			if (localSource || apiEndpoint == null || apiEndpoint === '') {
-				await applicationManager.setTarget(localTarget.apps, 'local', trx);
-			} else {
-				await applicationManager.setTarget(localTarget.apps, apiEndpoint, trx);
-			}
-			await config.set({ targetStateSet: true }, trx);
-		});
+		if (localSource || apiEndpoint == null || apiEndpoint === '') {
+			await applicationManager.setTarget(localTarget.apps, 'local', trx);
+		} else {
+			await applicationManager.setTarget(localTarget.apps, apiEndpoint, trx);
+		}
+		await config.set({ targetStateSet: true }, trx);
 	});
 }
 
-export function getTarget({
+export async function getTarget({
 	initial = false,
 	intermediate = false,
 }: {
 	initial?: boolean;
 	intermediate?: boolean;
-} = {}): Bluebird<InstancedDeviceState> {
-	return usingReadLockTarget(async () => {
-		if (intermediate) {
-			return intermediateTarget;
-		}
+} = {}): Promise<InstancedDeviceState> {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- it's used for resource management..
+	using _lock = await readLockTarget();
+	if (intermediate) {
+		return intermediateTarget!;
+	}
 
-		return {
-			local: {
-				name: await config.get('name'),
-				config: await deviceConfig.getTarget({ initial }),
-				apps: await dbFormat.getApps(),
-			},
-		};
-	}) as Bluebird<InstancedDeviceState>;
+	return {
+		local: {
+			name: await config.get('name'),
+			config: await deviceConfig.getTarget({ initial }),
+			apps: await dbFormat.getApps(),
+		},
+	};
 }
