@@ -1,4 +1,49 @@
 - commits:
+    - subject: Use `pify` for promisifying request
+      hash: 4513969be16d2eb55dd11fe9839919e1c394171e
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Use `Promise` as the return type for async request methods
+      hash: 0d4fe3ef5b486cc800b88897f25343c5b1c61fb7
+      body: |
+        This avoids accidentally relying on bluebird methods
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Replace `Bluebird.filter` with async/await equivalent
+      hash: a2e1d2ceea9f85ee0e5ca58c17bf44dd2ec67562
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Remove bluebird from migration files by converting to async/await
+      hash: 187f1f0017022a91ffdcd8f997efd8626805fcf4
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Replace `Bluebird.timeout` with `p-timeout`
+      hash: 069adb8e674cdda8821d94ac1f896b41855b6422
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.20
+  title: ""
+  date: 2026-03-26T18:42:49.318Z
+- commits:
     - subject: Avoid unnecessary `Promise`s in `ConfigBackend.matches` implementations
       hash: 381b7124840bd52c2753409e1ddd9ce8a6ff2405
       body: |
