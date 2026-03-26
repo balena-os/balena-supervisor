@@ -1,9 +1,8 @@
-import Bluebird from 'bluebird';
 import fs from 'fs';
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
-exports.up = function (knex) {
-	return new Bluebird((resolve) => {
+exports.up = async function (knex) {
+	const config = await new Promise((resolve) => {
 		if (!configJsonPath) {
 			console.log(
 				'Unable to locate config.json! Things may fail unexpectedly!',
@@ -29,41 +28,32 @@ exports.up = function (knex) {
 				resolve({});
 			}
 		});
-	})
-		.tap(() => {
-			// take the logsChannelSecret, and the apiEndpoint config field,
-			// and store them in a new table
-			return knex.schema.hasTable('logsChannelSecret').then((exists) => {
-				if (!exists) {
-					return knex.schema.createTable('logsChannelSecret', (t) => {
-						t.string('backend');
-						t.string('secret');
-					});
-				}
-			});
-		})
-		.then((config) => {
-			return knex('config')
-				.where({ key: 'logsChannelSecret' })
-				.select('value')
-				.then((results) => {
-					if (results.length === 0) {
-						return { config, secret: null };
-					}
-					return { config, secret: results[0].value };
-				});
-		})
-		.then(({ config, secret }) => {
-			return knex('logsChannelSecret').insert({
-				backend: config.apiEndpoint ?? '',
-				secret,
-			});
-		})
-		.then(() => {
-			return knex('config').where('key', 'logsChannelSecret').del();
+	});
+	// take the logsChannelSecret, and the apiEndpoint config field,
+	// and store them in a new table
+	const exists = await knex.schema.hasTable('logsChannelSecret');
+	if (!exists) {
+		await knex.schema.createTable('logsChannelSecret', (t) => {
+			t.string('backend');
+			t.string('secret');
 		});
+	}
+
+	const results = await knex('config')
+		.where({ key: 'logsChannelSecret' })
+		.select('value');
+
+	const secret = results.length === 0 ? null : results[0].value;
+
+	await knex('logsChannelSecret').insert({
+		backend: config.apiEndpoint ?? '',
+		secret,
+	});
+
+	await knex('config').where('key', 'logsChannelSecret').del();
 };
 
-exports.down = function () {
-	return Promise.reject(new Error('Not Implemented'));
+// eslint-disable-next-line @typescript-eslint/require-await
+exports.down = async function () {
+	throw new Error('Not Implemented');
 };
