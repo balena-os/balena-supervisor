@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import memoizee from 'memoizee';
 
 import supervisorVersion from '../lib/supervisor-version';
@@ -25,7 +24,7 @@ export const fnSchema = {
 		return config
 			.getMany(['uuid', 'apiEndpoint', 'registered_at', 'deviceId'])
 			.then((requiredValues) => {
-				return _.every(_.values(requiredValues));
+				return Object.values(requiredValues).every(Boolean);
 			});
 	},
 	osVersion: () => {

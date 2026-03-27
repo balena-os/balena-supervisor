@@ -585,8 +585,7 @@ export const applyTarget = async ({
 				currentState,
 				targetState,
 			);
-			const noConfigSteps = _.every(
-				deviceConfigSteps,
+			const noConfigSteps = deviceConfigSteps.every(
 				({ action }) => action === 'noop',
 			);
 
@@ -687,7 +686,7 @@ export const applyTarget = async ({
 					'Failed to apply state transition steps. ' +
 						e.message +
 						' Steps:' +
-						JSON.stringify(_.map(steps, 'action')),
+						JSON.stringify(steps.map((s) => s.action)),
 				);
 			}
 		}

@@ -280,7 +280,7 @@ export class ConfigTxt extends ConfigBackend {
 		} else if (typeof conf.dtoverlay === 'string') {
 			conf.dtoverlay = [conf.dtoverlay];
 		}
-		if (!_.includes(conf.dtoverlay, field)) {
+		if (!conf.dtoverlay.includes(field)) {
 			conf.dtoverlay.push(field);
 		}
 		conf.dtoverlay = conf.dtoverlay.filter((s) => !_.isEmpty(s));

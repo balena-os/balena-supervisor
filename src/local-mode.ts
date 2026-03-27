@@ -121,14 +121,16 @@ export class LocalModeManager {
 	public async collectEngineSnapshot(): Promise<EngineSnapshotRecord> {
 		const containersPromise = docker
 			.listContainers()
-			.then((resp) => _.map(resp, 'Id'));
-		const imagesPromise = docker.listImages().then((resp) => _.map(resp, 'Id'));
+			.then((resp) => resp.map((r) => r.Id));
+		const imagesPromise = docker
+			.listImages()
+			.then((resp) => resp.map((r) => r.Id));
 		const volumesPromise = docker
 			.listVolumes()
-			.then((resp) => _.map(resp.Volumes, 'Name'));
+			.then((resp) => (resp.Volumes ?? []).map((v) => v.Name));
 		const networksPromise = docker
 			.listNetworks()
-			.then((resp) => _.map(resp, 'Id'));
+			.then((resp) => resp.map((r) => r.Id));
 
 		const [containers, images, volumes, networks] = await Promise.all([
 			containersPromise,
@@ -150,7 +152,9 @@ export class LocalModeManager {
 			[inspectInfo.Id],
 			[inspectInfo.Image],
 			inspectInfo.Mounts.filter((m) => m.Name != null).map((m) => m.Name!),
-			_.map(inspectInfo.NetworkSettings.Networks, (n) => n.NetworkID),
+			Object.values(inspectInfo.NetworkSettings.Networks).map(
+				(n) => n.NetworkID,
+			),
 		);
 	}
 

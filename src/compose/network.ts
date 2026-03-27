@@ -301,7 +301,7 @@ class NetworkImpl implements Network {
 		// Check if every ipam config entry has both a subnet and a gateway
 		if (
 			_.some(
-				_.get(config, 'ipam.config', []),
+				config?.ipam?.config ?? [],
 				({ subnet, gateway }) => !subnet || !gateway,
 			)
 		) {

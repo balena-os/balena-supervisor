@@ -449,7 +449,7 @@ function groupComponents(
 	] as any;
 
 	const allUuids: string[] = [];
-	const allAppIds: number[] = [];
+	const allAppIds = new Set<number>();
 	for (const { appId, appUuid } of everyComponent) {
 		// Pre-populate the groupings
 		grouping[appId] = {
@@ -461,7 +461,7 @@ function groupComponents(
 		if (appUuid != null) {
 			allUuids.push(appUuid);
 		}
-		allAppIds.push(appId);
+		allAppIds.add(appId);
 	}
 
 	// First we try to group everything by it's uuid, but if any component does
@@ -505,7 +505,7 @@ function groupComponents(
 		const appVols = Object.groupBy(volumes, ({ appId }) => appId);
 		const appNets = Object.groupBy(networks, ({ appId }) => appId);
 
-		for (const appId of _.uniq(allAppIds)) {
+		for (const appId of allAppIds) {
 			grouping[appId].services = grouping[appId].services.concat(
 				appSvcs[appId] ?? [],
 			);
@@ -523,8 +523,8 @@ function groupComponents(
 
 function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 	const steps: CompositionStep[] = [];
-	_.each(current, (app) => {
-		_.each(app.services, (service) => {
+	for (const app of Object.values(current)) {
+		for (const service of app.services) {
 			const isUsingSupervisorAPI = checkTruthy(
 				service.config.labels['io.balena.features.supervisor-api'],
 			);
@@ -539,8 +539,8 @@ function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 				// Wait for the service to finish stopping
 				steps.push(generateStep('noop', {}));
 			}
-		});
-	});
+		}
+	}
 	return steps;
 }
 
@@ -721,8 +721,7 @@ function saveAndRemoveImages(
 	);
 
 	const currentImages = _.flatMap(current, (app) =>
-		_.map(
-			app.services,
+		app.services.map(
 			(svc) =>
 				_.find(availableImages, {
 					dockerImageId: svc.config.image,
@@ -751,7 +750,7 @@ function saveAndRemoveImages(
 			),
 	);
 
-	const targetImageDockerIds = _.fromPairs(
+	const targetImageDockerIds = Object.fromEntries(
 		_.flatMap(target, allImageDockerIdsForTargetApp),
 	);
 

@@ -33,7 +33,9 @@ api.balenaBackend = {
 		const uuid = req.params[0];
 		if (uuid != null) {
 			return res.json({
-				d: _.filter(api.balenaBackend!.devices, (dev) => dev.uuid === uuid),
+				d: Object.values(api.balenaBackend!.devices).filter(
+					(dev) => dev.uuid === uuid,
+				),
 			});
 		} else {
 			return res.json({ d: [] });

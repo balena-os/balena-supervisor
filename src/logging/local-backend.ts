@@ -35,9 +35,9 @@ export class LocalLogBackend extends LogBackend {
 
 					message = Object.assign({}, { serviceName }, message);
 				}
-				_.each(this.globalListeners, (listener) => {
+				for (const listener of this.globalListeners) {
 					listener.push(`${JSON.stringify(message)}\n`);
-				});
+				}
 			} catch (e) {
 				log.error('Error streaming local log output:', e);
 			}

@@ -1,5 +1,4 @@
 import { isRight } from 'fp-ts/lib/Either';
-import _ from 'lodash';
 import { DeviceName } from '../types';
 export interface CheckIntOptions {
 	positive?: boolean;
@@ -92,22 +91,4 @@ export function checkFalsey(v: unknown): boolean {
 
 export function isValidDeviceName(v: unknown): v is DeviceName {
 	return isRight(DeviceName.decode(v));
-}
-
-/**
- * validStringOrUndefined
- *
- * Ensure a string is either undefined, or a non-empty string
- */
-export function validStringOrUndefined(s: string | undefined): boolean {
-	return s == null || (typeof s === 'string' && !_.isEmpty(s));
-}
-
-/**
- * validStringOrUndefined
- *
- * Ensure an object is either undefined or an actual object
- */
-export function validObjectOrUndefined(o: object | undefined): boolean {
-	return o == null || _.isObject(o);
 }

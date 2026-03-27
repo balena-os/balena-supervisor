@@ -76,17 +76,13 @@ function singleToMulticontainerApp(
  * Converts an apps.json from single container to multi-app (v3) format.
  */
 export function fromLegacyAppsJson(appsArray: any[]): AppsJsonFormat {
-	const deviceConfig = _.reduce(
-		appsArray,
-		(conf, app) => {
-			return _.merge({}, conf, app.config);
-		},
-		{},
-	);
+	const deviceConfig = appsArray.reduce((conf, app) => {
+		return _.merge({}, conf, app.config);
+	}, {});
 
 	const apps = _.keyBy(
-		_.map(appsArray, singleToMulticontainerApp),
-		'uuid',
+		appsArray.map(singleToMulticontainerApp),
+		(a) => a.uuid,
 	) as Dictionary<TargetApp>;
 	return { apps, config: deviceConfig } as AppsJsonFormat;
 }

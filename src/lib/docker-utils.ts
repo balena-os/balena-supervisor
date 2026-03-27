@@ -358,7 +358,7 @@ export async function getImageEnv(id: string): Promise<EnvVarObject> {
 	const inspect = await docker.getImage(id).inspect();
 
 	try {
-		return envArrayToObject(_.get(inspect, ['Config', 'Env'], []));
+		return envArrayToObject(inspect?.Config?.Env);
 	} catch (e) {
 		log.error('Error getting env from image', e);
 		return {};
@@ -371,7 +371,7 @@ export async function getNetworkGateway(networkName: string): Promise<string> {
 	}
 
 	const network = await docker.getNetwork(networkName).inspect();
-	const config = _.get(network, ['IPAM', 'Config', '0']);
+	const config = network?.IPAM?.Config?.[0];
 	if (config != null) {
 		if (config.Gateway != null) {
 			return config.Gateway;
