@@ -146,7 +146,10 @@ export function getEntryPoint(
 	if (composeEntry != null) {
 		return commandAsArray(composeEntry);
 	}
-	const imgEntry = _.get(imageInfo, 'Config.Entrypoint', []);
+	const imgEntry = imageInfo?.Config?.Entrypoint;
+	if (imgEntry == null) {
+		return [];
+	}
 	return commandAsArray(imgEntry);
 }
 

@@ -407,7 +407,7 @@ class ServiceImpl implements Service {
 			devices,
 			deviceRequests: [],
 			dnsOpt: [],
-			entrypoint: '',
+			entrypoint: [],
 			extraHosts: [],
 			networks,
 			dns: [],
@@ -548,7 +548,7 @@ class ServiceImpl implements Service {
 			portMaps,
 			hostname,
 			command: container.Config.Cmd ?? '',
-			entrypoint: container.Config.Entrypoint ?? '',
+			entrypoint: container.Config.Entrypoint ?? [],
 			volumes,
 			image: container.Config.Image,
 			environment: Service.omitDeviceNameVars(
