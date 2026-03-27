@@ -1,4 +1,4 @@
-import { PinejsClientRequest } from 'pinejs-client-request';
+import PinejsClientFetch from 'pinejs-client-fetch';
 
 import pTimeout from 'p-timeout';
 import * as config from '../config';
@@ -34,7 +34,7 @@ export const getBalenaApi = memoizee(
 		passthrough.headers = passthrough.headers ?? {};
 		passthrough.headers.Authorization = `Bearer ${currentApiKey}`;
 		log.info(`API Binder bound to: ${baseUrl}`);
-		return new PinejsClientRequest<BalenaModel>({
+		return new PinejsClientFetch<BalenaModel>({
 			apiPrefix: baseUrl,
 			passthrough,
 		});
@@ -43,7 +43,7 @@ export const getBalenaApi = memoizee(
 );
 
 export const fetchDevice = async (
-	balenaApi: PinejsClientRequest<BalenaModel>,
+	balenaApi: PinejsClientFetch<BalenaModel>,
 	uuid: string,
 	apiKey: string,
 	timeout: number,
@@ -86,7 +86,7 @@ export const fetchDevice = async (
 };
 
 export const exchangeKeyAndGetDeviceOrRegenerate = async (
-	balenaApi: PinejsClientRequest<BalenaModel>,
+	balenaApi: PinejsClientFetch<BalenaModel>,
 	opts: KeyExchangeOpts,
 ) => {
 	try {
@@ -103,7 +103,7 @@ export const exchangeKeyAndGetDeviceOrRegenerate = async (
 };
 
 export const exchangeKeyAndGetDevice = async (
-	balenaApi: PinejsClientRequest<BalenaModel>,
+	balenaApi: PinejsClientFetch<BalenaModel>,
 	opts: Partial<KeyExchangeOpts>,
 ) => {
 	const uuid = opts.uuid;
@@ -180,7 +180,7 @@ export const exchangeKeyAndGetDevice = async (
 };
 
 export const provision = async (
-	balenaApi: PinejsClientRequest<BalenaModel>,
+	balenaApi: PinejsClientFetch<BalenaModel>,
 	opts: KeyExchangeOpts,
 ) => {
 	await config.initialized();
