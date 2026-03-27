@@ -1,4 +1,26 @@
 - commits:
+    - subject: "Migratinng legacy databases: fix handling no compatible releases"
+      hash: b87805e48c1603147caa994d5eaff5253b60db12
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Update to using balena-api v7
+      hash: 67b448cd0c60da24e8a720990694bbd5bfeff06b
+      body: |
+        This also makes use of the SDK's bundled typings to improve the typing
+        and safety of all balena-api API calls
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.21
+  title: ""
+  date: 2026-03-27T14:07:46.050Z
+- commits:
     - subject: Use `pify` for promisifying request
       hash: 4513969be16d2eb55dd11fe9839919e1c394171e
       body: ""
