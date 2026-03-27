@@ -99,9 +99,20 @@ export async function normaliseLegacyDatabase() {
 					commit: app.commit,
 					status: 'success',
 				},
+				$select: 'id',
 				$expand: {
 					contains__image: {
-						$expand: 'image',
+						$select: 'id',
+						$expand: {
+							image: {
+								$select: [
+									'id',
+									'is_a_build_of__service',
+									'is_stored_at__image_location',
+									'content_hash',
+								],
+							},
+						},
 					},
 					belongs_to__application: {
 						$select: ['uuid'],
@@ -115,6 +126,7 @@ export async function normaliseLegacyDatabase() {
 				`No compatible releases found in API, removing ${app.appId} from target state`,
 			);
 			await db.models('app').where({ appId: app.appId }).del();
+			continue;
 		}
 
 		// We need to get the app.uuid, release.id, serviceId, image.id and updated imageUrl
