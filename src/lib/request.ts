@@ -15,24 +15,24 @@ const DEFAULT_REQUEST_TIMEOUT = 59000; // ms
 const DEFAULT_REQUEST_RETRY_INTERVAL = 10000; // ms
 const DEFAULT_REQUEST_RETRY_COUNT = 30;
 
-type PromisifiedRequest = typeof requestLib & {
-	delAsync: (
+type PromisifiedRequest = {
+	del: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
 	) => Promise<[requestLib.Response, any]>;
-	putAsync: (
+	put: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
 	) => Promise<[requestLib.Response, any]>;
-	postAsync: (
+	post: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
 	) => Promise<[requestLib.Response, any]>;
-	patchAsync: (
+	patch: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
 	) => Promise<[requestLib.Response, any]>;
-	getAsync: (
+	get: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions,
 	) => Promise<[requestLib.Response, any]>;

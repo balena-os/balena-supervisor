@@ -191,9 +191,7 @@ export async function fetchDeltaWithProgress(
 
 	const url = `${deltaOpts.deltaEndpoint}/api/v${deltaOpts.deltaVersion}/delta?src=${deltaOpts.deltaSource}&dest=${imgDest}`;
 
-	const [res, data] = await (
-		await request.getRequestInstance()
-	).getAsync(url, opts);
+	const [res, data] = await (await request.getRequestInstance()).get(url, opts);
 	if (res.statusCode === 502 || res.statusCode === 504) {
 		throw new DeltaStillProcessingError();
 	}
@@ -471,7 +469,7 @@ const getAuthToken = (() => {
 	const memoizedGetToken = memoizee(
 		async (tokenUrl: string, tokenOpts) => {
 			const tokenResponseBody = (
-				await (await request.getRequestInstance()).getAsync(tokenUrl, tokenOpts)
+				await (await request.getRequestInstance()).get(tokenUrl, tokenOpts)
 			)[1];
 			const token = tokenResponseBody?.token;
 
