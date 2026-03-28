@@ -72,7 +72,7 @@ async function report({ body, opts }: StateReport) {
 	};
 
 	const [{ statusCode, body: statusMessage, headers }] = await pTimeout(
-		request.patchAsync(endpoint, params),
+		request.patch(endpoint, params),
 		{ milliseconds: apiRequestTimeout },
 	);
 
