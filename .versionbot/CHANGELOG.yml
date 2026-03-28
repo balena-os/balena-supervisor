@@ -1,4 +1,17 @@
 - commits:
+    - subject: Fix pify promisified method names
+      hash: 92bde8917743339c0449bb175bc2c66885322ec4
+      body: |
+        pify replaces methods in-place, not with *Async suffixes.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+      nested: []
+  version: 17.6.22
+  title: ""
+  date: 2026-03-28T00:34:04.667Z
+- commits:
     - subject: "Migratinng legacy databases: fix handling no compatible releases"
       hash: b87805e48c1603147caa994d5eaff5253b60db12
       body: ""
