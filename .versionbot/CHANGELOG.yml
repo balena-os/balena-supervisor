@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix inconsistent handling of `null` vs `undefined` for `getEntryPoint`
+      hash: 06ec31a891c7408ad9ccfbf4120849b11e01c772
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.23
+  title: ""
+  date: 2026-03-30T13:46:26.090Z
+- commits:
     - subject: Fix pify promisified method names
       hash: 92bde8917743339c0449bb175bc2c66885322ec4
       body: |
