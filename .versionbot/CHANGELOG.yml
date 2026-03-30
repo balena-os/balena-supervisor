@@ -1,4 +1,16 @@
 - commits:
+    - subject: Remove unused `stateReportErrors` variable
+      hash: ed35c0bb17b74ac46d5d85ca2b861ee6a7645a0c
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.25
+  title: ""
+  date: 2026-03-30T16:31:37.612Z
+- commits:
     - subject: Switch from pinejs-client-request to pinejs-client-fetch
       hash: e7e8dcf3adf9902bf7e2a5ad7be7bac34b316e97
       body: ""
