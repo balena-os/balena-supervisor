@@ -1,4 +1,16 @@
 - commits:
+    - subject: Switch from pinejs-client-request to pinejs-client-fetch
+      hash: e7e8dcf3adf9902bf7e2a5ad7be7bac34b316e97
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.24
+  title: ""
+  date: 2026-03-30T16:06:03.096Z
+- commits:
     - subject: Fix inconsistent handling of `null` vs `undefined` for `getEntryPoint`
       hash: 06ec31a891c7408ad9ccfbf4120849b11e01c772
       body: ""
