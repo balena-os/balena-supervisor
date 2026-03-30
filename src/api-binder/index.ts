@@ -21,7 +21,7 @@ import * as TargetState from './poll';
 import * as logger from '../logging';
 
 import * as apiHelper from '../lib/api-helper';
-import { startReporting, stateReportErrors } from './report';
+import { startReporting } from './report';
 import { setTimeout } from 'timers/promises';
 
 interface DevicePinInfo {
@@ -75,17 +75,14 @@ export async function healthcheck() {
 
 	// Check if state report is healthy
 	const stateReportHealthy =
-		!connectivityCheckEnabled ||
-		!deviceState.connected ||
-		stateReportErrors < 3;
+		!connectivityCheckEnabled || !deviceState.connected;
 
 	if (!stateReportHealthy) {
 		log.info(
 			stripIndent`
 			Healthcheck failure - At least ONE of the following conditions must be true:
 				- No connectivityCheckEnabled   ? ${!(connectivityCheckEnabled === true)}
-				- device state is disconnected  ? ${!(deviceState.connected === true)}
-				- stateReportErrors less then 3 ? ${stateReportErrors < 3}`,
+				- device state is disconnected  ? ${!(deviceState.connected === true)}`,
 		);
 		return false;
 	}

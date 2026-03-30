@@ -32,13 +32,6 @@ const maxMetricsFrequency = 300 * 1000;
 // Path of the cache for last reported state
 const CACHE_PATH = pathOnRoot('/tmp/balena-supervisor/state-report-cache');
 
-// TODO: This counter is read by the healthcheck to see if the
-// supervisor is having issues to connect. We have removed the
-// lines of code to increase the counter on network error as
-// we suspect that is really making things worst. This will
-// most likely get removed in the future.
-export let stateReportErrors = 0;
-
 type StateReportOpts = {
 	[key in keyof Pick<
 		config.ConfigMap<SchemaTypeKey>,
@@ -137,7 +130,6 @@ async function reportCurrentState(opts: StateReportOpts, uuid: string) {
 	// Run in try block to avoid throwing any exceptions
 	try {
 		await reportWithBackoff();
-		stateReportErrors = 0;
 	} catch (e) {
 		log.error(e);
 	}
