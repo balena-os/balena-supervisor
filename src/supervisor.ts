@@ -2,6 +2,7 @@ import * as apiBinder from './api-binder';
 import * as db from './db';
 import * as config from './config';
 import * as deviceState from './device-state';
+import * as tags from './api-binder/tags';
 import * as logger from './logging';
 import SupervisorAPI from './device-api';
 import * as v1 from './device-api/v1';
@@ -67,6 +68,7 @@ export class Supervisor {
 		await apiBinder.initialized();
 
 		await deviceState.initialized();
+		await tags.initialized();
 
 		const unmanaged = await config.get('unmanaged');
 		logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');

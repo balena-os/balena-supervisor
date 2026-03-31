@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import type { SinonStub } from 'sinon';
 import { stub, spy, useFakeTimers } from 'sinon';
-import Docker from 'dockerode';
+import Docker, { type ContainerInspectInfo } from 'dockerode';
 import request from 'supertest';
 import { setTimeout } from 'timers/promises';
 import { testfs } from 'mocha-pod';
@@ -21,6 +21,7 @@ import { cleanupDocker } from '~/test-lib/docker-helper';
 import { getBlink } from '~/lib/blink';
 import type { Blink } from '~/lib/blink';
 import { EXTRA_FIRMWARE_VOLUME_NAME } from '~/lib/extra-firmware';
+import { waitFor } from '~/test-lib/helper';
 
 export async function dbusSend(
 	dest: string,
@@ -209,21 +210,23 @@ describe('manages application lifecycle', () => {
 		// This test suite will timeout if anything goes wrong, since
 		// we don't have any way of knowing whether Docker has finished
 		// setting up containers or not.
-		let containers = await docker.listContainers({ all: true });
-		let containerInspects = await Promise.all(
-			containers.map(({ Id }) => docker.getContainer(Id).inspect()),
-		);
-		while (
-			expected !== containers.length ||
-			!isWaitComplete(containerInspects)
-		) {
-			await setTimeout(500);
-			containers = await docker.listContainers({ all: true });
-			containerInspects = await Promise.all(
-				containers.map(({ Id }) => docker.getContainer(Id).inspect()),
-			);
-		}
-		return containerInspects;
+		let containerInspects: ContainerInspectInfo[];
+		await waitFor({
+			checkFn: async () => {
+				const containers = await docker.listContainers({ all: true });
+				if (expected !== containers.length) {
+					return false;
+				}
+				containerInspects = await Promise.all(
+					containers.map(({ Id }) => docker.getContainer(Id).inspect()),
+				);
+
+				return isWaitComplete(containerInspects);
+			},
+			delayMs: 500,
+			maxWait: 60000,
+		});
+		return containerInspects!;
 	};
 
 	// Get NEW container inspects. This function should be passed to waitForSetup

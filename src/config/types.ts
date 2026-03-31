@@ -75,7 +75,7 @@ export const PermissiveNumber = new t.Type<number, string | number>(
 // Define this differently, so that we can add a generic to it
 export class StringJSON<T> extends t.Type<T, string> {
 	public readonly _tag: 'StringJSON' = 'StringJSON' as const;
-	constructor(type: t.InterfaceType<any>) {
+	constructor(type: t.Type<T>) {
 		super(
 			'StringJSON',
 			(m): m is T => isRight(type.decode(m)),

@@ -7,11 +7,9 @@ import { readFile } from 'fs/promises';
 import { DeviceState } from '../types';
 import * as config from '../config';
 import type { SchemaTypeKey, SchemaReturn } from '../config/schema-type';
-import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 
-import type { OnFailureInfo } from '../lib/backoff';
-import { withBackoff } from '../lib/backoff';
+import { createHandleRetry, withBackoff } from '../lib/backoff';
 import { log } from '../lib/supervisor-console';
 import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';
@@ -124,7 +122,7 @@ async function reportCurrentState(opts: StateReportOpts, uuid: string) {
 	const reportWithBackoff = withBackoff(getStateAndReport, {
 		maxDelay: opts.appUpdatePollInterval,
 		minDelay: 15000,
-		onFailure: handleRetry,
+		onFailure: createHandleRetry('Device state'),
 	});
 
 	// Run in try block to avoid throwing any exceptions
@@ -170,25 +168,6 @@ async function getCache(): Promise<DeviceState> {
 		);
 		return {};
 	}
-}
-
-function handleRetry(retryInfo: OnFailureInfo) {
-	if (retryInfo.error instanceof StatusError) {
-		// We don't want these errors to be classed as a report error, as this will cause
-		// the watchdog to kill the supervisor - and killing the supervisor will
-		// not help in this situation
-		log.error(
-			`Device state report failure! Status code: ${retryInfo.error.statusCode} - message:`,
-			retryInfo.error?.message ?? retryInfo.error,
-		);
-	} else {
-		eventTracker.track('Device state report failure', {
-			error: retryInfo.error,
-		});
-	}
-	log.info(
-		`Retrying current state report in ${retryInfo.delay / 1000} seconds`,
-	);
 }
 
 /**

@@ -1,5 +1,8 @@
 import { strict as assert } from 'assert';
 import { promisify } from 'util';
+import { StatusError } from './errors';
+import { log } from './supervisor-console';
+import * as eventTracker from '../event-tracker';
 
 export type OnFailureInfo = {
 	failures: number;
@@ -103,4 +106,26 @@ function exponentialRange(
 	maxDelay: number,
 ): number {
 	return Math.min(2 ** retryCount * minDelay, maxDelay);
+}
+
+export function createHandleRetry(reportName: string) {
+	const lowerCaseReportName = reportName.toLowerCase();
+	return function handleRetry(retryInfo: OnFailureInfo) {
+		if (retryInfo.error instanceof StatusError) {
+			// We don't want these errors to be classed as a report error, as this will cause
+			// the watchdog to kill the supervisor - and killing the supervisor will
+			// not help in this situation
+			log.error(
+				`${reportName} report failure! Status code: ${retryInfo.error.statusCode} - message:`,
+				retryInfo.error?.message ?? retryInfo.error,
+			);
+		} else {
+			eventTracker.track(`${reportName} report failure`, {
+				error: retryInfo.error,
+			});
+		}
+		log.info(
+			`Retrying ${lowerCaseReportName} report in ${retryInfo.delay / 1000} seconds`,
+		);
+	};
 }
