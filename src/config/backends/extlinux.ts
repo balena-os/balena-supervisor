@@ -36,7 +36,7 @@ export class Extlinux extends ConfigBackend {
 	);
 
 	public static bootConfigVarRegex = new RegExp(
-		'(?:' + _.escapeRegExp(Extlinux.bootConfigVarPrefix) + ')(.+)',
+		'(?:' + RegExp.escape(Extlinux.bootConfigVarPrefix) + ')(.+)',
 	);
 
 	public matches(deviceType: string, metaRelease: string | undefined): boolean {

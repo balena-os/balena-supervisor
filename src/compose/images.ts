@@ -471,7 +471,7 @@ const getSupervisorRepos = (imageName: string) => {
 	// If we're on the new balena/ARCH-supervisor image, add legacy image.
 	// If the image name is legacy, the `replace` will have no effect.
 	supervisorRepos.add(imageName.replace(/^balena/, 'resin'));
-	return [...supervisorRepos];
+	return supervisorRepos.values().toArray();
 };
 
 // TODO: same as above, we no longer use tags to identify supervisors
@@ -518,12 +518,15 @@ async function getImagesForCleanup(): Promise<Array<Docker.ImageInfo['Id']>> {
 		}
 	}
 
-	return [...imagesToCleanup].filter(
-		(image) =>
-			imageCleanupFailures[image] == null ||
-			Date.now() - imageCleanupFailures[image] >
-				constants.imageCleanupErrorIgnoreTimeout,
-	);
+	return imagesToCleanup
+		.values()
+		.filter(
+			(image) =>
+				imageCleanupFailures[image] == null ||
+				Date.now() - imageCleanupFailures[image] >
+					constants.imageCleanupErrorIgnoreTimeout,
+		)
+		.toArray();
 }
 
 export const isCleanupNeeded = async () =>

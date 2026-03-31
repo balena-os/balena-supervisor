@@ -31,7 +31,7 @@ export class Odmdata extends ConfigBackend {
 	private CONFIG_BUFFER = Buffer.from(this.CONFIG_BYTES);
 
 	public static bootConfigVarRegex = new RegExp(
-		'(?:' + _.escapeRegExp(Odmdata.bootConfigVarPrefix) + ')(.+)',
+		'(?:' + RegExp.escape(Odmdata.bootConfigVarPrefix) + ')(.+)',
 	);
 
 	public matches(deviceType: string): boolean {

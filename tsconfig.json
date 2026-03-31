@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "rootDir": "./",
-    "target": "ES2024",
+    "target": "ES2025",
     "module": "node20",
     "strict": true,
     "strictFunctionTypes": false,
@@ -14,6 +14,9 @@
     "allowJs": true,
     "noUnusedParameters": true,
     "noUnusedLocals": true,
+    "types": [
+      "mocha"
+    ],
     "paths": {
       "~/src/*": [
         "./src/*"
