@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const _ = require('lodash');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const TerserWebpackPlugin = require('terser-webpack-plugin');
 
 const externalModules = [
@@ -72,13 +71,13 @@ console.log('Using the following dependencies as external:', externalModules);
 module.exports = function (env) {
 	return {
 		mode: env == null || !env.noOptimize ? 'production' : 'development',
-		entry: './src/app.ts',
+		entry: './build/app.js',
 		output: {
 			filename: 'app.js',
 			path: path.resolve(__dirname, 'dist'),
 		},
 		resolve: {
-			extensions: ['.js', '.ts', '.json'],
+			extensions: ['.js', '.json'],
 		},
 		target: 'node',
 		node: {
@@ -115,19 +114,6 @@ module.exports = function (env) {
 					use: require.resolve('./build-utils/fix-jsonstream'),
 				},
 				{
-					test: /\.ts$|\.js$/,
-					exclude: /node_modules/,
-					use: [
-						{
-							loader: 'ts-loader',
-							options: {
-								transpileOnly: true,
-								configFile: 'tsconfig.release.json',
-							},
-						},
-					],
-				},
-				{
 					test: /\.node$/,
 					loader: 'node-loader',
 				},
@@ -147,9 +133,6 @@ module.exports = function (env) {
 			return callback();
 		},
 		plugins: [
-			new ForkTsCheckerWebpackPlugin({
-				async: false,
-			}),
 			new CopyWebpackPlugin({
 				patterns: [
 					{
