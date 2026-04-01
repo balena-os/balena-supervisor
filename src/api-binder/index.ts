@@ -74,15 +74,14 @@ export async function healthcheck() {
 	}
 
 	// Check if state report is healthy
-	const stateReportHealthy =
-		!connectivityCheckEnabled || !deviceState.connected;
+	const stateReportHealthy = !connectivityCheckEnabled || deviceState.connected;
 
 	if (!stateReportHealthy) {
 		log.info(
 			stripIndent`
 			Healthcheck failure - At least ONE of the following conditions must be true:
-				- No connectivityCheckEnabled   ? ${!(connectivityCheckEnabled === true)}
-				- device state is disconnected  ? ${!(deviceState.connected === true)}`,
+				- connectivity check is disabled   ? ${!(connectivityCheckEnabled === true)}
+				- device state is connected  ? ${deviceState.connected === true}`,
 		);
 		return false;
 	}
