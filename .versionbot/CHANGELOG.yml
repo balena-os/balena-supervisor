@@ -1,4 +1,24 @@
 - commits:
+    - subject: Fix connectivity healthcheck
+      hash: 22e4d64600eefba2f8cb6e498cb3de92069c4e6f
+      body: |
+        The removal of `stateReportErrors` on #2498 made apparent a bug on the
+        connectivity healtcheck that was being masked by they unfalsifiable
+        comparison of `stateReportErrors`.
+
+        The connectivity healtcheck should fail only if the connectivity check
+        is enabled AND the device is disconnected.
+
+        This updates the logic that was reversed before
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 17.6.26
+  title: ""
+  date: 2026-04-01T19:01:44.680Z
+- commits:
     - subject: Remove unused `stateReportErrors` variable
       hash: ed35c0bb17b74ac46d5d85ca2b861ee6a7645a0c
       body: ""
