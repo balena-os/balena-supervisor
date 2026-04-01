@@ -1,4 +1,20 @@
 - commits:
+    - subject: "Webpack: target the built js files directly"
+      hash: 15e8fae76d9a1d61108f25daf2e7dd66b057fa23
+      body: |
+        This avoids the need to type check/transpile twice and as such removes
+        the potential for confusion/surprises. As part of that it also means
+        the lib/validation module is longer bundled twice, since currently it's
+        bundled once due to src files and once due to build/migrations files.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.27
+  title: ""
+  date: 2026-04-01T19:20:43.463Z
+- commits:
     - subject: Fix connectivity healthcheck
       hash: 22e4d64600eefba2f8cb6e498cb3de92069c4e6f
       body: |
