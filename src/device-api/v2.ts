@@ -6,7 +6,6 @@ import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';
 import * as applicationManager from '../compose/application-manager';
 import type { CompositionStepAction } from '../compose/composition-steps';
-import type { Service } from '../compose/service';
 import { Volume } from '../compose/volume';
 import * as commitStore from '../compose/commit';
 import * as config from '../config';
@@ -155,83 +154,59 @@ router.get(
 	'/v2/applications/state',
 	async (req: AuthorizedRequest, res: Response, next: NextFunction) => {
 		try {
-			// It's very hacky to access the services and db via the application manager
-			// refactor this code to use applicationManager.getState() instead.
-			const [services, imgs, apps] = await Promise.all([
-				serviceManager.getState(),
-				images.getState(),
-				db.models('app').select(['appId', 'commit', 'name']) as Promise<
-					Array<{ appId: string; commit: string; name: string }>
+			const [apps, appsState] = await Promise.all([
+				// get the target apps from the database to augment the results returned
+				// by applicationManager.getState
+				db
+					.models('app')
+					.select(['appId', 'uuid', 'commit', 'releaseId', 'name']) as Promise<
+					Array<{
+						appId: number;
+						uuid: string;
+						releaseId: number;
+						commit: string;
+						name: string;
+					}>
 				>,
+				applicationManager.getState(),
 			]);
-			// Create an object which is keyed my application name
-			const response: {
-				[appName: string]: {
-					appId: number;
-					commit: string;
-					services: {
-						[serviceName: string]: {
-							status?: string;
-							releaseId: number;
-							downloadProgress: number | null;
-						};
-					};
-				};
-			} = {};
 
-			const appNameById: { [id: number]: string } = {};
-			const commits: string[] = [];
-
-			// only access scoped apps
-			for (const app of apps.filter(({ appId }) =>
-				req.auth.isScoped({ apps: [parseInt(appId, 10)] }),
-			)) {
-				const appId = parseInt(app.appId, 10);
-				response[app.name] = {
-					appId,
-					commit: app.commit,
-					services: {},
-				};
-
-				appNameById[appId] = app.name;
-				commits.push(app.commit);
-			}
-
-			// only access scoped images
-			for (const img of imgs.filter(
-				(i) =>
-					req.auth.isScoped({ apps: [i.appId] }) &&
-					// Ensure we are using the apps for the target release
-					commits.includes(i.commit),
-			)) {
-				const appName = appNameById[img.appId];
-				if (appName == null) {
-					log.warn(
-						`Image found for unknown application!\nImage: ${JSON.stringify(
-							img,
-						)}`,
+			const result = apps
+				// only access scoped apps
+				.filter(({ appId: $appId }) => req.auth.isScoped({ apps: [$appId] }))
+				// re-index by app name and add relevant fields from the database
+				.map(({ appId, commit, uuid, name, releaseId }) => {
+					const updateStatus =
+						appsState[uuid]?.releases[commit]?.update_status || 'done';
+					const services = Object.fromEntries(
+						Object.entries(
+							appsState[uuid]?.releases[commit]?.services ?? {},
+						).map(
+							([svcName, { status, image, download_progress: dlProgress }]) => [
+								svcName,
+								{
+									status,
+									image,
+									downloadProgress: dlProgress ?? null,
+									releaseId: releaseId,
+								},
+							],
+						),
 					);
-					continue;
-				}
 
-				const svc = services.find((s: Service) => {
-					return s.serviceName === img.serviceName && s.commit === img.commit;
+					return [
+						name,
+						{
+							appId,
+							appUuid: uuid,
+							commit,
+							updateStatus,
+							services,
+						},
+					];
 				});
 
-				let status: string | undefined;
-				if (svc == null) {
-					status = img.status;
-				} else {
-					status = svc.status ?? img.status;
-				}
-				response[appName].services[img.serviceName] = {
-					status,
-					releaseId: img.releaseId,
-					downloadProgress: img.downloadProgress ?? null,
-				};
-			}
-
-			res.status(200).json(response);
+			res.status(200).json(Object.fromEntries(result));
 		} catch (err) {
 			next(err);
 		}
