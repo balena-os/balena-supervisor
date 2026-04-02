@@ -413,6 +413,7 @@ export async function addFeaturesFromLabels(
 			const osBoardRev = await getOSBoardRev(constants.hostOSVersionPath);
 			if (osBoardRev) {
 				setEnvVariables('HOST_OS_BOARD_REV', osBoardRev);
+				setEnvVariables('HOST_OS_BUILD', osBoardRev);
 			}
 		},
 		'io.balena.features.extra-firmware': () => {
