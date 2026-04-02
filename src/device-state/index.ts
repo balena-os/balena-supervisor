@@ -375,33 +375,15 @@ export async function getCurrentForReport(
 ): Promise<DeviceState> {
 	const apps = await applicationManager.getState();
 
-	const { apps: targetApps, rejections } =
-		await applicationManager.getTargetAppsWithRejections();
+	const targetApps = await applicationManager.getTargetApps();
 	const targetAppUuids = Object.keys(targetApps);
 
 	// Fiter current apps by the target state as the supervisor cannot
 	// report on apps for which it doesn't have API permissions
-	// this step also adds rejected commits for the report
 	const appsForReport = Object.fromEntries(
-		Object.entries(apps).flatMap(([appUuid, app]) => {
-			if (!targetAppUuids.includes(appUuid)) {
-				return [];
-			}
-
-			for (const r of rejections) {
-				if (r.appUuid !== appUuid) {
-					continue;
-				}
-
-				// Add the rejected release to apps for report
-				app.releases[r.releaseUuid] = {
-					update_status: 'rejected',
-					services: {},
-				};
-			}
-
-			return [[appUuid, app]];
-		}),
+		Object.entries(apps).filter(([appUuid]) =>
+			targetAppUuids.includes(appUuid),
+		),
 	);
 
 	const { uuid, localMode } = await config.getMany(['uuid', 'localMode']);

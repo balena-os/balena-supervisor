@@ -6,7 +6,7 @@ import { App } from '../compose/app';
 import * as images from '../compose/images';
 
 import type { UUID, TargetApps, TargetRelease, TargetService } from '../types';
-import type { InstancedAppState, AppRelease } from '../compose/types';
+import type { InstancedAppState } from '../compose/types';
 
 type InstancedApp = InstancedAppState[0];
 
@@ -90,14 +90,10 @@ export async function setApps(
 /**
  * Create target state from database state
  */
-export async function getTargetWithRejections(): Promise<{
-	apps: TargetApps;
-	rejections: AppRelease[];
-}> {
+export async function getTargetJson(): Promise<TargetApps> {
 	const dbApps = await getDBEntry();
 
 	const apps: TargetApps = {};
-	const rejections: AppRelease[] = [];
 
 	for (const {
 		source,
@@ -143,10 +139,6 @@ export async function getTargetWithRejections(): Promise<{
 					}
 				: {};
 
-		if (rejected && releaseUuid) {
-			rejections.push({ appUuid: uuid, releaseUuid });
-		}
-
 		apps[uuid] = {
 			id: app.appId,
 			name: app.name,
@@ -156,11 +148,6 @@ export async function getTargetWithRejections(): Promise<{
 		};
 	}
 
-	return { apps, rejections };
-}
-
-export async function getTargetJson(): Promise<TargetApps> {
-	const { apps } = await getTargetWithRejections();
 	return apps;
 }
 
