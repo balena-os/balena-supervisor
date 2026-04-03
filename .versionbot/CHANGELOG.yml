@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update lodash to v4.18.1 [SECURITY]
+      hash: 614d1e001445ebeae314e256411b0628d08f3ddf
+      body: |
+        Update lodash from 4.17.23 to 4.18.1
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.6.29
+  title: ""
+  date: 2026-04-03T20:39:05.415Z
+- commits:
     - subject: "config/backends: Allow setting custom dtb on iot-gate-imx8plus"
       hash: a0b267d7abc35e20647fd4dc5e42cfe1e1424eb2
       body: ""
