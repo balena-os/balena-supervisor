@@ -1,4 +1,18 @@
 - commits:
+    - subject: "config/backends: Allow setting custom dtb on iot-gate-imx8plus"
+      hash: a0b267d7abc35e20647fd4dc5e42cfe1e1424eb2
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 17.6.28
+  title: ""
+  date: 2026-04-03T18:31:16.999Z
+- commits:
     - subject: "Webpack: target the built js files directly"
       hash: 15e8fae76d9a1d61108f25daf2e7dd66b057fa23
       body: |
