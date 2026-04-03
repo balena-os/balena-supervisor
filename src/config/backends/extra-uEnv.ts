@@ -66,6 +66,8 @@ export class ExtraUEnv extends ConfigBackend {
 				deviceType.includes('-orin-nx-') ||
 				deviceType.includes('-orin-nano-') ||
 				deviceType.includes('imx8mm-var-som') ||
+				deviceType === 'iot-gate-imx8plus' ||
+				deviceType === 'iot-gate-imx8plus-d1d8' ||
 				/imx8mm?-var-dart/.test(deviceType)) &&
 			(await exists(ExtraUEnv.bootConfigPath))
 		);
