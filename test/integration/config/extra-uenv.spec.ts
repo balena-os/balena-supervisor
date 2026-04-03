@@ -266,4 +266,7 @@ const MATCH_TESTS = [
 	{ type: 'imx8mm-var-som', supported: true },
 	{ type: 'imx8m-var-som', supported: false },
 	{ type: 'imx6ul-var-dart', supported: false },
+	{ type: 'iot-gate-imx8plus', supported: true },
+	{ type: 'iot-gate-imx8plus-d1d8', supported: true },
+	{ type: 'iot-gate-imx8plus-d1d8-sb', supported: false },
 ];
