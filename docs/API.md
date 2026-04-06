@@ -660,7 +660,9 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 > **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
-Get a list of fleets, services and their statuses. This will reflect the current state of the supervisor, and not the target state.
+> **Note:** `updateStatus`, `appUuid` and service `image` are only available from supervisor version 17.7.0 and above.
+
+Get the state of app updates, including a list of the installed apps, the target release and the status of services. This also includes the overall [update status](https://docs.balena.io/learn/manage/device-statuses#update-statuses) of the update. 
 
 From an app container:
 ```bash
@@ -672,30 +674,37 @@ Response:
 {
   "appname": {
     "appId": 1011165,
+    "appUuid": "d149c5d1551b4286a930d57284a02511",
     "commit": "217d55237092995e4576367e529ebb03",
+    "updateStatus": "downloading",
     "services": {
       "main": {
         "status": "Downloaded",
+        "image": "registry2.balena-cloud.com/v2/9e2dd224c83bddd78dbe9c0a91f585f4@sha256:1df407291eef767fbe42ec43cb653f193e95af7e7e30098489dbd88fb5345388",
         "releaseId": 557617,
         "downloadProgress": null
       },
       "frontend": {
         "status": "Downloading",
+        "image": "registry2.balena-cloud.com/v2/a23dd224c83bddd78dbe9c0a91f585f4@sha256:1df407291eef767fbe42ec43cb653f193e95af7e7e30098489dbd88fb5345388",
         "releaseId": 557631,
         "downloadProgress": 0
       },
       "proxy": {
         "status": "Downloaded",
+        "image": "registry2.balena-cloud.com/v2/c4fed224c83bddd78dbe9c0a91f585f4@sha256:1df407291eef767fbe42ec43cb653f193e95af7e7e30098489dbd88fb5345388",
         "releaseId": 557631,
         "downloadProgress": null
       },
       "data": {
         "status": "Downloading",
+        "image": "registry2.balena-cloud.com/v2/be4ed224c83bddd78dbe9c0a91f585f4@sha256:1df407291eef767fbe42ec43cb653f193e95af7e7e30098489dbd88fb5345388",
         "releaseId": 557631,
         "downloadProgress": 7
       },
       "metrics": {
         "status": "Downloading",
+        "image": "registry2.balena-cloud.com/v2/eeeed224c83bddd78dbe9c0a91f585f4@sha256:1df407291eef767fbe42ec43cb653f193e95af7e7e30098489dbd88fb5345388",
         "releaseId": 557631,
         "downloadProgress": 35
       }
