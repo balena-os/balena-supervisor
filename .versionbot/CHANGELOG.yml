@@ -1,4 +1,26 @@
 - commits:
+    - subject: Update to typescript 6.x / es2025
+      hash: 3cdceb7af6d38b59465fad1be52c10dc82e619b9
+      body: |
+        This also makes use of the unlocked es2025 features
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Remove nodejs 20/22 from the test matrix as we only ship with/truly
+        support 24.x
+      hash: a8e652683e7c778730ecd171d7890a94ab8953b8
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.30
+  title: ""
+  date: 2026-04-06T14:30:27.547Z
+- commits:
     - subject: Update lodash to v4.18.1 [SECURITY]
       hash: 614d1e001445ebeae314e256411b0628d08f3ddf
       body: |
