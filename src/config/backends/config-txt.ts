@@ -73,7 +73,7 @@ export class ConfigTxt extends ConfigBackend {
 	private static PREFIX = `${constants.hostConfigVarPrefix}CONFIG_`;
 	private static PATH = hostUtils.pathOnBoot('config.txt');
 	private static REGEX = new RegExp(
-		'(?:' + _.escapeRegExp(ConfigTxt.PREFIX) + ')(.+)',
+		'(?:' + RegExp.escape(ConfigTxt.PREFIX) + ')(.+)',
 	);
 	// These keys are not config.txt keys and are managed by the power-fan backend.
 	private static UNSUPPORTED_KEYS = ['power_mode', 'fan_profile'];

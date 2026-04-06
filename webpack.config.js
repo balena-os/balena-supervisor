@@ -60,7 +60,7 @@ externalModules.push(
 	new RegExp(
 		'^(' +
 			_.reject(maybeOptionalModules, requiredModules)
-				.map(_.escapeRegExp)
+				.map(RegExp.escape)
 				.join('|') +
 			')(/.*)?$',
 	),
@@ -99,7 +99,7 @@ module.exports = function (env) {
 				{
 					include: [
 						new RegExp(
-							_.escapeRegExp(
+							RegExp.escape(
 								// this is the path as of knex@2.5.1
 								path.join('knex', 'lib', 'migrations', 'common'),
 							),
@@ -109,7 +109,7 @@ module.exports = function (env) {
 				},
 				{
 					test: new RegExp(
-						_.escapeRegExp(path.join('JSONStream', 'index.js')) + '$',
+						RegExp.escape(path.join('JSONStream', 'index.js')) + '$',
 					),
 					use: require.resolve('./build-utils/fix-jsonstream'),
 				},

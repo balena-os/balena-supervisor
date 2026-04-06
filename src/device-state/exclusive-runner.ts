@@ -16,9 +16,7 @@ export const HIGH_PRIORITY = 1;
  *   and withExclusive waits for the semaphore to be released, which would result in a deadlock.
  * - Do NOT nest calls to withExclusive(), as it will result in a deadlock.
  */
-export class ExclusiveRunner<
-	FnArgs extends Record<string, unknown> = Record<string, unknown>,
-> {
+export class ExclusiveRunner<FnArgs extends Record<string, unknown>> {
 	private semaphore = new Semaphore(1);
 	// Only trigger-initiated calls are cancellable via trigger({ cancel }).
 	// withExclusive cannot be cancelled by this AbortController.

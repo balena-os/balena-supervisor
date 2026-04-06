@@ -1038,11 +1038,11 @@ export async function getState(): Promise<AppsReport> {
 	const commitsForApp: Dictionary<string | undefined> = {};
 	// Deduplicate appIds first
 	await Promise.all(
-		[...new Set(servicesToReport.map((svc) => svc.appId))].map(
-			async (appId) => {
+		new Set(servicesToReport.map((svc) => svc.appId))
+			.values()
+			.map(async (appId) => {
 				commitsForApp[appId] = await commitStore.getCommitForApp(appId);
-			},
-		),
+			}),
 	);
 
 	// Assemble the state of apps

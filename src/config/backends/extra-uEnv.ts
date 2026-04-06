@@ -52,7 +52,7 @@ export class ExtraUEnv extends ConfigBackend {
 	};
 
 	public static bootConfigVarRegex = new RegExp(
-		'(?:' + _.escapeRegExp(ExtraUEnv.bootConfigVarPrefix) + ')(.+)',
+		'(?:' + RegExp.escape(ExtraUEnv.bootConfigVarPrefix) + ')(.+)',
 	);
 
 	public async matches(deviceType: string): Promise<boolean> {

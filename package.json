@@ -35,14 +35,14 @@
     "sqlite3": "^5.1.7"
   },
   "engines": {
-    "node": "^20 || ^22 || ^24",
+    "node": "^24",
     "npm": ">=10"
   },
   "devDependencies": {
     "@balena/compose": "^7.4.0",
     "@balena/contrato": "^0.13.0",
     "@balena/es-version": "^1.0.4",
-    "@balena/lint": "^9.3.13",
+    "@balena/lint": "^9.4.0",
     "@balena/sbvr-types": "^11.1.6",
     "@types/chai": "^4.3.20",
     "@types/chai-as-promised": "^8.0.2",
@@ -129,7 +129,7 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typed-error": "^3.2.3",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "webpack": "^5.105.4",
     "webpack-cli": "^7.0.1",
     "winston": "^3.19.0",
