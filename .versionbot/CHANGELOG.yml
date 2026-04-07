@@ -1,4 +1,16 @@
 - commits:
+    - subject: "Tests: remove unused file"
+      hash: 6f54477ac9661258e7552d64be54d280113985c3
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.31
+  title: ""
+  date: 2026-04-07T15:59:33.996Z
+- commits:
     - subject: Update to typescript 6.x / es2025
       hash: 3cdceb7af6d38b59465fad1be52c10dc82e619b9
       body: |
