@@ -1,4 +1,39 @@
 - commits:
+    - subject: Return updateStatus in /v2/applications/state
+      hash: 16df0720d4682bc5004aec97c171bd0e3dc22fde
+      body: |
+        This updates the handler for the endpoint to use the result of
+        application-manager.getState (augmented with data from the target apps)
+        in order to include the `updateStatus` as part of the app report. This
+        allows the method to be used by apps to identify when an app update has
+        finished downloading in order to force an update.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+    - subject: Ensure all downloading images are reported
+      hash: 51528674db4747ce1ab938f452a4dbb987249398
+      body: |
+        Previously, the report would only include the images that are in the
+        process of being downloaded, without including images in the target
+        state that will have to be downloaded eventually. This could also cause
+        the `update_status` report to fluctuate between `done` and `downloading`
+        while new image downloads were being queued up.
+
+        The `getState` method in application-manager now checks the target apps
+        and adds any target images as `Downloading` with progress `0` that are
+        overrided by the current state. This method also now reports when an app
+        has been rejected which was previously done in `getCurrentForReport`.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 17.7.0
+  title: ""
+  date: 2026-04-07T20:44:17.935Z
+- commits:
     - subject: Convert many lodash usages to native equivalents
       hash: 6a28bb270f0f1f5d095631e142f23c9fe4d9b46d
       body: ""
