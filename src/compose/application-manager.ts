@@ -637,10 +637,6 @@ export async function getTargetApps(): Promise<TargetApps> {
 	return await dbFormat.getTargetJson();
 }
 
-export async function getTargetAppsWithRejections() {
-	return await dbFormat.getTargetWithRejections();
-}
-
 /**
  * This is only used by the API. Do not use as the use of serviceIds is getting
  * deprecated
@@ -933,9 +929,10 @@ export async function getLegacyState() {
 type AppsReport = { [uuid: string]: AppState };
 
 export async function getState(): Promise<AppsReport> {
-	const [services, images] = await Promise.all([
+	const [services, images, targetApps] = await Promise.all([
 		serviceManager.getState(),
 		imageManager.getState(),
+		dbFormat.getApps(),
 	]);
 
 	type ServiceInfo = {
@@ -968,6 +965,39 @@ export async function getState(): Promise<AppsReport> {
 			}),
 		}),
 	);
+
+	for (const app of Object.values(targetApps)) {
+		for (const {
+			appId,
+			appUuid,
+			imageName,
+			commit,
+			serviceName,
+		} of app.services) {
+			// ignore the service if it's already part of the downloading list
+			if (
+				stateFromImages.some(
+					(img) =>
+						appUuid === img.appUuid &&
+						commit === img.commit &&
+						serviceName === img.serviceName,
+				)
+			) {
+				continue;
+			}
+
+			// add target images that are pending downnload
+			stateFromImages.push({
+				appId,
+				appUuid: appUuid!,
+				image: imageName!,
+				commit,
+				serviceName,
+				status: 'Downloading',
+				download_progress: 0,
+			});
+		}
+	}
 
 	// Get all services and augment service data from the image if any
 	const stateFromServices = services
@@ -1061,6 +1091,18 @@ export async function getState(): Promise<AppsReport> {
 		};
 
 		const releases = app.releases;
+
+		// if the target app is rejected, then skip the service
+		if (targetApps[appId]?.isRejected) {
+			releases[commit] = {
+				update_status: 'rejected',
+				services: {},
+			};
+
+			state[appUuid] = app;
+			continue;
+		}
+
 		releases[commit] = releases[commit] ?? {
 			update_status: 'done',
 			services: {},
@@ -1107,5 +1149,6 @@ export async function getState(): Promise<AppsReport> {
 		// Update the state object
 		state[appUuid] = app;
 	}
+
 	return state;
 }
