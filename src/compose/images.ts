@@ -351,8 +351,7 @@ function isAvailableInDocker(
 	image: Image,
 	dockerImages: Docker.ImageInfo[],
 ): boolean {
-	return _.some(
-		dockerImages,
+	return dockerImages.some(
 		(dockerImage) =>
 			matchesTagOrDigest(image, dockerImage) ||
 			image.dockerImageId === dockerImage.Id,
@@ -361,7 +360,7 @@ function isAvailableInDocker(
 
 export async function getAvailable(): Promise<Image[]> {
 	return withImagesFromDockerAndDB((dockerImages, supervisedImages) =>
-		_.filter(supervisedImages, (image) =>
+		supervisedImages.filter((image) =>
 			isAvailableInDocker(image, dockerImages),
 		),
 	);
@@ -380,12 +379,9 @@ export async function cleanImageData(): Promise<void> {
 				// If the supervisor was interrupted between fetching an image and storing its id,
 				// some entries in the db might need to have the dockerImageId populated
 				if (supervisedImage.dockerImageId == null) {
-					const id = _.get(
-						_.find(dockerImages, (dockerImage) =>
-							matchesTagOrDigest(supervisedImage, dockerImage),
-						),
-						'Id',
-					);
+					const id = dockerImages.find((dockerImage) =>
+						matchesTagOrDigest(supervisedImage, dockerImage),
+					)?.Id;
 
 					if (id != null) {
 						await db
@@ -408,8 +404,8 @@ export async function cleanImageData(): Promise<void> {
 
 			// If the image is in the DB but not available in docker, return it
 			// for removal on the database
-			return _.reject(supervisedImages, (image) =>
-				isAvailableInDocker(image, dockerImages),
+			return supervisedImages.filter(
+				(image) => !isAvailableInDocker(image, dockerImages),
 			);
 		},
 	);
@@ -459,7 +455,7 @@ export const save = async (image: Image): Promise<void> => {
 	// Ensure image is tagged
 	await tagImage(img.Id, image.name);
 
-	image = _.clone(image);
+	image = { ...image };
 	image.dockerImageId = img.Id;
 	await markAsSupervised(image);
 };

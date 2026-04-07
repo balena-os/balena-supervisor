@@ -364,7 +364,9 @@ export const updateTarget = async (force = false, cancel = false) => {
 	eventTracker.track('Update notification');
 
 	if (force || (await config.get('instantUpdates'))) {
-		TargetState.update(force, true, cancel).catch(_.noop);
+		TargetState.update(force, true, cancel).catch(() => {
+			// ignore
+		});
 		return true;
 	}
 

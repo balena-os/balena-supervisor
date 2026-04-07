@@ -214,7 +214,7 @@ router.get(
 					continue;
 				}
 
-				const svc = _.find(services, (s: Service) => {
+				const svc = services.find((s: Service) => {
 					return s.serviceName === img.serviceName && s.commit === img.commit;
 				});
 
@@ -395,7 +395,7 @@ router.get('/v2/containerId', async (req: AuthorizedRequest, res) => {
 
 	if (req.query.serviceName != null || req.query.service != null) {
 		const serviceName = req.query.serviceName ?? req.query.service;
-		const service = _.find(services, (svc) => svc.serviceName === serviceName);
+		const service = services.find((svc) => svc.serviceName === serviceName);
 		if (service != null) {
 			res.status(200).json({
 				status: 'success',
@@ -411,8 +411,8 @@ router.get('/v2/containerId', async (req: AuthorizedRequest, res) => {
 		res.status(200).json({
 			status: 'success',
 			services: _(services)
-				.keyBy('serviceName')
-				.mapValues('containerId')
+				.keyBy((s) => s.serviceName)
+				.mapValues((s) => s.containerId)
 				.value(),
 		});
 	}

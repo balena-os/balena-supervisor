@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import type { TransformableInfo } from 'logform';
 import winston from 'winston';
 
@@ -24,9 +23,9 @@ const colors: { [key in logLevel]: string | string[] } = {
 	api: ['black', 'bgWhite'],
 };
 
-const maxLevelLength = _(levels)
-	.map((_v, k) => k.length)
-	.max();
+const maxLevelLength = Object.keys(levels)
+	.map((k) => k.length)
+	.reduce((a, b) => Math.max(a, b), 0);
 
 const uncolorize = winston.format.uncolorize();
 
@@ -36,9 +35,8 @@ const formatter = winston.format.printf((args) => {
 		level: true,
 		message: true,
 	}) as TransformableInfo;
-	return `[${level}]${_.repeat(
-		' ',
-		maxLevelLength! - strippedLevel.length + 1,
+	return `[${level}]${' '.repeat(
+		maxLevelLength - strippedLevel.length + 1,
 	)}${message}`;
 });
 

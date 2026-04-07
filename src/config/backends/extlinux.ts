@@ -208,12 +208,12 @@ export class Extlinux extends ConfigBackend {
 
 	private static extlinuxFileToString(file: ExtlinuxFile): string {
 		let ret = '';
-		_.each(file.globals, (value, directive) => {
+		_.forEach(file.globals, (value, directive) => {
 			ret += `${directive} ${value}\n`;
 		});
-		_.each(file.labels, (directives, key) => {
+		_.forEach(file.labels, (directives, key) => {
 			ret += `LABEL ${key}\n`;
-			_.each(directives, (value, directive) => {
+			_.forEach(directives, (value, directive) => {
 				ret += `${directive} ${value}\n`;
 			});
 		});

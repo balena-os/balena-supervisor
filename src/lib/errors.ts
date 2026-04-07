@@ -1,4 +1,3 @@
-import { endsWith } from 'lodash';
 import { TypedError } from 'typed-error';
 
 import { checkInt } from './validation';
@@ -69,7 +68,7 @@ export const isAbortError = (
 	isCodedSysError(e) && e.name === 'AbortError' && e.code === 'ABORT_ERR';
 
 export function UnitNotLoadedError(err: string[]): boolean {
-	return endsWith(err[0], 'not loaded.');
+	return err[0]?.endsWith('not loaded.') ?? false;
 }
 
 export class InvalidNetGatewayError extends TypedError {}

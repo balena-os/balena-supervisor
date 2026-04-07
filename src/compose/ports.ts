@@ -78,30 +78,36 @@ export class PortMap {
 	 * and produces a list of PortMap objects, which can then be compared.
 	 *
 	 */
-	public static fromDockerOpts(portBindings: PortBindings): PortMap[] {
+	public static fromDockerOpts(portBindings?: PortBindings): PortMap[] {
+		if (portBindings == null) {
+			return [];
+		}
 		// Create a list of portBindings, rather than the map (which we can't
 		// order)
-		const portMaps = _.flatMap(portBindings, (hostObj, internalStr) => {
-			const match = internalStr.match(DOCKER_OPTS_PORTS_REGEX);
-			if (match == null) {
-				throw new Error(`Could not parse docker port output: ${internalStr}`);
-			}
-			const internal = parseInt(match[1], 10);
-			const proto = match[2] || 'tcp';
 
-			return _.map(hostObj, ({ HostIp, HostPort }) => {
-				const external = parseInt(HostPort, 10);
-				const host = HostIp;
-				return new PortMap({
-					internalStart: internal,
-					internalEnd: internal,
-					externalStart: external,
-					externalEnd: external,
-					protocol: proto,
-					host,
+		const portMaps = Object.entries(portBindings).flatMap(
+			([internalStr, hostObjs]) => {
+				const match = internalStr.match(DOCKER_OPTS_PORTS_REGEX);
+				if (match == null) {
+					throw new Error(`Could not parse docker port output: ${internalStr}`);
+				}
+				const internal = parseInt(match[1], 10);
+				const proto = match[2] || 'tcp';
+
+				return hostObjs.map(({ HostIp, HostPort }) => {
+					const external = parseInt(HostPort, 10);
+					const host = HostIp;
+					return new PortMap({
+						internalStart: internal,
+						internalEnd: internal,
+						externalStart: external,
+						externalEnd: external,
+						protocol: proto,
+						host,
+					});
 				});
-			});
-		});
+			},
+		);
 
 		return PortMap.normalisePortMaps(portMaps);
 	}
@@ -113,7 +119,7 @@ export class PortMap {
 			.sortBy((p) => p.ports.host)
 			.sortBy((p) => p.ports.internalStart)
 			.reduce((res: PortMap[], p: PortMap) => {
-				const last = _.last(res);
+				const last = res.at(-1);
 
 				if (
 					last != null &&

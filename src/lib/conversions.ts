@@ -1,10 +1,11 @@
-import _ from 'lodash';
-
 import type { EnvVarObject } from '../types';
 
 import log from '../lib/supervisor-console';
 
-export function envArrayToObject(env: string[]): EnvVarObject {
+export function envArrayToObject(env: string[] | undefined): EnvVarObject {
+	if (!Array.isArray(env)) {
+		return {};
+	}
 	const toPair = (keyVal: string) => {
 		const m = keyVal.match(/^([^=]+)=([^]*)$/);
 		if (m == null) {
@@ -17,13 +18,9 @@ export function envArrayToObject(env: string[]): EnvVarObject {
 		return m.slice(1);
 	};
 
-	return _(env)
-		.map(toPair)
-		.filter(([_k, v]) => v != null)
-		.fromPairs()
-		.value();
+	return Object.fromEntries(env.map(toPair).filter(([_k, v]) => v != null));
 }
 
 export function envObjectToArray(env: EnvVarObject): string[] {
-	return _.map(env, (v, k) => `${k}=${v}`);
+	return Object.entries(env).map(([k, v]) => `${k}=${v}`);
 }

@@ -207,7 +207,7 @@ const configKeys: Dictionary<ConfigOption> = {
 const validKeys = [
 	'SUPERVISOR_VPN_CONTROL',
 	'OVERRIDE_LOCK',
-	..._.map(configKeys, 'envVarName'),
+	...Object.values(configKeys).map((configKey) => configKey.envVarName),
 ];
 
 const rateLimits: Dictionary<{
@@ -289,10 +289,10 @@ export async function getCurrent(): Promise<Dictionary<string>> {
 	const currentConf: Dictionary<string> = {};
 	// Get environment variables
 	const conf = await config.getMany(
-		['deviceType'].concat(_.keys(configKeys)) as SchemaTypeKey[],
+		['deviceType'].concat(Object.keys(configKeys)) as SchemaTypeKey[],
 	);
 	// Add each value
-	for (const key of _.keys(configKeys)) {
+	for (const key of Object.keys(configKeys)) {
 		const { envVarName } = configKeys[key];
 		const confValue = conf[key as SchemaTypeKey];
 		currentConf[envVarName] = confValue != null ? confValue.toString() : '';
@@ -344,12 +344,15 @@ export function getDefaults() {
 		{
 			SUPERVISOR_VPN_CONTROL: 'true',
 		},
-		_.mapValues(_.mapKeys(configKeys, 'envVarName'), 'defaultValue'),
+		_.mapValues(
+			_.mapKeys(configKeys, (configKey) => configKey.envVarName),
+			'defaultValue',
+		),
 	);
 }
 
 export function resetRateLimits() {
-	_.each(rateLimits, (action) => {
+	_.forEach(rateLimits, (action) => {
 		action.lastAttempt = null;
 	});
 }
@@ -367,7 +370,7 @@ export function bootConfigChangeRequired(
 	configBackend.ensureRequiredConfig(deviceType, targetBootConfig);
 
 	// Search for any unsupported values
-	_.each(targetBootConfig, (value, key) => {
+	_.forEach(targetBootConfig, (value, key) => {
 		if (
 			!configBackend.isSupportedConfig(key) &&
 			currentBootConfig[key] !== value
@@ -412,7 +415,7 @@ function getConfigSteps(
 	let reboot = false;
 	const steps: ConfigStep[] = [];
 
-	_.each(
+	_.forEach(
 		configKeys,
 		(
 			{ envVarName, varType, rebootRequired: $rebootRequired, defaultValue },
@@ -496,7 +499,7 @@ async function getVPNSteps(
 	// This would cause too many requests on systemd and a possible error.
 	// Promisifying the dbus api to wait for the response would be the right solution
 	const now = Date.now();
-	steps = _.map(steps, (step) => {
+	steps = steps.map((step) => {
 		const action = step.action;
 		if (action in rateLimits) {
 			const lastAttempt = rateLimits[action].lastAttempt;
@@ -626,7 +629,7 @@ export function executeStepAction(
 }
 
 export function isValidAction(action: string): boolean {
-	return _.keys(actionExecutors).includes(action);
+	return Object.keys(actionExecutors).includes(action);
 }
 
 export async function getBootConfig(

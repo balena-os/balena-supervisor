@@ -132,7 +132,7 @@ export async function set<T extends SchemaTypeKey>(
 		const configJsonVals: Dictionary<unknown> = {};
 		const dbVals: Dictionary<unknown> = {};
 
-		_.each(keyValues, (v, k: T) => {
+		_.forEach(keyValues, (v, k: T) => {
 			const schemaKey = k as Schema.SchemaKey;
 			const source = Schema.schema[schemaKey].source;
 
@@ -150,7 +150,7 @@ export async function set<T extends SchemaTypeKey>(
 			}
 		});
 
-		const dbKeys = _.keys(dbVals) as T[];
+		const dbKeys = Object.keys(dbVals) as T[];
 		const oldValues = await getMany(dbKeys, tx);
 		await Promise.all(
 			dbKeys.map(async (key: T) => {

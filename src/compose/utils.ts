@@ -31,7 +31,7 @@ export function camelCaseConfig(
 	// returns true for an array, we check the other way
 	if (!Array.isArray(config.networks)) {
 		const networksTmp = structuredClone(config.networks);
-		_.each(networksTmp, (v, k) => {
+		_.forEach(networksTmp, (v, k) => {
 			config.networks[k] = _.mapKeys(v, (_v, key) => _.camelCase(key));
 		});
 	}
@@ -120,8 +120,7 @@ function processCommandParsedArrayElement(
 
 function commandAsArray(command: string | string[]): string[] {
 	if (typeof command === 'string') {
-		return _.map(
-			parseCommand(processCommandString(command)),
+		return parseCommand(processCommandString(command)).map(
 			processCommandParsedArrayElement,
 		);
 	}
@@ -135,7 +134,7 @@ export function getCommand(
 	if (composeCommand != null) {
 		return commandAsArray(composeCommand);
 	}
-	const imgCommand = _.get(imageInfo, 'Config.Cmd', []);
+	const imgCommand = imageInfo?.Config?.Cmd ?? [];
 	return commandAsArray(imgCommand);
 }
 
@@ -166,7 +165,13 @@ export function getStopSignal(
 		}
 		return composeStop;
 	}
-	return _.get(imageInfo, 'Config.StopSignal', 'SIGTERM');
+	return (
+		(
+			imageInfo?.Config as Dockerode.ImageInspectInfo['Config'] & {
+				StopSignal?: string;
+			}
+		)?.StopSignal ?? 'SIGTERM'
+	);
 }
 
 // TODO: Move healthcheck stuff into separate module
@@ -279,7 +284,7 @@ export function getWorkingDir(
 	workingDir: string | null | undefined,
 	imageInfo?: Dockerode.ImageInspectInfo,
 ): string {
-	return (workingDir ?? _.get(imageInfo, 'Config.WorkingDir', '')).replace(
+	return (workingDir ?? imageInfo?.Config?.WorkingDir ?? '').replace(
 		/(^.+)\/$/,
 		'$1',
 	);
@@ -289,7 +294,7 @@ export function getUser(
 	user: string | null | undefined,
 	imageInfo?: Dockerode.ImageInspectInfo,
 ): string {
-	return user ?? _.get(imageInfo, 'Config.User', '');
+	return user ?? imageInfo?.Config?.User ?? '';
 }
 
 export function formatDevice(deviceStr: string): DockerDevice {
@@ -443,7 +448,7 @@ export function serviceUlimitsToDockerUlimits(
 	ulimits: ServiceConfig['ulimits'] | null | undefined,
 ): Array<{ Name: string; Soft: number; Hard: number }> {
 	const ret: Array<{ Name: string; Soft: number; Hard: number }> = [];
-	_.each(ulimits, ({ soft, hard }, name) => {
+	_.forEach(ulimits, ({ soft, hard }, name) => {
 		ret.push({ Name: name, Soft: soft, Hard: hard });
 	});
 	return ret;
@@ -466,14 +471,14 @@ export function serviceNetworksToDockerNetworks(
 		EndpointsConfig: {},
 	};
 
-	_.each(networks, (net, name) => {
+	_.forEach(networks, (net, name) => {
 		// WHY??? This shouldn't be necessary, as we define it above...
 		if (dockerNetworks.EndpointsConfig != null) {
 			dockerNetworks.EndpointsConfig[name] = {};
 			const conf = dockerNetworks.EndpointsConfig[name];
 			conf.IPAMConfig = {};
 			conf.Aliases = [];
-			_.each(net, (v, k) => {
+			_.forEach(net, (v, k) => {
 				// We know that IPAMConfig is set because of the intialisation
 				// above, but typescript doesn't agree, so use !
 				switch (k) {
@@ -505,7 +510,7 @@ export function dockerNetworkToServiceNetwork(
 	// the correct level and return
 	const networks: ServiceConfig['networks'] = {};
 
-	_.each(dockerNetworks, (net, name) => {
+	_.forEach(dockerNetworks, (net, name) => {
 		networks[name] = {};
 		if (net.Aliases != null && !_.isEmpty(net.Aliases)) {
 			networks[name].aliases = net.Aliases.filter(
@@ -534,7 +539,7 @@ export function dockerNetworkToServiceNetwork(
 
 // Mutates obj
 export function normalizeNullValues(obj: Dictionary<any>): void {
-	_.each(obj, (v, k) => {
+	_.forEach(obj, (v, k) => {
 		if (v == null) {
 			obj[k] = undefined;
 		} else if (_.isObject(v)) {
@@ -547,17 +552,15 @@ export function normalizeLabels(labels: { [key: string]: string }): {
 	[key: string]: string;
 } {
 	const legacyLabels = _.mapKeys(
-		_.pickBy(labels, (_v, k) => _.startsWith(k, 'io.resin.')),
+		_.pickBy(labels, (_v, k) => k.startsWith('io.resin.')),
 		(_v, k) => {
 			return k.replace(/resin/g, 'balena'); // e.g. io.resin.features.resin-api -> io.balena.features.balena-api
 		},
 	);
-	const balenaLabels = _.pickBy(labels, (_v, k) =>
-		_.startsWith(k, 'io.balena.'),
-	);
+	const balenaLabels = _.pickBy(labels, (_v, k) => k.startsWith('io.balena.'));
 	const otherLabels = _.pickBy(
 		labels,
-		(_v, k) => !(_.startsWith(k, 'io.balena.') || _.startsWith(k, 'io.resin.')),
+		(_v, k) => !(k.startsWith('io.balena.') || k.startsWith('io.resin.')),
 	);
 	return Object.assign({}, otherLabels, legacyLabels, balenaLabels);
 }

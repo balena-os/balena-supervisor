@@ -337,7 +337,7 @@ async function reportInitialEnv(
 			'No config defined in reportInitialEnv',
 		);
 	}
-	for (const [key, value] of _.toPairs(currentConfig)) {
+	for (const [key, value] of Object.entries(currentConfig)) {
 		let varValue = value;
 		// We want to disable local mode when joining a cloud
 		if (key === 'SUPERVISOR_LOCAL_MODE') {

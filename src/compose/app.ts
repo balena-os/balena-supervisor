@@ -364,8 +364,8 @@ class AppImpl implements App {
 		updatePairs: Array<ChangingPair<Service>>;
 		dependentServices: Service[];
 	} {
-		const currentByServiceName = _.keyBy(current, 'serviceName');
-		const targetByServiceName = _.keyBy(target, 'serviceName');
+		const currentByServiceName = _.keyBy(current, (s) => s.serviceName);
+		const targetByServiceName = _.keyBy(target, (s) => s.serviceName);
 
 		const currentServiceNames = Object.keys(currentByServiceName);
 		const targetServiceNames = Object.keys(targetByServiceName);
@@ -403,7 +403,9 @@ class AppImpl implements App {
 		// Build up a list of services for a given service name, always using the latest created
 		// service. Any older services will have kill steps emitted
 		for (const serviceName of maybeUpdate) {
-			const currentServiceContainers = _.filter(current, { serviceName });
+			const currentServiceContainers = current.filter(
+				(c) => c.serviceName === serviceName,
+			);
 			if (currentServiceContainers.length > 1) {
 				currentByServiceName[serviceName] = _.maxBy(
 					currentServiceContainers,
@@ -954,9 +956,12 @@ class AppImpl implements App {
 			return false;
 		}
 
-		const dependencyUnmet = _.some(target.dependsOn, (dep) =>
-			_.some(servicePairs, (pair) => pair.target?.serviceName === dep),
-		);
+		const dependencyUnmet =
+			target.dependsOn == null
+				? false
+				: target.dependsOn.some((dep) =>
+						servicePairs.some((pair) => pair.target?.serviceName === dep),
+					);
 
 		if (dependencyUnmet) {
 			return false;

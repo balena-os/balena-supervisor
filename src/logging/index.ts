@@ -63,7 +63,7 @@ export const initialized = _.once(async () => {
 			// is '' for legacy reasons. Once we're totally
 			// typescript, we can make it have a default value
 			// of undefined.
-			if (_.every(conf, Boolean)) {
+			if (Object.values(conf).every(Boolean)) {
 				// Everything is set, provide the values to the
 				// balenaBackend, and remove our listener
 				balenaBackend!.assignFields(

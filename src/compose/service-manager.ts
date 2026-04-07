@@ -113,7 +113,7 @@ async function get(service: Service) {
  */
 export async function getState() {
 	const services = await getAll();
-	const status = _.clone(volatileState);
+	const status = { ...volatileState };
 
 	for (const service of services) {
 		if (service.containerId == null) {
@@ -133,7 +133,7 @@ export async function getState() {
 		]) as Partial<Service>;
 	}
 
-	return _.values(status);
+	return Object.values(status);
 }
 
 export async function getByDockerContainerId(
@@ -620,7 +620,7 @@ async function listWithBothLabels(
 		docker.listContainers({
 			all: true,
 			filters: {
-				label: _.map(labelList, (v) => `${prefix}${v}`),
+				label: labelList.map((v) => `${prefix}${v}`),
 			},
 		});
 

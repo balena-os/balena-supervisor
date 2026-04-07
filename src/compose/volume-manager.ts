@@ -44,7 +44,7 @@ export async function getAll(): Promise<Volume[]> {
 
 export async function getAllByAppId(appId: number): Promise<Volume[]> {
 	const all = await getAll();
-	return _.filter(all, { appId });
+	return all.filter((volume) => volume.appId === appId);
 }
 
 export async function create(volume: Volume): Promise<void> {
@@ -128,7 +128,7 @@ export async function removeOrphanedVolumes(
 		.map((m) => m.Name!)
 		.uniq()
 		.value();
-	const volumeNames = _.map(dockerVolumes.Volumes, 'Name');
+	const volumeNames = (dockerVolumes.Volumes ?? []).map((v) => v.Name);
 
 	const volumesToRemove = _.difference(
 		volumeNames,

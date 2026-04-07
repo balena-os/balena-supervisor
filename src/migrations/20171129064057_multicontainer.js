@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 const tryParse = function (obj) {
 	try {
 		return JSON.parse(obj);
@@ -30,13 +28,10 @@ const singleToMulticontainerApp = function (app) {
 	};
 	const defaultVolume = 'resin-data';
 	newApp.volumes[defaultVolume] = {};
-	const updateStrategy = _.get(
-		conf,
-		'RESIN_SUPERVISOR_UPDATE_STRATEGY',
-		'download-then-kill',
-	);
-	const handoverTimeout = _.get(conf, 'RESIN_SUPERVISOR_HANDOVER_TIMEOUT', '');
-	const restartPolicy = _.get(conf, 'RESIN_APP_RESTART_POLICY', 'always');
+	const updateStrategy =
+		conf.RESIN_SUPERVISOR_UPDATE_STRATEGY ?? 'download-then-kill';
+	const handoverTimeout = conf.RESIN_SUPERVISOR_HANDOVER_TIMEOUT ?? '';
+	const restartPolicy = conf.RESIN_APP_RESTART_POLICY ?? 'always';
 	newApp.services = [
 		{
 			serviceId: 1,
@@ -68,7 +63,7 @@ const singleToMulticontainerApp = function (app) {
 };
 
 const jsonifyAppFields = function (app) {
-	const newApp = _.clone(app);
+	const newApp = { ...app };
 	newApp.services = JSON.stringify(app.services);
 	newApp.networks = JSON.stringify(app.networks);
 	newApp.volumes = JSON.stringify(app.volumes);
@@ -253,7 +248,7 @@ exports.up = async function (knex) {
 	});
 	await Promise.all(
 		dependentDevices.map(async (device) => {
-			const newDevice = _.clone(device);
+			const newDevice = { ...device };
 			newDevice.appId = parseInt(device.appId, 10);
 			newDevice.deviceId = parseInt(device.deviceId, 10);
 			if (device.is_managed_by != null) {
