@@ -1,4 +1,16 @@
 - commits:
+    - subject: Convert many lodash usages to native equivalents
+      hash: 6a28bb270f0f1f5d095631e142f23c9fe4d9b46d
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.6.32
+  title: ""
+  date: 2026-04-07T19:17:34.212Z
+- commits:
     - subject: "Tests: remove unused file"
       hash: 6f54477ac9661258e7552d64be54d280113985c3
       body: ""
