@@ -1,7 +1,7 @@
 import fs from 'fs';
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
-exports.up = async function (knex) {
+export async function up(knex) {
 	const config = await new Promise((resolve) => {
 		if (!configJsonPath) {
 			console.log(
@@ -51,9 +51,8 @@ exports.up = async function (knex) {
 	});
 
 	await knex('config').where('key', 'logsChannelSecret').del();
-};
+}
 
-// eslint-disable-next-line @typescript-eslint/require-await
-exports.down = async function () {
-	throw new Error('Not Implemented');
-};
+export function down() {
+	throw new Error('Not implemented');
+}

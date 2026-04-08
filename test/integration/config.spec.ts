@@ -15,11 +15,11 @@ type Config = typeof import('~/src/config');
 describe('config', () => {
 	const deviceTypeJsonPath = hostUtils.pathOnBoot('device-type.json');
 
-	const readConfigJson = () =>
-		fs.readFile(configJsonPath, 'utf8').then((data) => JSON.parse(data));
+	const readConfigJson = async () =>
+		JSON.parse(await fs.readFile(configJsonPath, 'utf8'));
 
-	const readDeviceTypeJson = () =>
-		fs.readFile(deviceTypeJsonPath, 'utf8').then((data) => JSON.parse(data));
+	const readDeviceTypeJson = async () =>
+		JSON.parse(await fs.readFile(deviceTypeJsonPath, 'utf8'));
 
 	let testFs: TestFs.Enabled;
 
@@ -256,9 +256,11 @@ describe('config', () => {
 			const tfs = await testfs({}, { keep: [deviceTypeJsonPath] }).enable();
 
 			// Remove the file before the test
-			await fs.unlink(deviceTypeJsonPath).catch(() => {
+			try {
+				await fs.unlink(deviceTypeJsonPath);
+			} catch {
 				/* noop */
-			});
+			}
 
 			await expect(config.get('deviceArch')).to.eventually.equal('unknown');
 
@@ -276,9 +278,11 @@ describe('config', () => {
 
 			const tfs = await testfs({}, { keep: [deviceTypeJsonPath] }).enable();
 			// Remove the file before the test
-			await fs.unlink(deviceTypeJsonPath).catch(() => {
+			try {
+				await fs.unlink(deviceTypeJsonPath);
+			} catch {
 				/* noop */
-			});
+			}
 
 			await expect(config.get('deviceType')).to.eventually.equal('unknown');
 

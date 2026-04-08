@@ -1,4 +1,4 @@
-/* eslint @typescript-eslint/require-await: 0 */
+/* eslint-disable @typescript-eslint/require-await */
 import * as _ from 'lodash';
 import rewire from 'rewire';
 

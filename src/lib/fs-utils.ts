@@ -59,11 +59,13 @@ export async function mkdirp(pathName: string): Promise<void> {
  */
 export async function unlinkAll(...paths: string[]): Promise<void> {
 	await Promise.all(
-		paths.map((pathName) =>
-			fs.unlink(pathName).catch(() => {
+		paths.map(async (pathName) => {
+			try {
+				await fs.unlink(pathName);
+			} catch {
 				/* Ignore nonexistent paths */
-			}),
-		),
+			}
+		}),
 	);
 }
 
@@ -71,20 +73,25 @@ export async function unlinkAll(...paths: string[]): Promise<void> {
  * Change modification and access time of the given file.
  * It creates an empty file if it does not exist
  */
-export const touch = (file: string, time = new Date()) =>
-	// set both access time and modified time to the value passed
-	// as argument (default to `now`)
-	fs.utimes(file, time, time).catch((e) =>
+export const touch = async (file: string, time = new Date()) => {
+	try {
+		// set both access time and modified time to the value passed
+		// as argument (default to `now`)
+		await fs.utimes(file, time, time);
+	} catch (e) {
 		// only create the file if it doesn't exist,
 		// if some other error happens is probably better to not touch it
-		isENOENT(e)
-			? fs
-					.open(file, 'w')
-					.then((fd) => fd.close())
-					// If date is custom we need to change the file atime and mtime
-					.then(() => fs.utimes(file, time, time))
-			: e,
-	);
+		if (isENOENT(e)) {
+			const fd = await fs.open(file, 'w');
+			await fd.close();
+			// If date is custom we need to change the file atime and mtime
+			await fs.utimes(file, time, time);
+		} else {
+			// TODO: This is preserving previous behavior but was probably intended to be a throw?
+			return e;
+		}
+	}
+};
 
 // Get the system boot time as a Date object
 export const getBootTime = () => new Date(Date.now() - uptime() * 1000);

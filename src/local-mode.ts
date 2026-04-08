@@ -119,27 +119,19 @@ export class LocalModeManager {
 
 	// Query the engine to get currently running containers and installed images.
 	public async collectEngineSnapshot(): Promise<EngineSnapshotRecord> {
-		const containersPromise = docker
-			.listContainers()
-			.then((resp) => resp.map((r) => r.Id));
-		const imagesPromise = docker
-			.listImages()
-			.then((resp) => resp.map((r) => r.Id));
-		const volumesPromise = docker
-			.listVolumes()
-			.then((resp) => (resp.Volumes ?? []).map((v) => v.Name));
-		const networksPromise = docker
-			.listNetworks()
-			.then((resp) => resp.map((r) => r.Id));
-
 		const [containers, images, volumes, networks] = await Promise.all([
-			containersPromise,
-			imagesPromise,
-			volumesPromise,
-			networksPromise,
+			docker.listContainers(),
+			docker.listImages(),
+			docker.listVolumes(),
+			docker.listNetworks(),
 		]);
 		return new EngineSnapshotRecord(
-			new EngineSnapshot(containers, images, volumes, networks),
+			new EngineSnapshot(
+				containers.map((r) => r.Id),
+				images.map((r) => r.Id),
+				(volumes.Volumes ?? []).map((v) => v.Name),
+				networks.map((r) => r.Id),
+			),
 			new Date(),
 		);
 	}
@@ -247,54 +239,48 @@ export class LocalModeManager {
 
 		// Delete engine objects. We catch every deletion error, so that we can attempt other objects deletions.
 		await Promise.all(
-			objects.containers.map((cId) => {
-				return docker
-					.getContainer(cId)
-					.remove({ force: true })
-					.catch((e) => {
-						log.error(`Unable to delete container ${cId}`, e);
-					});
+			objects.containers.map(async (cId) => {
+				try {
+					await docker.getContainer(cId).remove({ force: true });
+				} catch (e) {
+					log.error(`Unable to delete container ${cId}`, e);
+				}
 			}),
 		);
 		await Promise.all(
-			objects.images.map((iId) => {
-				return docker
-					.getImage(iId)
-					.remove({ force: true })
-					.catch((e) => {
-						log.error(`Unable to delete image ${iId}`, e);
-					});
+			objects.images.map(async (iId) => {
+				try {
+					await docker.getImage(iId).remove({ force: true });
+				} catch (e) {
+					log.error(`Unable to delete image ${iId}`, e);
+				}
 			}),
 		);
 		await Promise.all(
-			objects.networks.map((nId) => {
-				return docker
-					.getNetwork(nId)
-					.remove()
-					.catch((e) => {
-						log.error(`Unable to delete network ${nId}`, e);
-					});
+			objects.networks.map(async (nId) => {
+				try {
+					await docker.getNetwork(nId).remove();
+				} catch (e) {
+					log.error(`Unable to delete network ${nId}`, e);
+				}
 			}),
 		);
 		await Promise.all(
-			objects.volumes.map((vId) => {
-				return docker
-					.getVolume(vId)
-					.remove()
-					.catch((e) => {
-						log.error(`Unable to delete volume ${vId}`, e);
-					});
+			objects.volumes.map(async (vId) => {
+				try {
+					await docker.getVolume(vId).remove();
+				} catch (e) {
+					log.error(`Unable to delete volume ${vId}`, e);
+				}
 			}),
 		);
 
-		// Remove any local mode state added to the database.
-		await db
-			.models('app')
-			.del()
-			.where({ source: 'local' })
-			.catch((e) => {
-				log.error('Cannot delete local app entries in the database', e);
-			});
+		try {
+			// Remove any local mode state added to the database.
+			await db.models('app').del().where({ source: 'local' });
+		} catch (e) {
+			log.error('Cannot delete local app entries in the database', e);
+		}
 	}
 
 	// Handle local mode state change.

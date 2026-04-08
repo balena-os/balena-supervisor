@@ -1,4 +1,4 @@
-/* eslint @typescript-eslint/prefer-promise-reject-errors: 0 */
+/* eslint-disable @typescript-eslint/prefer-promise-reject-errors */
 
 import Dockerode from 'dockerode';
 import sinon from 'sinon';

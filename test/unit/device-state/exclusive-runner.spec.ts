@@ -290,9 +290,11 @@ describe('ExclusiveRunner', () => {
 
 			// Release the initial holder
 			initialBarrier.resolve();
-			await holdingSemaphore.catch(() => {
+			try {
+				await holdingSemaphore;
+			} catch {
 				// expected: may be cancelled
-			});
+			}
 			await ex;
 			await tick();
 
@@ -435,9 +437,11 @@ describe('ExclusiveRunner', () => {
 
 			// Release the holder
 			barrier.resolve();
-			await holdDone.catch(() => {
+			try {
+				await holdDone;
+			} catch {
 				// expected: may be cancelled
-			});
+			}
 			await exDone;
 			await tick();
 
@@ -538,9 +542,11 @@ describe('ExclusiveRunner', () => {
 			});
 
 			barrier.resolve();
-			await holdDone.catch(() => {
+			try {
+				await holdDone;
+			} catch {
 				// expected: may be cancelled
-			});
+			}
 			await ex1;
 			await ex2;
 			await cancelEx;
@@ -579,9 +585,11 @@ describe('ExclusiveRunner', () => {
 			});
 
 			barrier.resolve();
-			await holdDone.catch(() => {
+			try {
+				await holdDone;
+			} catch {
 				// expected: may be cancelled
-			});
+			}
 			await cancelEx;
 			await tick();
 

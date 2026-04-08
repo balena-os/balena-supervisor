@@ -138,9 +138,11 @@ describe('lib/fs-utils', () => {
 
 		it('should return whether a file exists', async () => {
 			expect(await fsUtils.exists(filePath1)).to.be.true;
-			await fs.unlink(filePath1).catch(() => {
+			try {
+				await fs.unlink(filePath1);
+			} catch {
 				/* noop */
-			});
+			}
 			expect(await fsUtils.exists(filePath1)).to.be.false;
 		});
 	});

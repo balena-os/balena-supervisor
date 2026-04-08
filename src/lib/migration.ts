@@ -58,17 +58,14 @@ export async function loadBackupFromMigration(
 			if (volumes[volumeName] != null) {
 				log.debug(`Creating volume ${volumeName} from backup`);
 				// If the volume exists (from a previous incomplete run of this restoreBackup), we delete it first
-				await volumeManager
-					.get({ appId, name: volumeName })
-					.then((volume) => {
-						return volume.remove();
-					})
-					.catch((e: unknown) => {
-						if (isNotFoundError(e)) {
-							return;
-						}
+				try {
+					const volume = await volumeManager.get({ appId, name: volumeName });
+					await volume.remove();
+				} catch (e: unknown) {
+					if (!isNotFoundError(e)) {
 						throw e;
-					});
+					}
+				}
 
 				await volumeManager.createFromPath(
 					{ appId, name: volumeName },

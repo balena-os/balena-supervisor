@@ -158,15 +158,19 @@ export async function lock(path: string, uid: number = os.userInfo().uid) {
  */
 export async function unlock(path: string): Promise<void> {
 	// Removing the lockfile releases the lock
-	await fs.unlink(path).catch((e) => {
+	try {
+		await fs.unlink(path);
+	} catch (e) {
 		// if the error is EPERM|EISDIR, the file is a directory
 		if (isEPERM(e) || isEISDIR(e)) {
-			return fs.rmdir(path).catch(() => {
+			try {
+				await fs.rmdir(path);
+			} catch {
 				// if the directory is not empty or something else
 				// happens, ignore
-			});
+			}
 		}
 		// If the file does not exist or some other error
 		// happens, then ignore the error
-	});
+	}
 }

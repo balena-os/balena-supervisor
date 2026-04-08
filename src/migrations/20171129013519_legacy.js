@@ -7,46 +7,42 @@
 // a few dropColumn and dropTable calls to delete things that were removed throughout the supervisor's
 // history without actually adding drop statements (mostly just becoming unused, but still there).
 
-exports.up = function (knex) {
-	const addColumn = function (table, column, type) {
-		return knex.schema.hasColumn(table, column).then((exists) => {
-			if (!exists) {
-				return knex.schema.table(table, (t) => {
-					return t[type](column);
-				});
-			}
-		});
+export async function up(knex) {
+	const addColumn = async function (table, column, type) {
+		const exists = await knex.schema.hasColumn(table, column);
+		if (!exists) {
+			return knex.schema.table(table, (t) => {
+				return t[type](column);
+			});
+		}
 	};
-	const dropColumn = function (table, column) {
-		return knex.schema.hasColumn(table, column).then((exists) => {
-			if (exists) {
-				return knex.schema.table(table, (t) => {
-					return t.dropColumn(column);
-				});
-			}
-		});
+	const dropColumn = async function (table, column) {
+		const exists = await knex.schema.hasColumn(table, column);
+		if (exists) {
+			return knex.schema.table(table, (t) => {
+				return t.dropColumn(column);
+			});
+		}
 	};
-	const createTableOrRun = function (
+	const createTableOrRun = async function (
 		tableName,
 		tableCreator,
 		runIfTableExists,
 	) {
-		return knex.schema.hasTable(tableName).then((exists) => {
-			if (!exists) {
-				return knex.schema.createTable(tableName, tableCreator);
-			} else if (runIfTableExists != null) {
-				return runIfTableExists();
-			}
-		});
+		const exists = await knex.schema.hasTable(tableName);
+		if (!exists) {
+			return knex.schema.createTable(tableName, tableCreator);
+		} else if (runIfTableExists != null) {
+			return runIfTableExists();
+		}
 	};
-	const dropTable = function (tableName) {
-		return knex.schema.hasTable(tableName).then((exists) => {
-			if (exists) {
-				return knex.schema.dropTable(tableName);
-			}
-		});
+	const dropTable = async function (tableName) {
+		const exists = await knex.schema.hasTable(tableName);
+		if (exists) {
+			await knex.schema.dropTable(tableName);
+		}
 	};
-	return Promise.all([
+	await Promise.all([
 		createTableOrRun('config', (t) => {
 			t.string('key').primary();
 			t.string('value');
@@ -54,17 +50,14 @@ exports.up = function (knex) {
 		createTableOrRun('deviceConfig', (t) => {
 			t.json('values');
 			t.json('targetValues');
-		}).then(() => {
-			return knex('deviceConfig')
-				.select()
-				.then((deviceConfigs) => {
-					if (deviceConfigs.length === 0) {
-						return knex('deviceConfig').insert({
-							values: '{}',
-							targetValues: '{}',
-						});
-					}
+		}).then(async () => {
+			const deviceConfigs = await knex('deviceConfig').select();
+			if (deviceConfigs.length === 0) {
+				await knex('deviceConfig').insert({
+					values: '{}',
+					targetValues: '{}',
 				});
+			}
 		}),
 		createTableOrRun(
 			'app',
@@ -80,25 +73,20 @@ exports.up = function (knex) {
 				t.json('config');
 				t.boolean('markedForDeletion');
 			},
-			() => {
-				return Promise.all([
+			async () => {
+				await Promise.all([
 					addColumn('app', 'commit', 'string'),
 					addColumn('app', 'appId', 'string'),
 					addColumn('app', 'containerName', 'string'),
 					addColumn('app', 'config', 'json'),
 					addColumn('app', 'markedForDeletion', 'boolean'),
 					dropColumn('app', 'containerId'),
-				]).then(() => {
-					// When updating from older supervisors, config can be null
-					return knex('app')
-						.update({ config: '{}' })
-						.whereNull('config')
-						.then(() => {
-							knex('app')
-								.update({ markedForDeletion: false })
-								.whereNull('markedForDeletion');
-						});
-				});
+				]);
+				// When updating from older supervisors, config can be null
+				await knex('app').update({ config: '{}' }).whereNull('config');
+				await knex('app')
+					.update({ markedForDeletion: false })
+					.whereNull('markedForDeletion');
 			},
 		),
 		createTableOrRun(
@@ -153,8 +141,8 @@ exports.up = function (knex) {
 		dropTable('image'),
 		dropTable('container'),
 	]);
-};
+}
 
-exports.down = function () {
-	return Promise.reject(new Error('Not implemented'));
-};
+export function down() {
+	throw new Error('Not implemented');
+}

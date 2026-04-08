@@ -3,8 +3,8 @@ const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
 import { checkTruthy } from '../lib/validation';
 
-exports.up = function (knex) {
-	return new Promise((resolve) => {
+export async function up(knex) {
+	const localMode = await new Promise((resolve) => {
 		if (!configJsonPath) {
 			console.log(
 				'Unable to locate config.json! Things may fail unexpectedly!',
@@ -37,16 +37,15 @@ exports.up = function (knex) {
 				return;
 			}
 		});
-	}).then((localMode) => {
-		// We can be sure that this does not already exist in the db because of the previous
-		// migration
-		return knex('config').insert({
-			key: 'localMode',
-			value: localMode.toString(),
-		});
 	});
-};
+	// We can be sure that this does not already exist in the db because of the previous
+	// migration
+	await knex('config').insert({
+		key: 'localMode',
+		value: localMode.toString(),
+	});
+}
 
-exports.down = function () {
-	return Promise.reject(new Error('Not Implemented'));
-};
+export function down() {
+	throw new Error('Not implemented');
+}

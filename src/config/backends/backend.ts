@@ -43,13 +43,13 @@ export abstract class ConfigBackend {
 
 	// Is a reboot required for the given config options?
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public async isRebootRequired(_opts: ConfigOptions): Promise<boolean> {
-		return Promise.resolve(true);
+	public isRebootRequired(_opts: ConfigOptions): Resolvable<boolean> {
+		return true;
 	}
 
 	// Allow a chosen config backend to be initialised
-	public async initialise(): Promise<ConfigBackend> {
-		return Promise.resolve(this);
+	public initialise(): Resolvable<ConfigBackend> {
+		return this;
 	}
 
 	// Ensure that all required fields for device type are included in the

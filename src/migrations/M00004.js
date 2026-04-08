@@ -1,10 +1,10 @@
-exports.up = function (knex) {
-	return knex.schema.createTable('containerLogs', (table) => {
+export async function up(knex) {
+	await knex.schema.createTable('containerLogs', (table) => {
 		table.string('containerId');
 		table.integer('lastSentTimestamp');
 	});
-};
+}
 
-exports.down = function () {
-	return Promise.reject(new Error('Not Implemented'));
-};
+export function down() {
+	throw new Error('Not implemented');
+}

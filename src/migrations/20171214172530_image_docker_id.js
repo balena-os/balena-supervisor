@@ -1,10 +1,10 @@
 // Adds a dockerImageId column to the image table to identify images downloaded with deltas
-exports.up = function (knex) {
-	return knex.schema.table('image', (t) => {
+export async function up(knex) {
+	await knex.schema.table('image', (t) => {
 		t.string('dockerImageId');
 	});
-};
+}
 
-exports.down = function () {
-	return Promise.reject(new Error('Not implemented'));
-};
+export function down() {
+	throw new Error('Not implemented');
+}

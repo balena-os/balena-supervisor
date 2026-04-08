@@ -37,5 +37,5 @@ export async function up(knex) {
 }
 
 export function down() {
-	return Promise.reject(new Error('Not Implemented'));
+	throw new Error('Not implemented');
 }

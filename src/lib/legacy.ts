@@ -22,6 +22,7 @@ import type {
 import { getBalenaApi } from '../lib/api-helper';
 
 import type { TargetApp, TargetApps, TargetState } from '../types';
+import type { ImageInspectInfo } from 'dockerode';
 
 export const defaultLegacyVolume = () => 'resin-data';
 
@@ -142,16 +143,14 @@ export async function normaliseLegacyDatabase() {
 			`Found a release with releaseId ${release.id}, imageId ${image.id}, serviceId ${serviceId}\nImage location is ${imageUrl}`,
 		);
 
-		const imageFromDocker = await docker
-			.getImage(service.image)
-			.inspect()
-			.catch((e: unknown) => {
-				if (isNotFoundError(e)) {
-					return;
-				}
-
+		let imageFromDocker: ImageInspectInfo | undefined;
+		try {
+			imageFromDocker = await docker.getImage(service.image).inspect();
+		} catch (e: unknown) {
+			if (!isNotFoundError(e)) {
 				throw e;
-			});
+			}
+		}
 		const imagesFromDatabase = await db
 			.models('image')
 			.where({ name: service.image })

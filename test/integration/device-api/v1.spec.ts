@@ -92,13 +92,11 @@ describe('device-api/v1', () => {
 			const newKey = 'my_new_key';
 			(actions.regenerateKey as SinonStub).resolves(newKey);
 
-			await request(api)
+			const response = await request(api)
 				.post('/v1/regenerate-api-key')
 				.set('Authorization', `Bearer ${oldKey}`)
-				.expect(200)
-				.then((response) => {
-					expect(response.text).to.match(new RegExp(newKey));
-				});
+				.expect(200);
+			expect(response.text).to.match(new RegExp(newKey));
 		});
 
 		it('responds with 503 if regenerate was unsuccessful', async () => {
@@ -831,12 +829,10 @@ describe('device-api/v1', () => {
 				.patch('/v1/device/host-config')
 				.send({})
 				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
-				.expect(200)
-				.then(() => {
-					expect(log.warn as SinonStub).to.have.been.calledWith(
-						"Key 'network' must exist in PATCH body",
-					);
-				});
+				.expect(200);
+			expect(log.warn as SinonStub).to.have.been.calledWith(
+				"Key 'network' must exist in PATCH body",
+			);
 		});
 
 		it('responds with 200 if patch successful', async () => {

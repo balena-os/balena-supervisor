@@ -92,10 +92,11 @@ describe('manages application lifecycle', () => {
 	const docker = new Docker();
 
 	const getSupervisorTarget = async () =>
-		await request(BALENA_SUPERVISOR_ADDRESS)
-			.get('/v2/local/target-state')
-			.expect(200)
-			.then(({ body }) => body.state.local);
+		(
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.get('/v2/local/target-state')
+				.expect(200)
+		).body.state.local;
 
 	const setSupervisorTarget = async (
 		target: Awaited<ReturnType<typeof generateTarget>>,

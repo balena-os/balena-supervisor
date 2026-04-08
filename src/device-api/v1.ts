@@ -17,7 +17,7 @@ import type { CompositionStepAction } from '../compose/composition-steps';
 
 export const router = express.Router();
 
-router.post('/v1/restart', (req: AuthorizedRequest, res, next) => {
+router.post('/v1/restart', async (req: AuthorizedRequest, res, next) => {
 	const appId = checkInt(req.body.appId);
 	const force = checkTruthy(req.body.force);
 	eventTracker.track('Restart container (v1)', { appId });
@@ -33,10 +33,12 @@ router.post('/v1/restart', (req: AuthorizedRequest, res, next) => {
 		});
 	}
 
-	return actions
-		.doRestart(appId, force)
-		.then(() => res.status(200).send('OK'))
-		.catch(next);
+	try {
+		await actions.doRestart(appId, force);
+		res.status(200).send('OK');
+	} catch (e) {
+		next(e);
+	}
 });
 
 const handleLegacyServiceAction = (action: CompositionStepAction) => {
@@ -122,7 +124,7 @@ router.get('/v1/apps/:appId', async (req: AuthorizedRequest, res, next) => {
 	}
 });
 
-router.post('/v1/purge', (req: AuthorizedRequest, res, next) => {
+router.post('/v1/purge', async (req: AuthorizedRequest, res, next) => {
 	const appId = checkInt(req.body.appId);
 	const force = checkTruthy(req.body.force);
 	if (appId == null) {
@@ -138,10 +140,12 @@ router.post('/v1/purge', (req: AuthorizedRequest, res, next) => {
 		});
 	}
 
-	return actions
-		.doPurge(appId, force)
-		.then(() => res.status(200).json({ Data: 'OK', Error: '' }))
-		.catch(next);
+	try {
+		await actions.doPurge(appId, force);
+		res.status(200).json({ Data: 'OK', Error: '' });
+	} catch (e) {
+		next(e);
+	}
 });
 
 router.post('/v1/update', async (req, res, next) => {

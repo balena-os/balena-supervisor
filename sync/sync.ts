@@ -73,7 +73,7 @@ void (async () => {
 		await fs.readFile('Dockerfile.template'),
 	);
 
-	let cleanup = () => Promise.resolve();
+	let cleanup = () => {};
 	let sigint = () => {
 		/** ignore empty */
 	};

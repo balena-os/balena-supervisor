@@ -560,53 +560,53 @@ async function killContainer(
 	}
 
 	const containerObj = docker.getContainer(containerId);
-	const killPromise = containerObj
-		.stop()
-		.then(() => {
-			if (removeContainer) {
-				return containerObj.remove({ v: true });
-			}
-		})
-		.catch((e) => {
-			// Get the statusCode from the original cause and make sure it's
-			// definitely an int for comparison reasons
-			const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
-			if (isLeft(maybeStatusCode)) {
-				throw new Error(`Could not parse status code from docker error:  ${e}`);
-			}
-			const statusCode = maybeStatusCode.right;
-
-			// 304 means the container was already stopped, so we can just remove it
-			if (statusCode === 304) {
-				logger.logSystemEvent(LogTypes.stopServiceNoop, { service });
-				// Why do we attempt to remove the container again?
+	const killPromise = (async () => {
+		try {
+			try {
+				await containerObj.stop();
 				if (removeContainer) {
-					return containerObj.remove({ v: true });
+					await containerObj.remove({ v: true });
 				}
-			} else if (statusCode === 404) {
-				// 404 means the container doesn't exist, precisely what we want!
-				logger.logSystemEvent(LogTypes.stopRemoveServiceNoop, {
-					service,
-				});
-			} else {
-				throw e;
+			} catch (e: any) {
+				// Get the statusCode from the original cause and make sure it's
+				// definitely an int for comparison reasons
+				const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
+				if (isLeft(maybeStatusCode)) {
+					throw new Error(
+						`Could not parse status code from docker error:  ${e}`,
+					);
+				}
+				const statusCode = maybeStatusCode.right;
+
+				// 304 means the container was already stopped, so we can just remove it
+				if (statusCode === 304) {
+					logger.logSystemEvent(LogTypes.stopServiceNoop, { service });
+					// Why do we attempt to remove the container again?
+					if (removeContainer) {
+						await containerObj.remove({ v: true });
+					}
+				} else if (statusCode === 404) {
+					// 404 means the container doesn't exist, precisely what we want!
+					logger.logSystemEvent(LogTypes.stopRemoveServiceNoop, {
+						service,
+					});
+				} else {
+					throw e;
+				}
 			}
-		})
-		.then(() => {
 			delete containerHasDied[containerId];
 			logger.logSystemEvent(LogTypes.stopServiceSuccess, { service });
-		})
-		.catch((e) => {
+		} catch (e) {
 			logger.logSystemEvent(LogTypes.stopServiceError, {
 				service,
 				error: e,
 			});
-		})
-		.finally(() => {
+		} finally {
 			if (service.imageId != null) {
 				reportChange(containerId);
 			}
-		});
+		}
+	})();
 
 	if (wait) {
 		return killPromise;
@@ -646,7 +646,7 @@ async function prepareForHandover(service: Service) {
 	});
 }
 
-function waitToKill(service: Service, timeout: number | string) {
+async function waitToKill(service: Service, timeout: number | string) {
 	const pollInterval = 100;
 	timeout = checkInt(timeout, { positive: true }) ?? 60000;
 	const deadline = Date.now() + timeout;
@@ -668,7 +668,7 @@ function waitToKill(service: Service, timeout: number | string) {
 		} catch {
 			if (Date.now() < deadline) {
 				await setTimeout(pollInterval);
-				return wait();
+				await wait();
 			} else {
 				log.info(
 					`Handover timeout has passed, assuming handover was completed for service ${service.serviceName}`,
@@ -681,7 +681,7 @@ function waitToKill(service: Service, timeout: number | string) {
 		`Waiting for handover to be completed for service: ${service.serviceName}`,
 	);
 
-	return wait().then(() => {
-		log.success(`Handover complete for service ${service.serviceName}`);
-	});
+	// TODO: This is likely to cause a (slow) memory leak whilst the service is waiting to handover
+	await wait();
+	log.success(`Handover complete for service ${service.serviceName}`);
 }
