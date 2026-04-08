@@ -23,7 +23,7 @@ import { getBalenaApi } from '../lib/api-helper';
 
 import type { TargetApp, TargetApps, TargetState } from '../types';
 
-const defaultLegacyVolume = () => 'resin-data';
+export const defaultLegacyVolume = () => 'resin-data';
 
 /**
  * Creates a docker volume from the legacy data directory
