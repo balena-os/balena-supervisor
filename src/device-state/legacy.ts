@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import type { TargetAppsV2 } from '../lib/legacy';
-import { fromV2TargetApps } from '../lib/legacy';
+import { defaultLegacyVolume, fromV2TargetApps } from '../lib/legacy';
 import type { AppsJsonFormat, TargetApp, TargetRelease } from '../types';
 
 /**
@@ -38,7 +38,7 @@ function singleToMulticontainerApp(
 			[app.commit]: release,
 		},
 	};
-	const defaultVolume = exports.defaultLegacyVolume();
+	const defaultVolume = defaultLegacyVolume();
 	release.volumes[defaultVolume] = {};
 	const updateStrategy =
 		conf['RESIN_SUPERVISOR_UPDATE_STRATEGY'] ?? 'download-then-kill';
