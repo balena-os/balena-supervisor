@@ -1,4 +1,20 @@
 - commits:
+    - subject: Fix bug in single -> multicontainer migration of legacy app.json
+      hash: dadca5fd2f1651aa7c3cc0c13d197d27cd7bfbae
+      body: |
+        The use of `exports.` means that typescript couldn't spot the bug
+        introduced in https://github.com/balena-os/balena-supervisor/pull/1765
+        where the function was moved to another file. This switches to
+        importing the function as expected.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.7.1
+  title: ""
+  date: 2026-04-08T16:07:56.710Z
+- commits:
     - subject: Return updateStatus in /v2/applications/state
       hash: 16df0720d4682bc5004aec97c171bd0e3dc22fde
       body: |
