@@ -5,7 +5,7 @@ import '~/src/mdns';
 
 describe('MDNS', () => {
 	it('resolves global domain names', async () => {
-		const dns = require('dns'); // eslint-disable-line
+		const { default: dns } = await import('dns');
 		const lookup = promisify(dns.lookup);
 		const res = await lookup('www.google.com', { all: true });
 		expect(res).to.not.be.null;
@@ -14,7 +14,7 @@ describe('MDNS', () => {
 	});
 
 	it('resolves .local domain names', async () => {
-		const dns = require('dns'); // eslint-disable-line
+		const { default: dns } = await import('dns');
 		const lookup = promisify(dns.lookup);
 		const res = await lookup('my-device.local', { all: true });
 		expect(res).to.not.be.null;
