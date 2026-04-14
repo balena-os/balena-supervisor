@@ -1,4 +1,21 @@
 - commits:
+    - subject: "Firewall: avoid `exports.` to improve type-checking"
+      hash: 553f884dd90f4187c44527f6b1ae4027d7ace245
+      body: |
+        `exports` is `any` so referencing it means no typings are applied in
+        cases you would normally expect them to be and means that it's easy to
+        introduce bugs due to expecting typescript to be able to catch them
+        when in fact it's gone via a commonjs indirection. As an added benefit
+        it also makes the code more ESM ready
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.7.2
+  title: ""
+  date: 2026-04-14T21:26:22.254Z
+- commits:
     - subject: Fix bug in single -> multicontainer migration of legacy app.json
       hash: dadca5fd2f1651aa7c3cc0c13d197d27cd7bfbae
       body: |
