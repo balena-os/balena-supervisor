@@ -571,15 +571,13 @@ const inspectByDigest = async (imageName: string) => {
 		.where('name', 'like', `%${digest}`)
 		.orWhere({ name: imageName }) // Default to looking for the full image name
 		.select();
-	const [img] = images.filter(
-		(i): i is typeof i & Required<Pick<typeof i, 'dockerImageId'>> =>
-			i.dockerImageId !== null,
-	);
-	// Assume that all db entries will point to the same dockerImageId, so use
-	// the first one. If this assumption is false, there is a bug with cleanup
 
-	if (img) {
-		return await docker.getImage(img.dockerImageId).inspect();
+	for (const img of images) {
+		if (img.dockerImageId != null) {
+			// Assume that all db entries will point to the same dockerImageId, so use
+			// the first one. If this assumption is false, there is a bug with cleanup
+			return await docker.getImage(img.dockerImageId).inspect();
+		}
 	}
 	throw new StatusError(404, `Failed to find an image matching ${imageName}`);
 };
