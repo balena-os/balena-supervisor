@@ -87,8 +87,7 @@ export const touch = async (file: string, time = new Date()) => {
 			// If date is custom we need to change the file atime and mtime
 			await fs.utimes(file, time, time);
 		} else {
-			// TODO: This is preserving previous behavior but was probably intended to be a throw?
-			return e;
+			throw e;
 		}
 	}
 };
