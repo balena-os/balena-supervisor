@@ -1,4 +1,26 @@
 - commits:
+    - subject: Fix error propagation is fsUtils.touch
+      hash: 29d84ac9ab8bd8e659d52acdcdd94efcf2040f24
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Convert code to async/await
+      hash: a9e72a1533bd72d675401edf01a0f470dc00812e
+      body: |
+        This is how new code would be written and can result in better stack
+        traces via zero cost async stack traces and less closure overhead
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 17.7.3
+  title: ""
+  date: 2026-04-20T16:16:49.325Z
+- commits:
     - subject: "Firewall: avoid `exports.` to improve type-checking"
       hash: 553f884dd90f4187c44527f6b1ae4027d7ace245
       body: |
