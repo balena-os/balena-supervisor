@@ -1,5 +1,4 @@
-/* eslint @typescript-eslint/require-await: 0 */
-
+/* eslint-disable @typescript-eslint/require-await */
 process.env.DOCKER_HOST = 'unix:///your/dockerode/mocks/are/not/working';
 
 import Dockerode from 'dockerode';

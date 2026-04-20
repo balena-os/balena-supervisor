@@ -58,57 +58,54 @@ export async function get<T extends SchemaTypeKey>(
 	if (Object.hasOwn(Schema.schema, key)) {
 		const schemaKey = key as Schema.SchemaKey;
 
-		return getSchema(schemaKey, $db).then((value) => {
-			if (value == null) {
-				const defaultValue = schemaTypes[key].default;
-				if (defaultValue instanceof t.Type) {
-					// The only reason that this would be the case in a non-function
-					// schema key is for the meta nullOrUndefined value. We check this
-					// by first decoding the value undefined with the default type, and
-					// then return undefined
-					const maybeDecoded = (defaultValue as t.Type<any>).decode(undefined);
+		const value = await getSchema(schemaKey, $db);
+		if (value == null) {
+			const defaultValue = schemaTypes[key].default;
+			if (defaultValue instanceof t.Type) {
+				// The only reason that this would be the case in a non-function
+				// schema key is for the meta nullOrUndefined value. We check this
+				// by first decoding the value undefined with the default type, and
+				// then return undefined
+				const maybeDecoded = (defaultValue as t.Type<any>).decode(undefined);
 
-					return (
-						checkValueDecode(maybeDecoded, key, undefined) && maybeDecoded.right
-					);
-				}
-				return defaultValue as SchemaReturn<T>;
+				return (
+					checkValueDecode(maybeDecoded, key, undefined) && maybeDecoded.right
+				);
 			}
-			const decoded = decodeSchema(schemaKey, value);
+			return defaultValue as SchemaReturn<T>;
+		}
+		const decoded = decodeSchema(schemaKey, value);
 
-			// The following function will throw if the value
-			// is not correct, so we chain it this way to keep
-			// the type system happy
-			return checkValueDecode(decoded, key, value) && decoded.right;
-		});
+		// The following function will throw if the value
+		// is not correct, so we chain it this way to keep
+		// the type system happy
+		return checkValueDecode(decoded, key, value) && decoded.right;
 	} else if (Object.hasOwn(FnSchema.fnSchema, key)) {
 		const fnKey = key as FnSchema.FnSchemaKey;
 		// Cast the promise as something that produces an unknown, and this means that
 		// we can validate the output of the function as well, ensuring that the type matches
-		const promiseValue = FnSchema.fnSchema[fnKey]();
-		return promiseValue
-			.then((value: unknown) => {
-				const decoded = schemaTypes[key].type.decode(value);
+		try {
+			const value: unknown = await FnSchema.fnSchema[fnKey]();
+			const decoded = schemaTypes[key].type.decode(value);
 
-				return checkValueDecode(decoded, key, value) && decoded.right;
-			})
-			.catch(() => {
-				const defaultValue = schemaTypes[key].default;
-				if (defaultValue instanceof t.Type) {
-					// For functions, this can happen if t.never is used as default
-					// value. In that case decoding and the value check below will throw
-					// (which is what is expected)
-					// if future functions use NullOrUndefined as with values above
-					// this branch will return undefined. In any case this should never
-					// happen
-					const maybeDecoded = (defaultValue as t.Type<any>).decode(undefined);
+			return checkValueDecode(decoded, key, value) && decoded.right;
+		} catch {
+			const defaultValue = schemaTypes[key].default;
+			if (defaultValue instanceof t.Type) {
+				// For functions, this can happen if t.never is used as default
+				// value. In that case decoding and the value check below will throw
+				// (which is what is expected)
+				// if future functions use NullOrUndefined as with values above
+				// this branch will return undefined. In any case this should never
+				// happen
+				const maybeDecoded = (defaultValue as t.Type<any>).decode(undefined);
 
-					return (
-						checkValueDecode(maybeDecoded, key, undefined) && maybeDecoded.right
-					);
-				}
-				return defaultValue as SchemaReturn<T>;
-			});
+				return (
+					checkValueDecode(maybeDecoded, key, undefined) && maybeDecoded.right
+				);
+			}
+			return defaultValue as SchemaReturn<T>;
+		}
 	} else {
 		throw new Error(`Unknown config value ${key}`);
 	}
@@ -194,7 +191,7 @@ export async function remove<T extends Schema.SchemaKey>(
 		throw new Error(`Attempt to delete non-existent or immutable key ${key}`);
 	}
 	if (Schema.schema[key].source === 'config.json') {
-		return configJsonBackend.remove(key);
+		await configJsonBackend.remove(key);
 	} else if (Schema.schema[key].source === 'db') {
 		await db.models('config').del().where({ key });
 	} else {
@@ -300,20 +297,20 @@ function validateConfigMap<T extends SchemaTypeKey>(
 }
 
 export async function generateRequiredFields() {
-	return getMany(['uuid', 'deviceApiKey', 'unmanaged']).then(
-		({ uuid, deviceApiKey, unmanaged }) => {
-			// These fields need to be set regardless
-			uuid ??= newUniqueKey();
-			return set({ uuid }).then(() => {
-				if (unmanaged) {
-					return;
-				}
-				if (!deviceApiKey) {
-					return set({ deviceApiKey: newUniqueKey() });
-				}
-			});
-		},
-	);
+	let { uuid, deviceApiKey, unmanaged } = await getMany([
+		'uuid',
+		'deviceApiKey',
+		'unmanaged',
+	]);
+	// These fields need to be set regardless
+	uuid ??= newUniqueKey();
+	await set({ uuid });
+	if (unmanaged) {
+		return;
+	}
+	if (!deviceApiKey) {
+		return set({ deviceApiKey: newUniqueKey() });
+	}
 }
 
 function valueToString(value: unknown, name: string) {

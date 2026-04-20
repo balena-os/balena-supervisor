@@ -70,8 +70,9 @@ describe('lib/docker-utils', () => {
 			// INFO: we still use the stub here. V2 deltas should eventually go away and there is no
 			// really easy way to create a real image that simulates a v2 delta.
 			const imageStub = stub(dockerUtils.docker, 'getImage').returns({
-				inspect: () => {
-					return Promise.resolve({
+				// eslint-disable-next-line @typescript-eslint/require-await -- We're stubbing this function so need to match the signature, but we don't actually need to do anything async here.
+				inspect: async () => {
+					return {
 						Id: 'sha256:34ec91fe6e08cb0f867bbc069c5f499d39297eb8e874bb8ce9707537d983bcbc',
 						RepoTags: [],
 						RepoDigests: [],
@@ -156,7 +157,7 @@ describe('lib/docker-utils', () => {
 						Metadata: {
 							LastTagTime: '0001-01-01T00:00:00Z',
 						},
-					});
+					};
 				},
 			} as any);
 

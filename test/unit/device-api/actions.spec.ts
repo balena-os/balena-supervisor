@@ -7,9 +7,12 @@ import * as actions from '~/src/device-api/actions';
 
 describe('device-api/actions', () => {
 	describe('runs healthchecks', () => {
-		const taskTrue = () => Promise.resolve(true);
-		const taskFalse = () => Promise.resolve(false);
-		const taskError = () => {
+		// eslint-disable-next-line @typescript-eslint/require-await
+		const taskTrue = async () => true;
+		// eslint-disable-next-line @typescript-eslint/require-await
+		const taskFalse = async () => false;
+		// eslint-disable-next-line @typescript-eslint/require-await
+		const taskError = async () => {
 			throw new Error();
 		};
 

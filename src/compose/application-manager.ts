@@ -131,12 +131,11 @@ export async function getRequiredSteps(
 	},
 ): Promise<CompositionStep[]> {
 	// get some required data
-	const [downloading, availableImages, { localMode, delta }] =
-		await Promise.all([
-			Promise.resolve(imageManager.getDownloadingImageNames()),
-			imageManager.getAvailable(),
-			config.getMany(['localMode', 'delta']),
-		]);
+	const downloading = imageManager.getDownloadingImageNames();
+	const [availableImages, { localMode, delta }] = await Promise.all([
+		imageManager.getAvailable(),
+		config.getMany(['localMode', 'delta']),
+	]);
 	const containerIdsByAppId = getAppContainerIds(currentApps);
 	const rebootBreadcrumbSet = await isRebootBreadcrumbSet();
 
@@ -552,10 +551,8 @@ export async function executeStep(
 	{ force = false } = {},
 ): Promise<void> {
 	if (!validActions.includes(step.action)) {
-		return Promise.reject(
-			new InternalInconsistencyError(
-				`Invalid composition step action: ${step.action}`,
-			),
+		throw new InternalInconsistencyError(
+			`Invalid composition step action: ${step.action}`,
 		);
 	}
 

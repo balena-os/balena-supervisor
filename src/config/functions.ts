@@ -11,21 +11,23 @@ import log from '../lib/supervisor-console';
 
 export const fnSchema = {
 	version: () => {
-		return Promise.resolve(supervisorVersion);
+		return supervisorVersion;
 	},
-	currentApiKey: () => {
-		return config
-			.getMany(['apiKey', 'deviceApiKey'])
-			.then(({ apiKey, deviceApiKey }) => {
-				return apiKey ?? deviceApiKey;
-			});
+	currentApiKey: async () => {
+		const { apiKey, deviceApiKey } = await config.getMany([
+			'apiKey',
+			'deviceApiKey',
+		]);
+		return apiKey ?? deviceApiKey;
 	},
-	provisioned: () => {
-		return config
-			.getMany(['uuid', 'apiEndpoint', 'registered_at', 'deviceId'])
-			.then((requiredValues) => {
-				return Object.values(requiredValues).every(Boolean);
-			});
+	provisioned: async () => {
+		const requiredValues = await config.getMany([
+			'uuid',
+			'apiEndpoint',
+			'registered_at',
+			'deviceId',
+		]);
+		return Object.values(requiredValues).every(Boolean);
 	},
 	osVersion: () => {
 		return osRelease.getOSVersion(constants.hostOSVersionPath);
@@ -79,42 +81,39 @@ export const fnSchema = {
 		},
 		{ promise: true },
 	),
-	provisioningOptions: () => {
-		return config
-			.getMany([
-				'uuid',
-				'applicationId',
-				'apiKey',
-				'deviceApiKey',
-				'deviceArch',
-				'deviceType',
-				'apiEndpoint',
-				'apiRequestTimeout',
-				'registered_at',
-				'deviceId',
-				'version',
-				'osVersion',
-				'osVariant',
-				'macAddress',
-			])
-			.then((conf) => {
-				return {
-					uuid: conf.uuid,
-					applicationId: conf.applicationId,
-					deviceArch: conf.deviceArch,
-					deviceType: conf.deviceType,
-					provisioningApiKey: conf.apiKey,
-					deviceApiKey: conf.deviceApiKey,
-					apiEndpoint: conf.apiEndpoint,
-					apiRequestTimeout: conf.apiRequestTimeout,
-					registered_at: conf.registered_at,
-					deviceId: conf.deviceId,
-					supervisorVersion: conf.version,
-					osVersion: conf.osVersion,
-					osVariant: conf.osVariant,
-					macAddress: conf.macAddress,
-				};
-			});
+	provisioningOptions: async () => {
+		const conf = await config.getMany([
+			'uuid',
+			'applicationId',
+			'apiKey',
+			'deviceApiKey',
+			'deviceArch',
+			'deviceType',
+			'apiEndpoint',
+			'apiRequestTimeout',
+			'registered_at',
+			'deviceId',
+			'version',
+			'osVersion',
+			'osVariant',
+			'macAddress',
+		]);
+		return {
+			uuid: conf.uuid,
+			applicationId: conf.applicationId,
+			deviceArch: conf.deviceArch,
+			deviceType: conf.deviceType,
+			provisioningApiKey: conf.apiKey,
+			deviceApiKey: conf.deviceApiKey,
+			apiEndpoint: conf.apiEndpoint,
+			apiRequestTimeout: conf.apiRequestTimeout,
+			registered_at: conf.registered_at,
+			deviceId: conf.deviceId,
+			supervisorVersion: conf.version,
+			osVersion: conf.osVersion,
+			osVariant: conf.osVariant,
+			macAddress: conf.macAddress,
+		};
 	},
 	extendedEnvOptions: () => {
 		return config.getMany([
@@ -143,10 +142,9 @@ export const fnSchema = {
 			'deltaVersion',
 		]);
 	},
-	unmanaged: () => {
-		return config.get('apiEndpoint').then((apiEndpoint) => {
-			return !apiEndpoint;
-		});
+	unmanaged: async () => {
+		const apiEndpoint = await config.get('apiEndpoint');
+		return !apiEndpoint;
 	},
 };
 

@@ -94,7 +94,7 @@ router.post(
 
 router.post(
 	'/v2/applications/:appId/purge',
-	(req: AuthorizedRequest, res: Response, next: NextFunction) => {
+	async (req: AuthorizedRequest, res: Response, next: NextFunction) => {
 		const appId = checkInt(req.params.appId);
 		const force = checkTruthy(req.body.force);
 		if (!appId) {
@@ -112,18 +112,18 @@ router.post(
 			});
 		}
 
-		return actions
-			.doPurge(appId, force)
-			.then(() => {
-				res.status(200).send('OK');
-			})
-			.catch(next);
+		try {
+			await actions.doPurge(appId, force);
+			res.status(200).send('OK');
+		} catch (e) {
+			next(e);
+		}
 	},
 );
 
 router.post(
 	'/v2/applications/:appId/restart',
-	(req: AuthorizedRequest, res: Response, next: NextFunction) => {
+	async (req: AuthorizedRequest, res: Response, next: NextFunction) => {
 		const appId = checkInt(req.params.appId);
 		const force = checkTruthy(req.body.force);
 		if (!appId) {
@@ -141,12 +141,13 @@ router.post(
 			});
 		}
 
-		return actions
-			.doRestart(appId, force)
-			.then(() => {
-				res.status(200).send('OK');
-			})
-			.catch(next);
+		try {
+			await actions.doRestart(appId, force);
+
+			res.status(200).send('OK');
+		} catch (e) {
+			next(e);
+		}
 	},
 );
 

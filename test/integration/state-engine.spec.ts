@@ -9,10 +9,11 @@ const BALENA_SUPERVISOR_ADDRESS =
 	process.env.BALENA_SUPERVISOR_ADDRESS ?? 'http://balena-supervisor:48484';
 
 const getCurrentState = async () =>
-	await request(BALENA_SUPERVISOR_ADDRESS)
-		.get('/v2/local/target-state')
-		.expect(200)
-		.then(({ body }) => body.state.local);
+	(
+		await request(BALENA_SUPERVISOR_ADDRESS)
+			.get('/v2/local/target-state')
+			.expect(200)
+	).body.state.local;
 
 const setTargetState = async (
 	target: Omit<TargetStateV2['local'], 'name'>,
@@ -64,9 +65,7 @@ const setTargetState = async (
 };
 
 const getStatus = async () =>
-	await request(BALENA_SUPERVISOR_ADDRESS)
-		.get('/v2/state/status')
-		.then(({ body }) => body);
+	(await request(BALENA_SUPERVISOR_ADDRESS).get('/v2/state/status')).body;
 
 const docker = new Docker();
 

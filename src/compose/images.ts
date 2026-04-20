@@ -315,16 +315,17 @@ export function getNormalisedTags(image: Docker.ImageInfo): string[] {
 async function withImagesFromDockerAndDB<T>(
 	cb: (dockerImages: Docker.ImageInfo[], composeImages: Image[]) => T,
 ) {
-	const [normalisedImages, dbImages] = await Promise.all([
-		docker.listImages({ digests: true }).then((images) => {
-			return images.map((image) => ({
-				...image,
-				RepoTag: getNormalisedTags(image),
-			}));
-		}),
+	const [images, dbImages] = await Promise.all([
+		docker.listImages({ digests: true }),
 		db.models('image').select(),
 	]);
-	return cb(normalisedImages, dbImages);
+	return cb(
+		images.map((image) => ({
+			...image,
+			RepoTag: getNormalisedTags(image),
+		})),
+		dbImages,
+	);
 }
 
 function addImageFailure(imageName: string, time = process.hrtime()) {
@@ -396,11 +397,15 @@ export async function cleanImageData(): Promise<void> {
 			// If the supervisor was interrupted between fetching the image and adding
 			// the tag, the engine image may have been left without the proper tag leading
 			// to issues with removal. Add tag just in case
-			await Promise.all(
-				supervisedImages
-					.filter((image) => isAvailableInDocker(image, dockerImages))
-					.map((image) => tagImage(image.dockerImageId!, image.name)),
-			).catch(() => []); // Ignore errors
+			try {
+				await Promise.all(
+					supervisedImages
+						.filter((image) => isAvailableInDocker(image, dockerImages))
+						.map((image) => tagImage(image.dockerImageId!, image.name)),
+				);
+			} catch {
+				// Ignore errors
+			}
 
 			// If the image is in the DB but not available in docker, return it
 			// for removal on the database
@@ -491,10 +496,9 @@ async function getImagesForCleanup(): Promise<Array<Docker.ImageInfo['Id']>> {
 	);
 	const svRepos = getSupervisorRepos(svImage);
 
-	const usedImageIds: string[] = await db
-		.models('image')
-		.select('dockerImageId')
-		.then((vals) => vals.map(({ dockerImageId }: Image) => dockerImageId));
+	const usedImageIds = (
+		(await db.models('image').select('dockerImageId')) as Image[]
+	).map(({ dockerImageId }) => dockerImageId);
 
 	const dockerImages = await docker.listImages({ digests: true });
 
@@ -541,21 +545,14 @@ const inspectByReference = async (imageName: string) => {
 	const repo = [registry, name].filter((s) => !!s).join('/');
 	const reference = [repo, tagName].filter((s) => !!s).join(':');
 
-	return await docker
-		.listImages({
-			digests: true,
-			filters: { reference: [reference] },
-		})
-		.then(([img]) =>
-			img
-				? docker.getImage(img.Id).inspect()
-				: Promise.reject(
-						new StatusError(
-							404,
-							`Failed to find an image matching ${imageName}`,
-						),
-					),
-		);
+	const [img] = await docker.listImages({
+		digests: true,
+		filters: { reference: [reference] },
+	});
+	if (img) {
+		return await docker.getImage(img.Id).inspect();
+	}
+	throw new StatusError(404, `Failed to find an image matching ${imageName}`);
 };
 
 // Get image by the full image URI. This will only work for regular pulls
@@ -569,24 +566,20 @@ const inspectByURI = async (imageName: string) =>
 // image data is there.
 const inspectByDigest = async (imageName: string) => {
 	const { digest } = dockerUtils.getRegistryAndName(imageName);
-	return await db
+	const images: Image[] = await db
 		.models('image')
 		.where('name', 'like', `%${digest}`)
 		.orWhere({ name: imageName }) // Default to looking for the full image name
-		.select()
-		.then((images) => images.filter((img: Image) => img.dockerImageId !== null))
-		// Assume that all db entries will point to the same dockerImageId, so use
-		// the first one. If this assumption is false, there is a bug with cleanup
-		.then(([img]) =>
-			img
-				? docker.getImage(img.dockerImageId).inspect()
-				: Promise.reject(
-						new StatusError(
-							404,
-							`Failed to find an image matching ${imageName}`,
-						),
-					),
-		);
+		.select();
+
+	for (const img of images) {
+		if (img.dockerImageId != null) {
+			// Assume that all db entries will point to the same dockerImageId, so use
+			// the first one. If this assumption is false, there is a bug with cleanup
+			return await docker.getImage(img.dockerImageId).inspect();
+		}
+	}
+	throw new StatusError(404, `Failed to find an image matching ${imageName}`);
 };
 
 export async function inspectByName(imageName: string) {
@@ -660,7 +653,7 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 
 	// We first fetch the image from the DB to ensure it exists,
 	// and get the dockerImageId and any other missing fields
-	const images = await db.models('image').select().where(image);
+	const images: Image[] = await db.models('image').select().where(image);
 
 	if (images.length === 0) {
 		removed = false;

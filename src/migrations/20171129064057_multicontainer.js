@@ -95,7 +95,7 @@ const imageForDependentApp = function (app) {
 	};
 };
 
-exports.up = async function (knex) {
+export async function up(knex) {
 	await knex.schema.createTable('image', (t) => {
 		t.increments('id').primary();
 		t.string('name');
@@ -275,9 +275,8 @@ exports.up = async function (knex) {
 			await knex('dependentDeviceTarget').insert(deviceTarget);
 		}),
 	);
-};
+}
 
-// eslint-disable-next-line @typescript-eslint/require-await
-exports.down = async function () {
+export function down() {
 	throw new Error('Not implemented');
-};
+}

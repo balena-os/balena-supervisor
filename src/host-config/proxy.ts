@@ -280,9 +280,10 @@ async function restartProxyServices() {
 
 async function readNoProxy(): Promise<string[]> {
 	try {
-		const noProxy = await readFromBoot(noProxyPath, 'utf-8')
+		const noProxy = (await readFromBoot(noProxyPath, 'utf-8'))
 			// Prevent empty newline from being reported as a noProxy address
-			.then((addrs) => addrs.split('\n').filter((addr) => addr !== ''));
+			.split('\n')
+			.filter((addr) => addr !== '');
 
 		if (noProxy.length) {
 			return noProxy;

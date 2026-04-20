@@ -182,11 +182,14 @@ describe('config/splash-image', () => {
 
 		it('should catch readDir errors', async () => {
 			// Remove the directory before the tests to cause getBootConfig to fail
-			await fs
-				.rm(hostUtils.pathOnBoot('splash'), { recursive: true, force: true })
-				.catch(() => {
-					/* noop */
+			try {
+				await fs.rm(hostUtils.pathOnBoot('splash'), {
+					recursive: true,
+					force: true,
 				});
+			} catch {
+				/* noop */
+			}
 
 			expect(await backend.getBootConfig()).to.deep.equal({});
 			expect(log.warn).to.be.calledOnceWith('Failed to read splash image:');
