@@ -1,13 +1,10 @@
-import { isLeft } from 'fp-ts/lib/Either';
-import * as t from 'io-ts';
-import Reporter from 'io-ts-reporters';
 import { TypedError } from 'typed-error';
 
 import type { ContractObject } from '@balena/contrato';
 import { Contract, Universe } from '@balena/contrato';
 
 import { checkTruthy } from './validation';
-import { withDefault, type TargetApps } from '../types';
+import type { TargetApps } from '../types';
 
 /**
  * This error is thrown when a container contract does not
@@ -62,14 +59,6 @@ interface ServiceWithContract extends ServiceCtx {
 	optional: boolean;
 }
 
-const validRequirementTypes = [
-	'sw.supervisor',
-	'sw.l4t',
-	'sw.os',
-	'sw.kernel',
-	'hw.device-type',
-	'arch.sw',
-];
 const deviceContract: Universe = new Universe();
 
 export function initializeContractRequirements(opts: {
@@ -132,10 +121,6 @@ export function initializeContractRequirements(opts: {
 	}
 }
 
-function isValidRequirementType(requirement: string) {
-	return validRequirementTypes.includes(requirement);
-}
-
 // this is only exported for tests
 export function containerContractsFulfilled(
 	servicesWithContract: ServiceWithContract[],
@@ -165,68 +150,41 @@ export function containerContractsFulfilled(
 	};
 }
 
-const AtomicRequirement = t.exact(
-	// Ignore additional properties
-	t.intersection([
-		t.type({
-			type: t.string,
-		}),
-		// Allow searching the most common contract matchers
-		t.partial({
-			slug: t.union([t.null, t.undefined, t.string]),
-			version: t.union([t.null, t.undefined, t.string]),
-			data: t.record(t.union([t.string, t.number]), t.any),
-		}),
-	]),
-);
-
-const DisjunctiveRequirement = t.type({
-	or: t.array(AtomicRequirement),
-});
-
-const ContractRequirement = t.union([
-	AtomicRequirement,
-	DisjunctiveRequirement,
-]);
-
-const ContainerContract = t.intersection([
-	t.type({
-		type: withDefault(t.string, 'sw.container'),
-	}),
-	t.partial({
-		slug: t.union([t.null, t.undefined, t.string]),
-		requires: t.union([t.null, t.undefined, t.array(ContractRequirement)]),
-	}),
-]);
-
-export class InvalidContractTypeError extends TypedError {
-	constructor(public type: string) {
-		super(`${type} is not a valid contract requirement type`);
-	}
-}
-
 // Exported for tests only
-export function parseContract(contract: unknown): ContractObject {
-	const result = ContainerContract.decode(contract);
+export function parseContract(contract: object): ContractObject {
+	// assume `sw.container` as the type to avoid breaking existing contracts on the db
+	const rawContract = { type: 'sw.container', requires: [], ...contract };
 
-	if (isLeft(result)) {
-		throw new Error(Reporter.report(result).join('\n'));
-	}
-
-	const res = result.right;
-	for (const req of res.requires ?? []) {
-		if ('or' in req) {
-			for (const child of req.or) {
-				if (!isValidRequirementType(child.type)) {
-					throw new InvalidContractTypeError(child.type);
+	function removeUnsupportedFields(req: Record<string, any>) {
+		for (const key of Object.keys(req)) {
+			if (key === 'or') {
+				for (const r of req.or) {
+					removeUnsupportedFields(r);
 				}
+				continue;
 			}
-		} else if (!isValidRequirementType(req.type)) {
-			throw new InvalidContractTypeError(req.type);
+
+			if (!['slug', 'type', 'version', 'data'].includes(key)) {
+				delete req[key];
+			}
 		}
 	}
 
-	return res;
+	// contrato is strict about typing when it comes to requirements,
+	// any extra fields on a requirement will result on a deserialization failure
+	// this is an issue as it seems that at some point we accepted `name` as valid
+	// requirement. When simplifying contract validation on
+	// https://github.com/balena-os/balena-supervisor/pull/2416 we chose to filter
+	// out `name`, which was probably an error since that means we are installing a
+	// container that perhaps doesn't have its contract satisfied. The code below is
+	// to maintain compatibility with that change
+	if (Array.isArray(rawContract.requires)) {
+		for (const req of rawContract.requires) {
+			removeUnsupportedFields(req);
+		}
+	}
+
+	return new Contract(rawContract).raw;
 }
 
 export function validateTargetContracts(
