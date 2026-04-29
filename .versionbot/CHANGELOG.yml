@@ -1,4 +1,20 @@
 - commits:
+    - subject: Fix the network connectivity check
+      hash: c377bbedd928dafe77d898efe048942f0463fd6e
+      body: |
+        The connectivity check function was receiving a `path` argument, added
+        on #820. The function, that just connects to a socket was looking for a
+        unix socket instead of connecting to the remote host, which means it was
+        always failing.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 17.7.4
+  title: ""
+  date: 2026-04-29T20:31:23.602Z
+- commits:
     - subject: Fix error propagation is fsUtils.touch
       hash: 29d84ac9ab8bd8e659d52acdcdd94efcf2040f24
       body: ""
