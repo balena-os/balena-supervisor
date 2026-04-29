@@ -3,7 +3,7 @@ import { promises as fs, watch } from 'fs';
 import { checkHost as checkNetHost, monitor } from 'network-checker';
 import type { ConnectOptions, MonitorChangeFunction } from 'network-checker';
 import os from 'os';
-import url from 'url';
+import { URL } from 'url';
 
 import * as constants from './lib/constants';
 import { isEEXIST } from './lib/errors';
@@ -49,6 +49,8 @@ export async function isVPNActive(): Promise<boolean> {
 }
 
 async function vpnStatusInotifyCallback(): Promise<void> {
+	// if the VPN is active then there is no need for the connectivity
+	// check so we pause it
 	isConnectivityCheckPaused = await isVPNActive();
 }
 
@@ -79,15 +81,16 @@ export const startConnectivityCheck = _.once(
 			void vpnStatusInotifyCallback();
 		}
 
-		const parsedUrl = url.parse(apiEndpoint);
-		const port = parseInt(parsedUrl.port ?? '80', 10);
+		const parsedUrl = new URL(apiEndpoint);
+		const port =
+			(parsedUrl.port && parseInt(parsedUrl.port, 10)) ||
+			(parsedUrl.protocol === 'https:' ? 443 : 80);
 		const blink = await getBlink();
 
 		customMonitor(
 			{
 				host: parsedUrl.hostname ?? undefined,
-				port: port || (parsedUrl.protocol === 'https' ? 443 : 80),
-				path: parsedUrl.path ?? '/',
+				port,
 				interval: 10 * 1000,
 			},
 			(connected) => {
