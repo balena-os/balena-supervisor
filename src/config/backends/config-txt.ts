@@ -150,9 +150,9 @@ export class ConfigTxt extends ConfigBackend {
 								// We make sure to put the base param in the right overlays
 								// since RPI doesn't seem to be too strict about the ordering
 								// when it comes to these base params
-								baseParams.push(value);
+								baseParams.push(param);
 							} else {
-								currParams.push(value);
+								currParams.push(param);
 							}
 						}
 					} else if (key === 'dtoverlay') {
