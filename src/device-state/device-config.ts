@@ -202,6 +202,11 @@ const configKeys: Dictionary<ConfigOption> = {
 		varType: 'bool',
 		defaultValue: 'true',
 	},
+	composeProfiles: {
+		envVarName: 'SUPERVISOR_COMPOSE_PROFILES',
+		varType: 'string',
+		defaultValue: '',
+	},
 };
 
 const validKeys = [

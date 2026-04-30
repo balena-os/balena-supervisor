@@ -14,7 +14,7 @@ import log from '../lib/supervisor-console';
 import { InternalInconsistencyError } from '../lib/errors';
 import type { Lock } from '../lib/update-lock';
 import { hasLeftoverLocks } from '../lib/update-lock';
-import { checkTruthy } from '../lib/validation';
+import { checkTruthy, parseCommaSeparatedSet } from '../lib/validation';
 
 import { App } from './app';
 import * as volumeManager from './volume-manager';
@@ -23,6 +23,8 @@ import * as serviceManager from './service-manager';
 import * as imageManager from './images';
 import * as commitStore from './commit';
 import { generateStep, getExecutors } from './composition-steps';
+import * as extensions from './extensions';
+import type { ServiceComposeConfig } from './types/service';
 
 import type {
 	TargetApps,
@@ -57,6 +59,168 @@ export const removeAllListeners: (typeof events)['removeAllListeners'] =
 	events.removeAllListeners.bind(events);
 
 const localModeManager = new LocalModeManager();
+
+/**
+ * Extract compose profiles declared by user services.
+ * User services can declare dependencies on OS extensions via compose profiles:
+ *   profiles: ["kernel-modules"]
+ *
+ * This scans all non-host apps and collects the profile names,
+ * which are used to activate the corresponding hostapp overlay extensions.
+ */
+// Exported for tests
+export function extractUserServiceProfiles(apps: TargetApps): Set<string> {
+	const profiles = new Set<string>();
+	for (const app of Object.values(apps)) {
+		if (app.is_host) {
+			continue;
+		}
+		for (const release of Object.values(app.releases)) {
+			for (const service of Object.values(release.services ?? {})) {
+				if (Array.isArray(service.composition?.profiles)) {
+					for (const p of service.composition.profiles as string[]) {
+						profiles.add(p);
+					}
+				}
+			}
+		}
+	}
+	return profiles;
+}
+
+/**
+ * Collect active profiles from two sources:
+ * 1. Device config: SUPERVISOR_COMPOSE_PROFILES
+ * 2. Compose profiles declared by user services
+ *
+ * The union of these sets determines which overlay extensions to deploy.
+ */
+async function getActiveProfiles(apps: TargetApps): Promise<Set<string>> {
+	// Source 1: Device config
+	const activeProfiles = parseCommaSeparatedSet(
+		await config.get('composeProfiles'),
+	);
+
+	// Source 2: Compose profiles from user services
+	for (const p of extractUserServiceProfiles(apps)) {
+		activeProfiles.add(p);
+	}
+
+	return activeProfiles;
+}
+
+/**
+ * Extract overlay services from the hostapp in target state.
+ * These are services with io.balena.image.class=overlay label.
+ */
+// Exported for tests
+export function extractOverlayServices(
+	apps: TargetApps,
+): ServiceComposeConfig[] {
+	const overlayServices: ServiceComposeConfig[] = [];
+
+	for (const [, app] of Object.entries(apps)) {
+		// Only look at hostapp
+		if (!app.is_host) {
+			continue;
+		}
+
+		for (const [, release] of Object.entries(app.releases)) {
+			for (const [serviceName, service] of Object.entries(
+				release.services ?? {},
+			)) {
+				const svc = {
+					serviceName,
+					image: service.image,
+					labels: service.labels,
+					profiles: Array.isArray(service.composition?.profiles)
+						? (service.composition.profiles as string[])
+						: undefined,
+				} as ServiceComposeConfig;
+				if (extensions.isOverlayService(svc)) {
+					overlayServices.push(svc);
+				}
+			}
+		}
+	}
+
+	return overlayServices;
+}
+
+/**
+ * Extension work computed from target state.
+ *
+ * Three intents are emitted as separate steps so profile toggles preserve
+ * image locality: pulling happens even for profile-off overlays (caches
+ * for future activation), container creation is gated on the profile
+ * being active, and removal tears down containers but retains the row so
+ * a re-activation can rebuild without re-pull. Stale-kernel and dead
+ * container cleanup remains owned by the OS-side hooks.
+ */
+interface ExtensionChanges {
+	toPull: Array<{
+		serviceName: string;
+		image: string;
+	}>;
+	toDeploy: Array<{
+		serviceName: string;
+		image: string;
+		labels: Record<string, string>;
+	}>;
+	toRemove: Array<{
+		serviceName: string;
+		containerId: string;
+	}>;
+}
+
+const EMPTY_EXTENSION_CHANGES: ExtensionChanges = {
+	toPull: [],
+	toDeploy: [],
+	toRemove: [],
+};
+
+async function computeExtensionChanges(
+	rawTargetApps: TargetApps,
+): Promise<ExtensionChanges> {
+	const overlayServices = extractOverlayServices(rawTargetApps);
+
+	const current = await extensions.getDeployedExtensions();
+
+	if (overlayServices.length === 0 && current.length === 0) {
+		return EMPTY_EXTENSION_CHANGES;
+	}
+
+	const activeProfiles = await getActiveProfiles(rawTargetApps);
+	log.debug(
+		`Active profiles: ${Array.from(activeProfiles).join(', ') || '(none)'}`,
+	);
+
+	const { toPull, toDeploy, toRemove } = extensions.compareExtensions(
+		current,
+		overlayServices,
+		activeProfiles,
+	);
+
+	if (toPull.length === 0 && toDeploy.length === 0 && toRemove.length === 0) {
+		return EMPTY_EXTENSION_CHANGES;
+	}
+
+	return {
+		toPull: toPull.map((svc) => ({
+			serviceName: svc.serviceName,
+			image: svc.image,
+		})),
+		toDeploy: toDeploy.map((svc) => ({
+			serviceName: svc.serviceName,
+			image: svc.image,
+			labels: svc.labels ?? {},
+		})),
+		toRemove: toRemove.map((row) => ({
+			serviceName: row.serviceName,
+			containerId: row.containerId,
+		})),
+	};
+}
 
 export let fetchesInProgress = 0;
 export let timeSpentFetching = 0;
@@ -123,11 +287,13 @@ export async function getRequiredSteps(
 		keepVolumes,
 		force = false,
 		abortSignal,
+		rawTargetApps,
 	}: {
 		keepImages?: boolean;
 		keepVolumes?: boolean;
 		force?: boolean;
 		abortSignal: AbortSignal;
+		rawTargetApps: TargetApps;
 	},
 ): Promise<CompositionStep[]> {
 	// get some required data
@@ -138,6 +304,9 @@ export async function getRequiredSteps(
 	]);
 	const containerIdsByAppId = getAppContainerIds(currentApps);
 	const rebootBreadcrumbSet = await isRebootBreadcrumbSet();
+
+	// Compute extension changes (pure comparison, no Docker calls)
+	const extensionChanges = await computeExtensionChanges(rawTargetApps);
 
 	// Local mode sets the image and volume retention only
 	// if not explicitely set by the caller
@@ -157,6 +326,7 @@ export async function getRequiredSteps(
 		appLocks: lockRegistry,
 		rebootBreadcrumbSet,
 		abortSignal,
+		extensionChanges,
 	});
 }
 
@@ -171,6 +341,7 @@ interface InferNextOpts {
 	appLocks?: LockRegistry;
 	rebootBreadcrumbSet?: boolean;
 	abortSignal: AbortSignal;
+	extensionChanges?: ExtensionChanges;
 }
 
 // Calculate the required steps from the current to the target state
@@ -188,6 +359,7 @@ export async function inferNextSteps(
 		appLocks = {},
 		rebootBreadcrumbSet = false,
 		abortSignal,
+		extensionChanges = EMPTY_EXTENSION_CHANGES,
 	}: InferNextOpts,
 ) {
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
@@ -215,6 +387,42 @@ export async function inferNextSteps(
 		}
 	} else if (!(await extraFirmware.isInitialized(config.configJsonBackend))) {
 		steps.push({ action: 'ensureExtraFirmwareVolume' });
+	} else if (
+		extensionChanges.toPull.length > 0 ||
+		extensionChanges.toDeploy.length > 0 ||
+		extensionChanges.toRemove.length > 0
+	) {
+		// Pull first so profile-off images are cached locally and profile-active
+		// deploys in the same batch find their image already present. Removals
+		// run last to minimize the window where a profile re-toggle mid-reconcile
+		// sees no container.
+		for (const ext of extensionChanges.toPull) {
+			steps.push(
+				generateStep('pullExtension', {
+					serviceName: ext.serviceName,
+					image: ext.image,
+					abortSignal,
+				}),
+			);
+		}
+		for (const ext of extensionChanges.toDeploy) {
+			steps.push(
+				generateStep('deployExtension', {
+					serviceName: ext.serviceName,
+					image: ext.image,
+					labels: ext.labels,
+					abortSignal,
+				}),
+			);
+		}
+		for (const row of extensionChanges.toRemove) {
+			steps.push(
+				generateStep('removeExtensionContainer', {
+					serviceName: row.serviceName,
+					containerId: row.containerId,
+				}),
+			);
+		}
 	} else {
 		if (downloading.length === 0) {
 			// Avoid cleaning up dangling images while purging

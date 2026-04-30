@@ -7,6 +7,7 @@ import { Volume } from './volume';
 import { Service } from './service';
 import * as imageManager from './images';
 import { generateStep } from './composition-steps';
+import { isDataStore } from './extensions';
 import type * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
 import * as constants from '../lib/constants';
@@ -16,7 +17,7 @@ import {
 } from './update-strategies';
 import { isNotFoundError } from '../lib/errors';
 import * as config from '../config';
-import { checkTruthy } from '../lib/validation';
+import { checkTruthy, parseCommaSeparatedSet } from '../lib/validation';
 import type { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
@@ -1058,14 +1059,43 @@ class AppImpl implements App {
 			svc.labels?.['io.balena.image.class'] == null ||
 			svc.labels['io.balena.image.class'] === 'service';
 
-		const isDataStore = (svc: ServiceComposeConfig) =>
-			svc.labels?.['io.balena.image.store'] == null ||
-			svc.labels['io.balena.image.store'] === 'data';
+		// Get active compose profiles from device config
+		const activeProfiles = parseCommaSeparatedSet(
+			await config.get('composeProfiles'),
+		);
+
+		const allServices = JSON.parse(
+			app.services ?? '[]',
+		) as ServiceComposeConfig[];
+
+		// For non-host apps, auto-activate profiles declared by services.
+		// This ensures user services that declare extension dependencies
+		// are themselves included, and their profiles activate extensions.
+		if (!app.isHost) {
+			for (const svc of allServices) {
+				if (svc.profiles) {
+					for (const p of svc.profiles) {
+						activeProfiles.add(p);
+					}
+				}
+			}
+		}
+
+		// Check if a service matches the active profiles
+		// Services without profiles are always included (backward compatible)
+		// Services with profiles need at least one matching active profile
+		const matchesActiveProfile = (svc: ServiceComposeConfig): boolean => {
+			const serviceProfiles = svc.profiles;
+			if (!serviceProfiles || serviceProfiles.length === 0) {
+				return true;
+			}
+			return serviceProfiles.some((p) => activeProfiles.has(p));
+		};
 
 		// In the db, the services are an array, but here we switch them to an
 		// object so that they are consistent
 		const services: Service[] = await Promise.all(
-			JSON.parse(app.services ?? [])
+			allServices
 				.filter(
 					// For the host app, `io.balena.image.*` labels indicate special way
 					// to install the service image, so we ignore those we don't know how to
@@ -1080,6 +1110,8 @@ class AppImpl implements App {
 					(svc: ServiceComposeConfig) =>
 						!isSupervisor(app.uuid, svc.serviceName),
 				)
+				// Filter services by compose profiles
+				.filter(matchesActiveProfile)
 				.map(async (svc: ServiceComposeConfig) => {
 					// Try to fill the image id if the image is downloaded
 					let imageInfo: ImageInspectInfo | undefined;

@@ -79,6 +79,21 @@ export interface CompositionStepArgs {
 	};
 	requireReboot: { serviceName: string };
 	ensureExtraFirmwareVolume: object;
+	deployExtension: {
+		serviceName: string;
+		image: string;
+		labels: Record<string, string>;
+		abortSignal: AbortSignal;
+	};
+	pullExtension: {
+		serviceName: string;
+		image: string;
+		abortSignal: AbortSignal;
+	};
+	removeExtensionContainer: {
+		serviceName: string;
+		containerId: string;
+	};
 }
 
 export type CompositionStepAction = keyof CompositionStepArgs;

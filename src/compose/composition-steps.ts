@@ -11,6 +11,7 @@ import type { DeviceLegacyReport } from '../types/state';
 import type { CompositionStepAction, CompositionStepT } from './types';
 import type { Lock } from '../lib/update-lock';
 import * as extraFirmware from '../lib/extra-firmware';
+import * as extensions from './extensions';
 
 export type {
 	CompositionStep,
@@ -165,6 +166,20 @@ export function getExecutors(app: { callbacks: CompositionCallbacks }) {
 		},
 		ensureExtraFirmwareVolume: async () => {
 			await extraFirmware.initialize(config.configJsonBackend);
+		},
+		deployExtension: async (step) => {
+			await extensions.deployExtensionContainer(
+				step.serviceName,
+				step.image,
+				step.labels,
+				step.abortSignal,
+			);
+		},
+		pullExtension: async (step) => {
+			await extensions.ensureExtensionImage(step.image, step.abortSignal);
+		},
+		removeExtensionContainer: async (step) => {
+			await extensions.removeExtensionContainer(step.containerId);
 		},
 	};
 
