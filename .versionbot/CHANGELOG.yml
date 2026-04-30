@@ -1,4 +1,32 @@
 - commits:
+    - subject: Trim whitespaces around dtparam input values
+      hash: c240c47363869335fbaf40ba11c494bd5ce1cfca
+      body: |
+        Slightly more defensive, and prevents boot config apply
+        loop from surrounding whitespaces such as in
+        `BALENA_HOST_CONFIG_dtparam=" "foo=1","bar=2""`
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+      nested: []
+    - subject: Fix dtparam parsing for comma-separated values
+      hash: b1b3f8e9ee19339825066d81fb9924d02b25808c
+      body: |
+        The RPi config.txt spec allows multiple comma-separated params
+        on a single dtparam line (e.g. `dtparam=audio=on,i2c_arm=on`).
+        The supervisor itself always writes one param per line, so this
+        bug only triggers when a user preloads a config.txt that uses
+        the multi-param form.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+      nested: []
+  version: 17.7.5
+  title: ""
+  date: 2026-04-30T16:49:37.368Z
+- commits:
     - subject: Fix the network connectivity check
       hash: c377bbedd928dafe77d898efe048942f0463fd6e
       body: |
