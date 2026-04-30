@@ -178,6 +178,28 @@ describe('config/config-txt', () => {
 		await tfs.restore();
 	});
 
+	it('correctly parses dtparam lines with multiple comma-separated params', async () => {
+		// A user could preload a config.txt with multiple comma-separated params
+		// and we should be able to parse them correctly
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('config.txt')]: stripIndent`
+	        dtparam=audio=on,i2c_arm=on
+					dtoverlay=ads1015
+					dtparam=cha_cfg=4,chb_cfg=5
+					dtparam=spi=on,chc_cfg=6
+					`,
+		}).enable();
+
+		const configTxt = new ConfigTxt();
+
+		await expect(configTxt.getBootConfig()).to.eventually.deep.equal({
+			dtparam: ['audio=on', 'i2c_arm=on', 'spi=on'],
+			dtoverlay: ['ads1015,cha_cfg=4,chb_cfg=5,chc_cfg=6'],
+		});
+
+		await tfs.restore();
+	});
+
 	it('maintains ordering of dtoverlays and dtparams', async () => {
 		const tfs = await testfs({
 			[hostUtils.pathOnBoot('config.txt')]: stripIndent`
