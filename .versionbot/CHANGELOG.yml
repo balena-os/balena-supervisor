@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add a `PATCH /v2/device/tags` endpoint to tell the supervisor device
+        tags to report
+      hash: ff0dca884b25711e34bd3ce29bed5da330bbf006
+      body: |
+        https://balena.fibery.io/Work/Project/1031
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Pagan Gazzard
+      nested: []
+  version: 17.8.0
+  title: ""
+  date: 2026-05-01T12:30:03.307Z
+- commits:
     - subject: Trim whitespaces around dtparam input values
       hash: c240c47363869335fbaf40ba11c494bd5ce1cfca
       body: |
