@@ -54,12 +54,14 @@ const getRequestInstances = once(async () => {
 		}
 	}
 
+	const headers = {
+		'User-Agent': userAgent,
+	};
+
 	const requestOpts: requestLib.CoreOptions = {
 		gzip: true,
 		timeout: DEFAULT_REQUEST_TIMEOUT,
-		headers: {
-			'User-Agent': userAgent,
-		},
+		headers,
 	};
 
 	const { got } = await import('got');
@@ -92,13 +94,12 @@ const getRequestInstances = once(async () => {
 				send: DEFAULT_REQUEST_TIMEOUT,
 				response: DEFAULT_REQUEST_TIMEOUT,
 			},
-			headers: {
-				'User-Agent': userAgent,
-			},
+			headers,
 		}),
 		requestOpts,
 		request,
 		resumable,
+		headers,
 	};
 });
 
@@ -116,4 +117,8 @@ export const getRequestOptions = once(async () => {
 
 export const getResumableRequest = once(async () => {
 	return (await getRequestInstances()).resumable;
+});
+
+export const getDefaultHeaders = once(async () => {
+	return (await getRequestInstances()).headers;
 });

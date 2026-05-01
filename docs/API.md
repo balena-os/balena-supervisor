@@ -1201,6 +1201,39 @@ Response:
 }
 ```
 
+> **Introduced in supervisor v17.8**
+
+Schedule device tags to be set in the balena API, persisting the schedule across restarts.
+Note that whilst this endpoint will work when the device does not have an available
+connection to the balena API the changes will only be reported once a connection is
+reestablished.
+
+The body should be a JSON object of tag key-value pairs which will be reported to the
+balena API if they differ from the last reported key-value pairs, saving the device from
+unnecessary requests and bandwidth usage. 
+
+```json
+{
+	"tagKey1": "tagValue1",
+	"tagKey2": "tagValue2",
+	...
+}
+```
+
+From an app container:
+```bash
+$ curl -X PATCH --header "Content-Type:application/json" \
+	--data '{"foo": "bar"}' \
+	"$BALENA_SUPERVISOR_ADDRESS/v2/device/tags?apikey=$BALENA_SUPERVISOR_API_KEY"
+```
+
+When successful, responds with 202 accepted and a JSON object:
+```json
+{
+	"status": "success",
+}
+```
+
 #### Device VPN Information
 
 > **Introduced in supervisor v11.4**

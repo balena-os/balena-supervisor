@@ -28,6 +28,7 @@ import type { AuthorizedRequest } from '../lib/api-keys';
 import { fromV2TargetState } from '../lib/legacy';
 import * as actions from './actions';
 import { v2ServiceEndpointError } from './messages';
+import { setTags } from '../api-binder/tags';
 
 export const router = express.Router();
 
@@ -477,6 +478,45 @@ router.get('/v2/device/tags', async (_req, res) => {
 		});
 	} catch (e: any) {
 		log.error(e);
+		res.status(500).json({
+			status: 'failed',
+			message: e.message,
+		});
+	}
+});
+
+router.patch('/v2/device/tags', async (req, res) => {
+	try {
+		const body = req.body as unknown;
+		if (body == null || typeof body !== 'object') {
+			throw new BadRequestError(
+				'Invalid tags body, must be an object like `{[tagKey: string]: string}`',
+			);
+		}
+		for (const [key, value] of Object.entries(body)) {
+			if (typeof value !== 'string') {
+				throw new BadRequestError(
+					'Invalid tags body, must be an object like `{[tagKey: string]: string}`',
+				);
+			}
+			if (/\s/.test(key)) {
+				throw new BadRequestError('Tag keys cannot contain whitespace');
+			}
+		}
+
+		await setTags(body as Record<string, string>);
+
+		return res.status(202).json({
+			status: 'success',
+		});
+	} catch (e: any) {
+		if (e instanceof BadRequestError) {
+			res.status(e.statusCode).json({
+				status: 'failed',
+				message: e.message,
+			});
+			return;
+		}
 		res.status(500).json({
 			status: 'failed',
 			message: e.message,
