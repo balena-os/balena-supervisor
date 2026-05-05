@@ -38,7 +38,7 @@ type CachedResponse = {
 	emitted?: boolean;
 };
 
-let cache: CachedResponse;
+let cache: CachedResponse | undefined;
 
 /**
  * appUpdatePollInterval is set when startPoll successfuly queries the config
@@ -85,7 +85,7 @@ const emitTargetState = (
 		return true;
 	}
 	// Return the same emitted value but normalized to be a boolean
-	return !!cache.emitted;
+	return !!cache?.emitted;
 };
 
 /**
@@ -98,6 +98,16 @@ export let lastSuccessfulFetch: ReturnType<typeof process.hrtime> =
 	process.hrtime();
 
 /**
+ * Invalidate the in-memory target state cache
+ */
+export const invalidate = async () => {
+	// prevent an invalidation in the middle of an update
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- it's used for resource management..
+	using _lock = await lockGetTarget();
+	cache = undefined;
+};
+
+/**
  * Attempts to update the target state
  * @param force Emitted with the 'target-state-update' event update as necessary
  * @param isFromApi Emitted with the 'target-state-update' event update as necessary
@@ -108,7 +118,7 @@ export const update = async (
 	force = false,
 	isFromApi = false,
 	cancel = false,
-): Promise<void> => {
+): Promise<TargetState> => {
 	await config.initialized();
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- it's used for resource management..
 	using _lock = await lockGetTarget();
@@ -157,7 +167,7 @@ export const update = async (
 		// There's no change so no need to update the cache
 		// only emit the target state if it hasn't been emitted yet
 		cache.emitted = emitTargetState(cache, force, isFromApi, cancel);
-		return;
+		return cache.body;
 	}
 
 	if (statusCode < 200 || statusCode >= 300) {
@@ -173,6 +183,8 @@ export const update = async (
 	// Emit the target state and update the cache, cancelling any
 	// apply operations that may be in progress
 	cache.emitted = emitTargetState(cache, force, isFromApi, true);
+
+	return cache.body;
 };
 
 const poll = async (skipFirstGet = false, fetchErrors = 0): Promise<void> => {
@@ -219,8 +231,7 @@ const poll = async (skipFirstGet = false, fetchErrors = 0): Promise<void> => {
  * Checks for target state changes and then returns the latest target state
  */
 export const get = async (): Promise<TargetState> => {
-	await update();
-	return structuredClone(cache.body);
+	return await update();
 };
 
 /**

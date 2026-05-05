@@ -358,6 +358,7 @@ async function reportInitialEnv(
 				resource: 'device_config_variable',
 				body: envVar,
 			});
+			await TargetState.invalidate();
 		}
 	}
 
