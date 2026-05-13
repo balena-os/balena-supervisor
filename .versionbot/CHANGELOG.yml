@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update systeminformation to v5.31.6 [SECURITY]
+      hash: db278c1c91d4948d737108a9fd97f742640dc341
+      body: |
+        Update systeminformation from 5.31.4 to 5.31.6
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: balena-renovate[bot]
+      nested: []
+  version: 17.8.1
+  title: ""
+  date: 2026-05-13T17:54:55.662Z
+- commits:
     - subject: Add a `PATCH /v2/device/tags` endpoint to tell the supervisor device
         tags to report
       hash: ff0dca884b25711e34bd3ce29bed5da330bbf006
