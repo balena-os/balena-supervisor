@@ -5,11 +5,37 @@ ARG NPM="npm~=11"
 ARG ALPINE_VERSION="3.23"
 
 ###################################################
+# Resolve the balena arch.
+# If ARCH is already a known balena arch (set by
+# balena CLI's %%BALENA_ARCH%% substitution or via
+# --build-arg), use it. Otherwise derive from
+# BuildKit's TARGETARCH/TARGETVARIANT — set on
+# docker buildx/bake/compose builds, unset under
+# balena push (which doesn't use BuildKit).
+###################################################
+FROM alpine:${ALPINE_VERSION} AS arch-info
+ARG ARCH
+ARG TARGETARCH
+ARG TARGETVARIANT
+RUN case "${ARCH:-}" in \
+		amd64|aarch64|armv7hf|rpi|i386) ;; \
+		*) \
+			case "${TARGETARCH:-}${TARGETVARIANT:+/${TARGETVARIANT}}" in \
+				amd64)  ARCH=amd64 ;; \
+				arm64)  ARCH=aarch64 ;; \
+				arm/v7) ARCH=armv7hf ;; \
+				arm/v6) ARCH=rpi ;; \
+				386)    ARCH=i386 ;; \
+				*) echo "Cannot resolve balena arch: ARCH='${ARCH:-}' TARGETARCH='${TARGETARCH:-}' TARGETVARIANT='${TARGETVARIANT:-}'" >&2; exit 1 ;; \
+			esac ;; \
+	esac; \
+	echo "${ARCH}" > /balena-arch
+
+###################################################
 # Build the supervisor dependencies
 ###################################################
 FROM alpine:${ALPINE_VERSION} AS build-base
 
-ARG ARCH
 ARG NODE
 ARG NPM
 ARG FATRW_VERSION
@@ -106,11 +132,12 @@ RUN apk add --update --no-cache \
 	iptables~=1.8.9 \
 	ip6tables~=1.8.9
 
-ARG ARCH
 ARG VERSION=master
 ENV LED_FILE=/dev/null \
-	SUPERVISOR_IMAGE=balena/$ARCH-supervisor \
 	VERSION=$VERSION
+
+# Resolved at runtime by entry.sh to balena/<arch>-supervisor
+COPY --from=arch-info /balena-arch /balena-arch
 
 ###############################################################
 # Use the base image to run integration tests and for livepush
@@ -118,7 +145,6 @@ ENV LED_FILE=/dev/null \
 FROM runtime-base AS test
 
 ARG NPM
-ARG ARCH
 
 # We want to use as close to the final image when running tests
 # but we need npm so we install it here again
@@ -142,9 +168,11 @@ COPY typings ./typings
 COPY src ./src
 COPY test ./test
 
-# Fail-safe, check the architecture used by apk against the expected architecture
-# from the device type
-RUN APK_ARCH=$(./build-utils/apk-print-arch.sh); [ "$APK_ARCH" = "$ARCH" ] || (echo "Image architecture ($APK_ARCH) does not match the target architecture ($ARCH)" && exit 1)
+# Fail-safe, check the architecture used by apk against the resolved
+# balena arch (from %%BALENA_ARCH%% substitution or TARGETARCH-derived).
+RUN APK_ARCH=$(./build-utils/apk-print-arch.sh); \
+	ARCH=$(cat /balena-arch); \
+	[ "$APK_ARCH" = "$ARCH" ] || (echo "Image architecture ($APK_ARCH) does not match the target architecture ($ARCH)" && exit 1)
 
 # Run type checking and unit tests here
 # to prevent setting up a test environment that will

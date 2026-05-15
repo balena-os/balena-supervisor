@@ -77,6 +77,12 @@ fi
 # not a problem.
 modprobe ip6_tables || true
 
+# Derive SUPERVISOR_IMAGE from the resolved balena arch unless one
+# was provided externally (e.g. tests).
+if [ -z "${SUPERVISOR_IMAGE}" ] && [ -r /balena-arch ]; then
+	export SUPERVISOR_IMAGE="balena/$(cat /balena-arch)-supervisor"
+fi
+
 if [ "${LIVEPUSH}" = "1" ]; then
 	exec npx nodemon --watch src --watch typings --ignore tests -e js,ts,json \
 		--exec node -r ts-node/register/transpile-only src/app.ts
