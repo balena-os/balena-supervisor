@@ -80,6 +80,9 @@ export class Supervisor {
 
 		// Listen on the override port if set
 		const listenPort = conf.listenPortOverride ?? conf.listenPort;
+		const listenAddr = conf.listenPortOverride
+			? constants.supervisorNetworkGateway
+			: undefined;
 
 		// Start the state engine, the device API and API binder in parallel
 		await Promise.all([
@@ -91,7 +94,7 @@ export class Supervisor {
 					healthchecks: [apiBinder.healthcheck, deviceState.healthcheck],
 				});
 				deviceState.on('shutdown', () => this.api.stop());
-				return this.api.listen(listenPort, conf.apiTimeout);
+				return this.api.listen(listenPort, conf.apiTimeout, listenAddr);
 			})(),
 			apiBinder.start(),
 		]);
