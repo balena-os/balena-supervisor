@@ -1,4 +1,28 @@
 - commits:
+    - subject: Pin back to Node 22 / Alpine 3.22
+      hash: 063cfc03f7aefe20cbcfde3bcb19db72b22a5a00
+      body: >
+        Node 24's V8 engine has issues with rpi/armv6 arch, throwing
+
+        `Fatal error in , line 0 unreachable code`.
+
+
+        We still support RPi Zero devices in production, roughly 3k
+
+        at time of this commit.
+
+
+        Revert RegExp.escape to lodash escapeRegExp as it isn't useable in Node
+        22.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+      nested: []
+  version: 17.8.2
+  title: ""
+  date: 2026-05-19T18:28:44.611Z
+- commits:
     - subject: Update systeminformation to v5.31.6 [SECURITY]
       hash: db278c1c91d4948d737108a9fd97f742640dc341
       body: |
