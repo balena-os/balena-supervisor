@@ -1,4 +1,16 @@
 - commits:
+    - subject: Remove update-locking docs in favor of moving them directly to the docs
+      hash: 705df2c966d90a946acb915391e57a25894a83d8
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Matthew Yarmolinsky
+      nested: []
+  version: 17.8.3
+  title: ""
+  date: 2026-05-20T20:14:30.054Z
+- commits:
     - subject: Pin back to Node 22 / Alpine 3.22
       hash: 063cfc03f7aefe20cbcfde3bcb19db72b22a5a00
       body: >
