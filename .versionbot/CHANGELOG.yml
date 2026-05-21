@@ -1,4 +1,16 @@
 - commits:
+    - subject: Remove debugging-supervisor docs in favor of moving directly to docs
+      hash: d506754539c953eb004e11542848963b43f70af1
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Matthew Yarmolinsky
+      nested: []
+  version: 17.8.4
+  title: ""
+  date: 2026-05-21T20:35:06.680Z
+- commits:
     - subject: Remove update-locking docs in favor of moving them directly to the docs
       hash: 705df2c966d90a946acb915391e57a25894a83d8
       body: ""
