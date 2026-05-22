@@ -14,3 +14,9 @@ services:
       io.balena.features.balena-api: '1'
       io.balena.features.dbus: '1'
       io.balena.features.balena-socket: '1'
+  syslog:
+    image: ghcr.io/balena-os/gazette
+    labels:
+      # Necessary to give the container access to the journal directories
+      io.balena.features.journal-logs: '1'
+    restart: on-failure
