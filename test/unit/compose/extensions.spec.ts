@@ -5,6 +5,7 @@ import {
 	compareExtensions,
 	digestOf,
 	containerNameFor,
+	volumeNameFor,
 	isOverlayService,
 	isDataStore,
 	isMountBusyError,
@@ -102,6 +103,20 @@ describe('compose/extensions', () => {
 		it('throws on a digest-less reference', () => {
 			expect(() => containerNameFor('svc', 'registry/img:latest')).to.throw(
 				/digest-pinned/,
+			);
+		});
+	});
+
+	describe('volumeNameFor', () => {
+		it('derives a descriptive volume name from the short digest and dest', () => {
+			expect(volumeNameFor('kernel-modules', IMG_A, '/boot')).to.equal(
+				'ext_kernel-modules_aaaaaaaaaaaa_boot',
+			);
+		});
+
+		it('sanitizes nested destinations', () => {
+			expect(volumeNameFor('svc', IMG_A, '/lib/modules')).to.equal(
+				'ext_svc_aaaaaaaaaaaa_lib_modules',
 			);
 		});
 	});
