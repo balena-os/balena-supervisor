@@ -86,6 +86,21 @@ export function containerNameFor(serviceName: string, image: string): string {
 }
 
 /**
+ * Descriptive name for the named volume backing an image-declared VOLUME at
+ * `dest`. Replaces the engine's anonymous 64-hex volume name with
+ * `ext_<serviceName>_<shortDigest>_<dest>`, e.g.
+ * `ext_kernel-modules_42befc76f4f8_boot`.
+ */
+export function volumeNameFor(
+	serviceName: string,
+	image: string,
+	dest: string,
+): string {
+	const sanitizedDest = dest.replace(/^\/+/, '').replace(/\//g, '_');
+	return `ext_${serviceName}_${shortDigest(image)}_${sanitizedDest}`;
+}
+
+/**
  * Build the deployed-extension list from the live engine. We list overlay
  * containers, inspect each, map to a target service by the service-name label
  * (not by parsing the container name), and report a container as deployed only
@@ -312,6 +327,13 @@ export async function deployExtensionContainer(
 		// 404: no container holds the name — normal fresh deploy.
 	}
 
+	const imageInfo = await docker.getImage(image).inspect();
+	const mounts = Object.keys(imageInfo.Config?.Volumes ?? {}).map((dest) => ({
+		Type: 'volume' as const,
+		Source: volumeNameFor(serviceName, image, dest),
+		Target: dest,
+	}));
+
 	const container = await docker.createContainer({
 		name,
 		Image: image,
@@ -326,6 +348,7 @@ export async function deployExtensionContainer(
 			// An overlay container runs its hooks and exits 0; it is never a
 			// long-lived process and has no reason to join a network.
 			NetworkMode: 'none',
+			Mounts: mounts,
 		},
 	});
 
