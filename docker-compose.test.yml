@@ -40,12 +40,14 @@ services:
       MOCK_SYSTEMD_UNITS: openvpn.service avahi.socket
 
   docker:
-    image: docker:dind
+    build:
+      context: ./
+      dockerfile: Dockerfile.dind
     stop_grace_period: 3s
     privileged: true
     environment:
       DOCKER_TLS_CERTDIR: ''
-    command: --tls=false # --debug
+    command: --tls=false
 
   mdns:
     image: ydkn/avahi:latest

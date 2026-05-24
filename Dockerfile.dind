@@ -1,0 +1,12 @@
+FROM golang:1.22-alpine AS extension-runtime
+RUN apk add --no-cache git
+WORKDIR /src
+ARG EXTENSION_RUNTIME_VERSION=master
+RUN git clone --depth 1 --branch ${EXTENSION_RUNTIME_VERSION} \
+    https://github.com/balena-os/balena-extension-runtime.git .
+RUN CGO_ENABLED=0 go build -ldflags '-s -w' -o balena-extension-runtime ./cmd/balena-extension-runtime/
+
+FROM docker:dind
+COPY --from=extension-runtime /src/balena-extension-runtime /usr/local/bin/balena-extension-runtime
+RUN mkdir -p /etc/docker && \
+    echo '{"runtimes":{"extension":{"path":"/usr/local/bin/balena-extension-runtime"}}}' > /etc/docker/daemon.json
