@@ -7,6 +7,7 @@ import { Volume } from './volume';
 import { Service } from './service';
 import * as imageManager from './images';
 import { generateStep } from './composition-steps';
+import { isDataStore } from './extensions';
 import type * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
 import * as constants from '../lib/constants';
@@ -17,6 +18,7 @@ import {
 import { isNotFoundError } from '../lib/errors';
 import * as config from '../config';
 import { checkTruthy } from '../lib/validation';
+import { requiresActivationReboot } from '../lib/reboot';
 import type { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
@@ -810,12 +812,11 @@ class AppImpl implements App {
 				// if the container has a reboot
 				// required label and the boot time is before the creation time, then
 				// return a 'noop' to ensure a reboot happens before starting the container
-				const requiresReboot =
-					checkTruthy(
-						target.config.labels?.['io.balena.update.requires-reboot'],
-					) &&
-					current.createdAt != null &&
-					current.createdAt > bootTime;
+				const requiresReboot = requiresActivationReboot(
+					target.config.labels ?? {},
+					current.createdAt,
+					bootTime,
+				);
 
 				if (requiresReboot && rebootBreadcrumbSet) {
 					// Do not return a noop to allow locks to be released by the
@@ -1057,10 +1058,6 @@ class AppImpl implements App {
 		const isService = (svc: ServiceComposeConfig) =>
 			svc.labels?.['io.balena.image.class'] == null ||
 			svc.labels['io.balena.image.class'] === 'service';
-
-		const isDataStore = (svc: ServiceComposeConfig) =>
-			svc.labels?.['io.balena.image.store'] == null ||
-			svc.labels['io.balena.image.store'] === 'data';
 
 		// In the db, the services are an array, but here we switch them to an
 		// object so that they are consistent
