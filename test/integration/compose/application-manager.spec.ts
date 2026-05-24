@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import Docker from 'dockerode';
 import * as applicationManager from '~/src/compose/application-manager';
+import type { ExtensionChanges } from '~/src/compose/application-manager';
 import * as imageManager from '~/src/compose/images';
 import * as serviceManager from '~/src/compose/service-manager';
 import { Network } from '~/src/compose/network';
@@ -133,6 +134,117 @@ describe('compose/application-manager', () => {
 		expect(killStep)
 			.to.have.property('current')
 			.that.deep.includes({ serviceName: 'main' });
+	});
+
+	describe('extension changes', () => {
+		const lockedAppOpts = {
+			appLocks: {
+				'1': {
+					async unlock() {
+						/* noop */
+					},
+				},
+			},
+		};
+
+		const dropped = (serviceName: string): ExtensionChanges => ({
+			toDeploy: [],
+			toDrop: [{ serviceName, containerId: `cid-${serviceName}` }],
+			rebootServiceName: null,
+		});
+
+		const toDeploy = (serviceName: string): ExtensionChanges => ({
+			toDeploy: [
+				{
+					serviceName,
+					image: `registry/${serviceName}@sha256:abc`,
+					labels: { 'io.balena.image.class': 'overlay' },
+				},
+			],
+			toDrop: [],
+			rebootServiceName: null,
+		});
+
+		// A current service the manager would otherwise kill, so we can assert
+		// whether normal app reconciliation runs alongside extension work.
+		async function killableState() {
+			const targetApps = createApps(
+				{ services: [], networks: [DEFAULT_NETWORK] },
+				true,
+			);
+			const current = createCurrentState({
+				services: [await createService()],
+				networks: [DEFAULT_NETWORK],
+			});
+			return { targetApps, ...current };
+		}
+
+		it('removes a dropped overlay without gating app reconciliation', async () => {
+			const { targetApps, currentApps, availableImages, downloading } =
+				await killableState();
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					...lockedAppOpts,
+					extensionChanges: dropped('old-overlay'),
+					abortSignal: new AbortController().signal,
+				},
+			);
+
+			const actions = steps.map((s) => s.action);
+			// The removal happens AND the app kill is not starved by it.
+			expect(actions).to.include('removeExtensionContainer');
+			expect(actions).to.include('kill');
+		});
+
+		it('gates app reconciliation while an overlay is being deployed', async () => {
+			const { targetApps, currentApps, availableImages, downloading } =
+				await killableState();
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					...lockedAppOpts,
+					extensionChanges: toDeploy('kmods'),
+					abortSignal: new AbortController().signal,
+				},
+			);
+
+			const actions = steps.map((s) => s.action);
+			expect(actions).to.include('deployExtension');
+			// Apps wait until the overlay is deployed.
+			expect(actions).to.not.include('kill');
+		});
+
+		it('stops emitting removals once a reboot is pending', async () => {
+			const { targetApps, currentApps, availableImages, downloading } =
+				await killableState();
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					...lockedAppOpts,
+					extensionChanges: dropped('old-overlay'),
+					rebootBreadcrumbSet: true,
+					abortSignal: new AbortController().signal,
+				},
+			);
+
+			const actions = steps.map((s) => s.action);
+			expect(actions).to.not.include('removeExtensionContainer');
+			// App reconciliation still proceeds.
+			expect(actions).to.include('kill');
+		});
 	});
 
 	it('infers a fetch step when a service has to be updated', async () => {
@@ -3424,6 +3536,247 @@ describe('compose/application-manager', () => {
 					},
 				},
 			});
+		});
+	});
+
+	describe('Extension steps', () => {
+		it('should infer deployExtension steps when extensions need deployment', async () => {
+			const targetApps = createApps(
+				{ services: [], networks: [DEFAULT_NETWORK] },
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [],
+					networks: [DEFAULT_NETWORK],
+				});
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+					extensionChanges: {
+						toDeploy: [
+							{
+								serviceName: 'kernel-modules',
+								image: 'registry/kernel-modules:v1',
+								labels: { 'io.balena.image.class': 'overlay' },
+							},
+						],
+						toDrop: [],
+						rebootServiceName: null,
+					},
+				},
+			);
+
+			expectSteps('deployExtension', steps);
+		});
+
+		it('should prioritize extension steps over app steps', async () => {
+			const targetApps = createApps(
+				{
+					services: [await createService({ image: 'new-image', appId: 1 })],
+					networks: [DEFAULT_NETWORK],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [await createService({ appId: 1 })],
+					networks: [DEFAULT_NETWORK],
+					images: [],
+				});
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+					extensionChanges: {
+						toDeploy: [
+							{
+								serviceName: 'kernel-modules',
+								image: 'registry/kernel-modules:v1',
+								labels: { 'io.balena.image.class': 'overlay' },
+							},
+						],
+						toDrop: [],
+						rebootServiceName: null,
+					},
+				},
+			);
+
+			// Extension steps should be present
+			expectSteps('deployExtension', steps);
+			// App steps (fetch) should not be present in the same cycle
+			expectNoStep('fetch', steps);
+		});
+
+		it('should not infer extension steps when no changes needed', async () => {
+			const targetApps = createApps(
+				{ services: [], networks: [DEFAULT_NETWORK] },
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [],
+					networks: [DEFAULT_NETWORK],
+				});
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+					extensionChanges: {
+						toDeploy: [],
+						toDrop: [],
+						rebootServiceName: null,
+					},
+				},
+			);
+
+			expectNoStep('deployExtension', steps);
+		});
+	});
+
+	describe('extension step ordering', () => {
+		const baseState = () => {
+			const targetApps = createApps({ networks: [DEFAULT_NETWORK] }, true);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({ services: [], networks: [DEFAULT_NETWORK] });
+			return {
+				targetApps,
+				currentApps,
+				availableImages,
+				downloading,
+				containerIdsByAppId,
+			};
+		};
+
+		const EXT_IMAGE =
+			'reg/img@sha256:aaaa000011112222333344445555666677778888999900001111222233334444';
+
+		it('emits only deployExtension for a new/superseded overlay (old kept)', async () => {
+			// A superseded overlay surfaces as a toDeploy of the new digest with
+			// no removal: the old, active overlay is kept and reaped by the OS on
+			// reboot. So a deploy with no toDrop emits deployExtension only.
+			const {
+				targetApps,
+				currentApps,
+				availableImages,
+				downloading,
+				containerIdsByAppId,
+			} = baseState();
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+					extensionChanges: {
+						toDeploy: [{ serviceName: 'kmods', image: EXT_IMAGE, labels: {} }],
+						toDrop: [],
+						rebootServiceName: null,
+					} satisfies ExtensionChanges,
+				},
+			);
+			expect(steps.map((s) => s.action)).to.deep.equal(['deployExtension']);
+		});
+
+		it('emits deploy + dropped removals together', async () => {
+			const {
+				targetApps,
+				currentApps,
+				availableImages,
+				downloading,
+				containerIdsByAppId,
+			} = baseState();
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+					extensionChanges: {
+						toDeploy: [{ serviceName: 'kmods', image: EXT_IMAGE, labels: {} }],
+						toDrop: [{ serviceName: 'gone', containerId: 'g1' }],
+						rebootServiceName: null,
+					} satisfies ExtensionChanges,
+				},
+			);
+			expect(steps.map((s) => s.action).sort()).to.deep.equal([
+				'deployExtension',
+				'removeExtensionContainer',
+			]);
+		});
+
+		it('emits requireReboot once deploys/removals have drained', async () => {
+			const {
+				targetApps,
+				currentApps,
+				availableImages,
+				downloading,
+				containerIdsByAppId,
+			} = baseState();
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+					rebootBreadcrumbSet: false,
+					extensionChanges: {
+						toDeploy: [],
+						toDrop: [],
+						rebootServiceName: 'kmods',
+					} satisfies ExtensionChanges,
+				},
+			);
+			expect(steps.map((s) => s.action)).to.deep.equal(['requireReboot']);
+		});
+
+		it('does not emit requireReboot when the breadcrumb is already set', async () => {
+			const {
+				targetApps,
+				currentApps,
+				availableImages,
+				downloading,
+				containerIdsByAppId,
+			} = baseState();
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+					rebootBreadcrumbSet: true,
+					extensionChanges: {
+						toDeploy: [],
+						toDrop: [],
+						rebootServiceName: 'kmods',
+					} satisfies ExtensionChanges,
+				},
+			);
+			expect(steps.filter((s) => s.action === 'requireReboot')).to.be.empty;
 		});
 	});
 

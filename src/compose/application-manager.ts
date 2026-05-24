@@ -23,6 +23,8 @@ import * as serviceManager from './service-manager';
 import * as imageManager from './images';
 import * as commitStore from './commit';
 import { generateStep, getExecutors } from './composition-steps';
+import * as extensions from './extensions';
+import type { ServiceComposeConfig } from './types/service';
 
 import type {
 	TargetApps,
@@ -40,7 +42,7 @@ import type {
 	Image,
 	InstancedAppState,
 } from './types';
-import { isRebootBreadcrumbSet } from '../lib/reboot';
+import { isRebootBreadcrumbSet, requiresActivationReboot } from '../lib/reboot';
 import { getBootTime } from '../lib/fs-utils';
 import * as extraFirmware from '../lib/extra-firmware';
 
@@ -57,6 +59,161 @@ export const removeAllListeners: (typeof events)['removeAllListeners'] =
 	events.removeAllListeners.bind(events);
 
 const localModeManager = new LocalModeManager();
+
+/**
+ * Extract overlay services from the hostapp in target state.
+ * These are services with io.balena.image.class=overlay label.
+ */
+// Exported for tests
+export function extractOverlayServices(
+	apps: TargetApps,
+): ServiceComposeConfig[] {
+	const overlayServices: ServiceComposeConfig[] = [];
+
+	for (const [, app] of Object.entries(apps)) {
+		// Only look at hostapp
+		if (!app.is_host) {
+			continue;
+		}
+
+		for (const [, release] of Object.entries(app.releases)) {
+			for (const [serviceName, service] of Object.entries(
+				release.services ?? {},
+			)) {
+				const svc = {
+					serviceName,
+					image: service.image,
+					labels: service.labels,
+				} as ServiceComposeConfig;
+				if (extensions.isOverlayService(svc)) {
+					overlayServices.push(svc);
+				}
+			}
+		}
+	}
+
+	return overlayServices;
+}
+
+/**
+ * Extension work computed from target state.
+ */
+export interface ExtensionChanges {
+	toDeploy: Array<{
+		serviceName: string;
+		image: string;
+		labels: Record<string, string>;
+	}>;
+	toDrop: Array<{ serviceName: string; containerId: string }>;
+	/** serviceName of a deployed overlay that needs an activation reboot, else null. */
+	rebootServiceName: string | null;
+}
+
+const EMPTY_EXTENSION_CHANGES: ExtensionChanges = {
+	toDeploy: [],
+	toDrop: [],
+	rebootServiceName: null,
+};
+
+/**
+ * Compute extension work from target state.
+ */
+async function computeExtensionChanges(
+	rawTargetApps: TargetApps,
+): Promise<ExtensionChanges> {
+	const overlayServices = extractOverlayServices(rawTargetApps);
+	const current = await extensions.getDeployedExtensions();
+
+	if (overlayServices.length === 0 && current.length === 0) {
+		return EMPTY_EXTENSION_CHANGES;
+	}
+
+	const { toDeploy, toDrop } = extensions.compareExtensions(
+		current,
+		overlayServices,
+	);
+
+	const bootTime = getBootTime();
+	const rebooting = current.find((ext) =>
+		requiresActivationReboot(ext.labels, ext.createdAt, bootTime),
+	);
+
+	return {
+		toDeploy: toDeploy.map((svc) => ({
+			serviceName: svc.serviceName,
+			image: svc.image,
+			labels: svc.labels ?? {},
+		})),
+		toDrop: toDrop.map((row) => ({
+			serviceName: row.serviceName,
+			containerId: row.containerId,
+		})),
+		rebootServiceName: rebooting?.serviceName ?? null,
+	};
+}
+
+/**
+ * Steps derived from extension changes, split by whether they gate app
+ * reconciliation.
+ */
+export interface ExtensionStepPlan {
+	/**
+	 * Steps that must precede app reconciliation: apps may depend on an overlay
+	 * being deployed and activated (rebooted) first.
+	 */
+	gating: CompositionStep[];
+	/**
+	 * Best-effort removals of overlays no longer in target. Non-gating: a
+	 * dropped overlay's mount stays busy until the HUP reboot, after which the
+	 * OS reaper collects it, so blocking apps on it would wedge updates.
+	 */
+	removals: CompositionStep[];
+}
+
+/**
+ * Split extension changes into gating (deploy / activation reboot) and
+ * non-gating (removal) steps.
+ *
+ * Removals are skipped once a reboot is pending: a busy `removeExtensionContainer`
+ * step never reaches the success terminal state.
+ */
+export function computeExtensionSteps(
+	extensionChanges: ExtensionChanges,
+	rebootBreadcrumbSet: boolean,
+	abortSignal: AbortSignal,
+): ExtensionStepPlan {
+	const removals = rebootBreadcrumbSet
+		? []
+		: extensionChanges.toDrop.map((row) =>
+				generateStep('removeExtensionContainer', {
+					serviceName: row.serviceName,
+					containerId: row.containerId,
+				}),
+			);
+
+	let gating: CompositionStep[] = [];
+	if (extensionChanges.toDeploy.length > 0) {
+		gating = extensionChanges.toDeploy.map((ext) =>
+			generateStep('deployExtension', {
+				serviceName: ext.serviceName,
+				image: ext.image,
+				labels: ext.labels,
+				abortSignal,
+			}),
+		);
+	} else if (
+		extensionChanges.rebootServiceName != null &&
+		!rebootBreadcrumbSet
+	) {
+		gating = [
+			generateStep('requireReboot', {
+				serviceName: extensionChanges.rebootServiceName,
+			}),
+		];
+	}
+
+	return { gating, removals };
+}
 
 export let fetchesInProgress = 0;
 export let timeSpentFetching = 0;
@@ -123,11 +280,13 @@ export async function getRequiredSteps(
 		keepVolumes,
 		force = false,
 		abortSignal,
+		rawTargetApps,
 	}: {
 		keepImages?: boolean;
 		keepVolumes?: boolean;
 		force?: boolean;
 		abortSignal: AbortSignal;
+		rawTargetApps: TargetApps;
 	},
 ): Promise<CompositionStep[]> {
 	// get some required data
@@ -138,6 +297,9 @@ export async function getRequiredSteps(
 	]);
 	const containerIdsByAppId = getAppContainerIds(currentApps);
 	const rebootBreadcrumbSet = await isRebootBreadcrumbSet();
+
+	// Compute extension changes from target + live engine state.
+	const extensionChanges = await computeExtensionChanges(rawTargetApps);
 
 	// Local mode sets the image and volume retention only
 	// if not explicitely set by the caller
@@ -157,6 +319,7 @@ export async function getRequiredSteps(
 		appLocks: lockRegistry,
 		rebootBreadcrumbSet,
 		abortSignal,
+		extensionChanges,
 	});
 }
 
@@ -171,6 +334,7 @@ interface InferNextOpts {
 	appLocks?: LockRegistry;
 	rebootBreadcrumbSet?: boolean;
 	abortSignal: AbortSignal;
+	extensionChanges?: ExtensionChanges;
 }
 
 // Calculate the required steps from the current to the target state
@@ -188,6 +352,7 @@ export async function inferNextSteps(
 		appLocks = {},
 		rebootBreadcrumbSet = false,
 		abortSignal,
+		extensionChanges = EMPTY_EXTENSION_CHANGES,
 	}: InferNextOpts,
 ) {
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
@@ -204,6 +369,10 @@ export async function inferNextSteps(
 
 	let steps: CompositionStep[] = [];
 
+	// Deploys / activation reboots gate app reconciliation; removals do not.
+	const { gating: extensionGatingSteps, removals: extensionRemovalSteps } =
+		computeExtensionSteps(extensionChanges, rebootBreadcrumbSet, abortSignal);
+
 	// First check if we need to create the supervisor network
 	if (!(await networkManager.supervisorNetworkReady())) {
 		// If we do need to create it, we first need to kill any services using the api
@@ -215,6 +384,9 @@ export async function inferNextSteps(
 		}
 	} else if (!(await extraFirmware.isInitialized(config.configJsonBackend))) {
 		steps.push({ action: 'ensureExtraFirmwareVolume' });
+	} else if (extensionGatingSteps.length > 0) {
+		// Apps may depend on overlays being deployed and activated first.
+		steps = steps.concat(extensionGatingSteps);
 	} else {
 		if (downloading.length === 0) {
 			// Avoid cleaning up dangling images while purging
@@ -322,6 +494,9 @@ export async function inferNextSteps(
 			}
 		}
 	}
+
+	// Extension removals are best-effort and must not gate app reconciliation.
+	steps = steps.concat(extensionRemovalSteps);
 
 	const newDownloads = steps.filter((s) => s.action === 'fetch').length;
 	if (delta && newDownloads > 0) {

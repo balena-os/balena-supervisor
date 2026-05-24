@@ -559,9 +559,10 @@ export const applyTarget = async ({
 		let retryCount = 0;
 
 		while (true) {
-			const [currentState, targetState] = await Promise.all([
+			const [currentState, targetState, rawTargetApps] = await Promise.all([
 				getCurrentState(),
 				TargetState.getTarget({ initial, intermediate }),
+				applicationManager.getTargetApps(),
 			]);
 			const deviceConfigSteps = await deviceConfig.getRequiredSteps(
 				currentState,
@@ -590,6 +591,7 @@ export const applyTarget = async ({
 						keepVolumes,
 						force,
 						abortSignal,
+						rawTargetApps,
 					},
 				);
 
