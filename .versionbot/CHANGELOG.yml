@@ -1,4 +1,20 @@
 - commits:
+    - subject: Convert extra_hosts separator from `=` to `:`
+      hash: dc636b5521982596e868c866074d92706b86bb11
+      body: |
+        Engine expects `:` but compose-go from compose-parser
+        outputs `=`.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Relates-to: https://github.com/balena-io-modules/balena-compose-parser/pull/28
+        relates-to: https://github.com/balena-io-modules/balena-compose-parser/pull/28
+      author: Christina Ying Wang
+      nested: []
+  version: 17.8.5
+  title: ""
+  date: 2026-05-26T20:41:50.015Z
+- commits:
     - subject: Remove debugging-supervisor docs in favor of moving directly to docs
       hash: d506754539c953eb004e11542848963b43f70af1
       body: ""
