@@ -223,6 +223,15 @@ class ServiceImpl implements Service {
 			config.dnsSearch = [config.dnsSearch];
 		}
 
+		// Engine expects`host:ip` form, but the compose spec also accepts `host=ip`
+		// and compose-go outputs as `host=ip`. Normalise the separator to `:` so
+		// that either input format produces a valid container config.
+		if (Array.isArray(config.extraHosts)) {
+			config.extraHosts = config.extraHosts.map((entry) =>
+				entry.replace('=', ':'),
+			);
+		}
+
 		// Special case network modes
 		let serviceNetworkMode = false;
 		if (config.networkMode != null) {
