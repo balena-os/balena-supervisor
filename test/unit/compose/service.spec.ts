@@ -230,6 +230,27 @@ describe('compose/service: unit tests', () => {
 			});
 		});
 
+		it('normalizes extra_hosts entries to the host:ip format', async () => {
+			const s = await Service.fromComposeObject(
+				{
+					appId: '1234',
+					serviceName: 'foo',
+					releaseId: 2,
+					serviceId: 3,
+					imageId: 4,
+					composition: {
+						extraHosts: ['foo=127.0.0.1', 'bar:8.8.8.8'],
+					},
+				},
+				{ appName: 'test' } as any,
+			);
+
+			expect(s.config.extraHosts).to.deep.equal([
+				'foo:127.0.0.1',
+				'bar:8.8.8.8',
+			]);
+		});
+
 		it('should correctly handle large port ranges', async function () {
 			this.timeout(60000);
 			const s = await Service.fromComposeObject(
