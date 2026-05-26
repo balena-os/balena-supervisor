@@ -71,8 +71,11 @@ export function getOSSemver(path: string): Promise<string | undefined> {
 	return getOSReleaseField(path, 'VERSION');
 }
 
-export function getOSBoardRev(path: string): Promise<string | undefined> {
-	return getOSReleaseField(path, 'BALENA_BOARD_REV');
+export async function getOSBoardRev(path: string): Promise<string | undefined> {
+	return (
+		(await getOSReleaseField(path, 'BALENA_BOARD_REV')) ??
+		(await getOSReleaseField(path, 'RESIN_BOARD_REV'))
+	);
 }
 
 export async function getMetaOSRelease(
