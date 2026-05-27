@@ -1,4 +1,84 @@
 - commits:
+    - subject: Add `helios` service to composition
+      hash: e62c021b0c065b8f66164fe661754d7f796206c2
+      body: >
+        Helios is the experimental supervisor replacement. The service acts as
+
+        a proxy for the existing supervisor and will slowly take over supervisor
+        features
+
+
+        This also adds a `helios-api` service to listen on port 48484
+
+
+        While this should not break any of the interfaces, it is an important
+
+        change so it has a new major version.
+      footer:
+        Change-type: major
+        change-type: major
+      author: Felipe Lalanne
+      nested: []
+    - subject: Restrict supervisor API listen address when overriding port
+      hash: 0af5da36f3dfdfe0be0bce9d85deb1c0c2a7409f
+      body: |
+        The supervisor would listen to the override port on all interfaces,
+        however this would unnecessarily expose the port to the local network.
+        We now listen to requests only on the supervisor0 interface to admit
+        traffic from containers only.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Use RESIN_BOARD_REV OS release info as a fallback
+      hash: 070ad7c0deed893ffdbcbe246822e55f5ff90bdc
+      body: |
+        This is needed for older OS versions where `BALENA_BOARD_REV` is not
+        available on `/etc/os-release`
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Add BALENA_HOST_OS_BUILD as environment variable
+      hash: ebda244c295cc2acb69b7ea306bd9383f0411760
+      body: |
+        This is added when the `board-rev` feature is enabled. It's a more
+        generic name over `BALENA_HOST_OS_BOARD_REV` and will replace it
+        eventually
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Add firewall configurations for the override port
+      hash: fa3fd3d15c323e73dd257ed73fd1c0cb7c13528f
+      body: |
+        When the override port is set, the firewall is configured to only allow
+        traffic on `supervisor0` interface for that port. In that case a new
+        chain `BALENA-SUPERVISOR` is added to `DOCKER-USER`, that chain blocks
+        access to the regular listen port from any interface other than
+        resin-vpn when in non-local-mode and allows any traffic on local-mode.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Allow overriding apiEndpoint from a database field
+      hash: 67d479e05625d2fbea193498fc58ffc64c091a73
+      body: |
+        This is an experimental change to allow an external service to intercept
+        API calls of the supervisor as a potential path for migration
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 18.0.0
+  title: ""
+  date: 2026-05-27T16:24:12.773Z
+- commits:
     - subject: Convert extra_hosts separator from `=` to `:`
       hash: dc636b5521982596e868c866074d92706b86bb11
       body: |
