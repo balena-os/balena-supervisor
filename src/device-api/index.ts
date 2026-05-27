@@ -72,15 +72,24 @@ export class SupervisorAPI {
 		this.api.use(middleware.errors);
 	}
 
-	public async listen(port: number, apiTimeout: number): Promise<void> {
+	public async listen(
+		port: number,
+		apiTimeout: number,
+		addr?: string,
+	): Promise<void> {
 		return new Promise((resolve) => {
-			this.server = this.api.listen(port, () => {
+			const callback = () => {
 				log.info(`Supervisor API successfully started on port ${port}`);
 				if (this.server) {
 					this.server.timeout = apiTimeout;
 				}
 				resolve();
-			});
+			};
+			if (addr != null) {
+				this.server = this.api.listen(port, addr, callback);
+			} else {
+				this.server = this.api.listen(port, callback);
+			}
 		});
 	}
 
