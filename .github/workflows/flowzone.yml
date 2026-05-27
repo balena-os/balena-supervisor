@@ -31,3 +31,22 @@ jobs:
         balena_os/amd64-supervisor
       custom_finalize_matrix: balena_os/aarch64-supervisor,
         balena_os/amd64-supervisor
+      # linux/arm/v6 pinned to x86_64 runners — not for performance, for fidelity.
+      # ARM64 hosts can execute 32-bit ARM binaries natively in AArch32 mode,
+      # which exposes the host's ARMv7+ features (NEON, idiv, advanced atomics)
+      # through HWCAP and /proc/cpuinfo. V8's runtime CPU detection then emits
+      # modern instructions — which work on the host but would trap on real
+      # ARMv6 silicon like the Pi Zero. On x86_64 there's no native 32-bit ARM
+      # execution available, so binfmt_misc routes to QEMU. Combined with
+      # QEMU_CPU=arm1176 in the image, QEMU emulates ARM1176JZF-S faithfully
+      # (no NEON, no idiv), forcing V8 down the same codegen path it would
+      # follow on real Pi Zero hardware. This is how we caught the Node 24
+      # crash that only manifested on production devices.
+      docker_runs_on: >
+        {
+          "linux/amd64": ["ubuntu-24.04"],
+          "linux/arm64": ["ubuntu-24.04-arm"],
+          "linux/arm/v7": ["ubuntu-24.04"],
+          "linux/arm/v6": ["ubuntu-24.04"],
+          "linux/386": ["ubuntu-24.04"]
+        }

@@ -2,11 +2,10 @@ version: '2.3'
 
 services:
   balena-supervisor-sut:
+    image: sut
     build:
       context: ./
       dockerfile: Dockerfile.template
-      args:
-        ARCH: ${ARCH:-amd64}
     command: ['/wait-for-it.sh', '--', '/usr/src/app/entry.sh']
     stop_grace_period: 3s
     # Use bridge networking for the tests
@@ -58,9 +57,6 @@ services:
       context: ./
       dockerfile: Dockerfile.template
       target: test
-      args:
-        # Change this if testing in another architecture
-        ARCH: ${ARCH:-amd64}
     command:
       [
         './test/lib/wait-for-it.sh',
