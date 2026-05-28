@@ -1,6 +1,7 @@
 import { detailedDiff as diff } from 'deep-object-diff';
 import type Dockerode from 'dockerode';
 import Duration from 'duration-js';
+import fs from 'fs';
 import _ from 'lodash';
 import path from 'path';
 
@@ -105,6 +106,26 @@ class ServiceImpl implements Service {
 
 	private constructor() {
 		/* do not allow instancing a service object with `new` */
+	}
+
+	// Auto-detect the first available remoteproc device name by reading
+	// /sys/class/remoteproc/remoteproc{N}/name on the host.
+	private static detectRemoteprocName(): string | null {
+		const rprocBase = '/sys/class/remoteproc';
+		try {
+			const entries = fs.readdirSync(rprocBase).sort();
+			for (const entry of entries) {
+				const namePath = path.join(rprocBase, entry, 'name');
+				try {
+					return fs.readFileSync(namePath, 'utf-8').trim();
+				} catch {
+					continue;
+				}
+			}
+		} catch {
+			// /sys/class/remoteproc doesn't exist on this device
+		}
+		return null;
 	}
 
 	// The type here is actually ServiceComposeConfig, except that the
@@ -407,6 +428,11 @@ class ServiceImpl implements Service {
 		// Normalise the config before passing it to defaults
 		ComposeUtils.normalizeNullValues(config);
 
+		// Normalise annotations from compose (may be object with string values)
+		if (config.annotations != null && typeof config.annotations === 'object') {
+			config.annotations = _.mapValues(config.annotations, String);
+		}
+
 		service.config = _.defaults(config, {
 			portMaps,
 			capAdd: [],
@@ -456,7 +482,24 @@ class ServiceImpl implements Service {
 			workingDir: '',
 			tty: true,
 			running: true,
+			runtime: '',
+			annotations: {},
 		});
+
+		// For remoteproc runtime, auto-detect the remoteproc device name
+		// and inject it into the config so it matches what Docker will report
+		if (
+			service.config.runtime === 'io.containerd.remoteproc.v1' &&
+			!service.config.annotations?.['remoteproc.name']
+		) {
+			const rprocName = Service.detectRemoteprocName();
+			if (rprocName) {
+				service.config.annotations = {
+					...service.config.annotations,
+					'remoteproc.name': rprocName,
+				};
+			}
+		}
 
 		// If we have the docker image ID, we replace the image
 		// with that
@@ -614,6 +657,11 @@ class ServiceImpl implements Service {
 			user: container.Config.User ?? '',
 			workingDir: container.Config.WorkingDir ?? '',
 			tty: container.Config.Tty ?? false,
+			runtime:
+				((container.HostConfig as any).Runtime === 'runc'
+					? ''
+					: (container.HostConfig as any).Runtime) ?? '',
+			annotations: (container.HostConfig as any).Annotations ?? {},
 		};
 
 		// Only add `init` if true or false, otherwise leave blank
@@ -692,7 +740,7 @@ class ServiceImpl implements Service {
 			}
 			this.config.networkMode = `container:${containerId}`;
 		}
-		return {
+		const createOpts: Dockerode.ContainerCreateOptions = {
 			name: `${this.serviceName}_${this.imageId}_${this.releaseId}_${this.commit}`,
 			Tty: this.config.tty,
 			Cmd: this.config.command,
@@ -763,12 +811,21 @@ class ServiceImpl implements Service {
 				NanoCpus: this.config.cpus,
 				IpcMode: this.config.ipc,
 				Init: this.config.init,
+				Runtime: this.config.runtime || undefined,
 			} as Dockerode.ContainerCreateOptions['HostConfig'],
 			Healthcheck: ComposeUtils.serviceHealthcheckToDockerHealthcheck(
 				this.config.healthcheck,
 			),
 			StopTimeout: this.config.stopGracePeriod,
 		};
+
+		// Pass annotations inside HostConfig (balena-engine v27+ placement)
+		// Annotations are auto-injected in fromComposeObject for remoteproc runtime
+		if (!_.isEmpty(this.config.annotations)) {
+			(createOpts.HostConfig as any).Annotations = this.config.annotations;
+		}
+
+		return createOpts;
 	}
 
 	public isEqualConfig(
