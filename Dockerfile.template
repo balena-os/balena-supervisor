@@ -89,6 +89,8 @@ COPY --from=journal /sysroot /
 # Copy mount script for mounting host partitions into container
 COPY mount-partitions.sh .
 
+COPY profile.sh .
+
 # Runtime dependencies
 RUN apk add --update --no-cache \
 	$NODE \
