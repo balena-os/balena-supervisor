@@ -1,5 +1,7 @@
+import { spawn, type ChildProcess } from 'child_process';
 import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';
+import { promises as fsp } from 'fs';
 import _ from 'lodash';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 import prettyMs from 'pretty-ms';
@@ -12,6 +14,7 @@ import * as deviceConfig from './device-config';
 
 import * as constants from '../lib/constants';
 import * as dbus from '../lib/dbus';
+import { pathOnRoot } from '../lib/host-utils';
 import {
 	InternalInconsistencyError,
 	isAbortError,
@@ -540,6 +543,63 @@ interface ApplyTargetOpts {
 	abortSignal: AbortSignal;
 }
 
+const APPLY_LOCK_DIR = pathOnRoot(
+	'/tmp/balena-supervisor/services/.supervisor-apply',
+);
+const APPLY_LOCK_FILE = `${APPLY_LOCK_DIR}/updates.lock`;
+let applyLockHolder: ChildProcess | undefined;
+let applyLockDepth = 0;
+
+async function acquireApplyLock(): Promise<void> {
+	applyLockDepth += 1;
+	if (applyLockHolder) {
+		return;
+	}
+
+	try {
+		await fsp.mkdir(APPLY_LOCK_DIR, { recursive: true });
+		await fsp.writeFile(APPLY_LOCK_FILE, '', { flag: 'a' });
+	} catch (e) {
+		log.warn(
+			'Failed to create supervisor-apply lockfile; safe_reboot will not busy-wait on apply:',
+			e,
+		);
+		applyLockDepth -= 1;
+		return;
+	}
+
+	const proc = spawn('flock', ['-x', APPLY_LOCK_FILE, 'cat'], {
+		stdio: ['pipe', 'ignore', 'ignore'],
+	});
+	proc.on('exit', () => {
+		if (applyLockHolder === proc) {
+			applyLockHolder = undefined;
+		}
+	});
+	proc.on('error', (e) => {
+		log.warn('supervisor-apply flock holder errored:', e);
+	});
+	applyLockHolder = proc;
+}
+
+async function releaseApplyLock(): Promise<void> {
+	applyLockDepth -= 1;
+	if (applyLockDepth > 0 || !applyLockHolder) {
+		return;
+	}
+	const proc = applyLockHolder;
+	applyLockHolder = undefined;
+	// Close cat's stdin -> cat exits on EOF -> flock cascades -> lock released.
+	proc.stdin?.end();
+	await new Promise<void>((resolve) => {
+		const timer = global.setTimeout(resolve, 1000);
+		proc.on('exit', () => {
+			clearTimeout(timer);
+			resolve();
+		});
+	});
+}
+
 /**
  * WARNING: This function should only be called from within triggerApplyTarget
  * or withExclusiveApply. It must NOT be called outside of these contexts,
@@ -554,6 +614,10 @@ export const applyTarget = async ({
 }: ApplyTargetOpts) => {
 	await applicationManager.localModeSwitchCompletion();
 
+	if (!intermediate) {
+		await acquireApplyLock();
+	}
+	try {
 	try {
 		let nextDelay = 200;
 		let retryCount = 0;
@@ -716,6 +780,11 @@ export const applyTarget = async ({
 			keepVolumes,
 			abortSignal,
 		});
+	}
+	} finally {
+		if (!intermediate) {
+			await releaseApplyLock();
+		}
 	}
 };
 
