@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Volume } from '~/src/compose/volume';
+import { Volume, VolumeNameParsingError } from '~/src/compose/volume';
 
 describe('compose/volume: unit tests', () => {
 	describe('creating a volume from a compose object', () => {
@@ -126,6 +126,32 @@ describe('compose/volume: unit tests', () => {
 					Scope: 'local',
 				}),
 			).to.throw;
+		});
+
+		it('should not misparse extension-owned boot volumes as managed volumes', () => {
+			// The extension runtime creates /boot volumes named
+			// ext_<svc>_<12-hex-digest>_boot. The trailing hex digit before
+			// _boot must NOT be mistaken for an appId (e.g. ...f4b0_boot -> 0,
+			// ...84f3_boot -> 3): an unanchored name regex did exactly that,
+			// so getAll() surfaced phantom {appId:0|3, name:boot} volumes and
+			// the reconcile emitted removeVolume(0_boot|3_boot) steps that
+			// 404'd forever, wedging the apply loop. These must be ignored as
+			// unmanaged volumes (VolumeNameParsingError) instead.
+			for (const Name of [
+				'ext_kernel-modules_417a6887f4b0_boot',
+				'ext_kernel-modules_1cddd24884f3_boot',
+			]) {
+				expect(() =>
+					Volume.fromDockerVolume({
+						Driver: 'local',
+						Name,
+						Mountpoint: `/var/lib/docker/volumes/${Name}/_data`,
+						Labels: {},
+						Options: {},
+						Scope: 'local',
+					}),
+				).to.throw(VolumeNameParsingError);
+			}
 		});
 
 		it('should correctly parse docker volumes', () => {
