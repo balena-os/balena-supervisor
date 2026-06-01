@@ -30,6 +30,19 @@ function lockFilesOnHost(
 }
 
 /**
+ * Returns true if a Host OS update is in progress.
+ */
+export async function isHUPInProgress(): Promise<boolean> {
+	const breadcrumbs = await Promise.all(
+		['rollback-health-breadcrumb', 'rollback-altboot-breadcrumb'].map(
+			(filename) => pathExistsOnState(filename),
+		),
+	);
+
+	return breadcrumbs.some((e) => e);
+}
+
+/**
  * Check for rollback-{health|altboot}-breadcrumb, two files that exist while
  * rollback-{health|altboot}.service have not exited. If these files exist,
  * prevent reboot. If the Supervisor reboots while those services are still running,
@@ -40,13 +53,7 @@ export async function abortIfHUPInProgress({
 }: {
 	force?: boolean;
 }): Promise<boolean> {
-	const breadcrumbs = await Promise.all(
-		['rollback-health-breadcrumb', 'rollback-altboot-breadcrumb'].map(
-			(filename) => pathExistsOnState(filename),
-		),
-	);
-
-	const hasHUPBreadcrumb = breadcrumbs.some((e) => e);
+	const hasHUPBreadcrumb = await isHUPInProgress();
 	if (hasHUPBreadcrumb && !force) {
 		throw new UpdatesLockedError('Waiting for Host OS update to finish');
 	}
