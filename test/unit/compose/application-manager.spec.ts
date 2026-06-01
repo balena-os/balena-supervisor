@@ -170,6 +170,7 @@ describe('compose/application-manager', () => {
 			toDeploy: [],
 			toDrop: [],
 			rebootServiceName: null,
+			osUpdatePending: false,
 			...over,
 		});
 
@@ -244,6 +245,15 @@ describe('compose/application-manager', () => {
 				abortSignal,
 			);
 			expect(gating).to.be.empty;
+		});
+
+		it('defers the activation reboot to a noop while a host OS update is pending', () => {
+			const { gating } = computeExtensionSteps(
+				changes({ rebootServiceName: 'kmods', osUpdatePending: true }),
+				false,
+				abortSignal,
+			);
+			expect(gating.map((s) => s.action)).to.deep.equal(['noop']);
 		});
 
 		it('deploys take precedence over the activation reboot in a single pass', () => {

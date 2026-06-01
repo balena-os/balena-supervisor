@@ -96,6 +96,31 @@ export function extractOverlayServices(
 }
 
 /**
+ * Returns true if the target state pins a host OS (hostapp) release whose commit
+ * differs from the one currently recorded as applied — i.e. a Host OS update is
+ * pending/underway.
+ */
+export async function isOsUpdatePending(
+	rawTargetApps: TargetApps,
+): Promise<boolean> {
+	for (const app of Object.values(rawTargetApps)) {
+		if (!app.is_host) {
+			continue;
+		}
+		// At most one host OS release is pinned in target state.
+		const targetCommit = Object.keys(app.releases)[0];
+		if (targetCommit == null) {
+			continue;
+		}
+		const currentCommit = await commitStore.getCommitForApp(app.id);
+		if (currentCommit !== targetCommit) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * Extension work computed from target state.
  */
 export interface ExtensionChanges {
@@ -107,12 +132,14 @@ export interface ExtensionChanges {
 	toDrop: Array<{ serviceName: string; containerId: string }>;
 	/** serviceName of a deployed overlay that needs an activation reboot, else null. */
 	rebootServiceName: string | null;
+	osUpdatePending?: boolean;
 }
 
 const EMPTY_EXTENSION_CHANGES: ExtensionChanges = {
 	toDeploy: [],
 	toDrop: [],
 	rebootServiceName: null,
+	osUpdatePending: false,
 };
 
 /**
@@ -149,6 +176,7 @@ async function computeExtensionChanges(
 			containerId: row.containerId,
 		})),
 		rebootServiceName: rebooting?.serviceName ?? null,
+		osUpdatePending: await isOsUpdatePending(rawTargetApps),
 	};
 }
 
@@ -205,11 +233,15 @@ export function computeExtensionSteps(
 		extensionChanges.rebootServiceName != null &&
 		!rebootBreadcrumbSet
 	) {
-		gating = [
-			generateStep('requireReboot', {
-				serviceName: extensionChanges.rebootServiceName,
-			}),
-		];
+		if (extensionChanges.osUpdatePending) {
+			gating = [generateStep('noop', {})];
+		} else {
+			gating = [
+				generateStep('requireReboot', {
+					serviceName: extensionChanges.rebootServiceName,
+				}),
+			];
+		}
 	}
 
 	return { gating, removals };

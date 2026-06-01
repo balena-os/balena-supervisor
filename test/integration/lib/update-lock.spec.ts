@@ -57,6 +57,37 @@ describe('lib/update-lock', () => {
 		});
 	});
 
+	describe('isHUPInProgress', () => {
+		const breadcrumbFiles = [
+			'rollback-health-breadcrumb',
+			'rollback-altboot-breadcrumb',
+		];
+
+		const breadcrumbsDir = pathOnState();
+
+		const createBreadcrumb = (breadcrumb: string) =>
+			testfs({
+				[path.join(breadcrumbsDir, breadcrumb)]: '',
+			}).enable();
+
+		before(async () => {
+			await fs.mkdir(breadcrumbsDir, { recursive: true });
+		});
+
+		it('should resolve to true (without throwing) if any breadcrumb exists', async () => {
+			for (const bc of breadcrumbFiles) {
+				const testFs = await createBreadcrumb(bc);
+				await expect(updateLock.isHUPInProgress()).to.eventually.equal(true);
+				await testFs.restore();
+			}
+		});
+
+		it('should resolve to false if no breadcrumbs on host', async () => {
+			expect(await fs.readdir(breadcrumbsDir)).to.have.lengthOf(0);
+			await expect(updateLock.isHUPInProgress()).to.eventually.equal(false);
+		});
+	});
+
 	const lockdir = (appId: number | string, serviceName: string): string =>
 		pathOnRoot(updateLock.lockPath(appId, serviceName));
 
