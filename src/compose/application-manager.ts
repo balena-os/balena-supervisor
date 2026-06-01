@@ -43,6 +43,7 @@ import type {
 import { isRebootBreadcrumbSet } from '../lib/reboot';
 import { getBootTime } from '../lib/fs-utils';
 import * as extraFirmware from '../lib/extra-firmware';
+import { isSupervisor } from '../lib/supervisor-metadata';
 
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
@@ -929,7 +930,8 @@ export async function getState(): Promise<AppsReport> {
 	const [services, images, targetApps] = await Promise.all([
 		serviceManager.getState(),
 		imageManager.getState(),
-		dbFormat.getApps(),
+		// query target apps including the supervisor
+		dbFormat.getApps(false),
 	]);
 
 	type ServiceInfo = {
@@ -983,6 +985,16 @@ export async function getState(): Promise<AppsReport> {
 				continue;
 			}
 
+			// The supervisor service will not be on the current services list, so
+			// we manufacture its state when reporting
+			const serviceStatus =
+				appUuid != null && isSupervisor(appUuid, serviceName)
+					? { status: 'Running' }
+					: {
+							status: 'Downloading',
+							download_progress: 0,
+						};
+
 			// add target images that are pending downnload
 			stateFromImages.push({
 				appId,
@@ -990,8 +1002,7 @@ export async function getState(): Promise<AppsReport> {
 				image: imageName!,
 				commit,
 				serviceName,
-				status: 'Downloading',
-				download_progress: 0,
+				...serviceStatus,
 			});
 		}
 	}
