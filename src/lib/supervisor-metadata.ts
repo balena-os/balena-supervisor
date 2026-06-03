@@ -22,10 +22,6 @@ const SUPERVISOR_APPS: { [arch: string]: string } = {
 	rpi: '6822565f766e413e96d9bebe2227cdcc',
 };
 
-export function isSupervisorApp(appUuid: string): boolean {
-	return Object.values(SUPERVISOR_APPS).some((uuid) => uuid === appUuid);
-}
-
 /**
  * Check if the supervisor in the target state belongs to the known
  * supervisors
