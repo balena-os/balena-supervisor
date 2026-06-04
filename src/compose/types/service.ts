@@ -3,6 +3,7 @@ import type Dockerode from 'dockerode';
 import { isAbsolute } from 'path';
 
 import type { PortMap } from '../ports';
+import type { LogLevel } from '../../logging/types';
 
 export interface ComposeHealthcheck {
 	test: string | string[];
@@ -392,4 +393,5 @@ export interface Service {
 		containerIds: Dictionary<string>;
 	}): Dockerode.ContainerCreateOptions;
 	handoverCompleteFullPathsOnHost(): string[];
+	logLevel(): LogLevel;
 }

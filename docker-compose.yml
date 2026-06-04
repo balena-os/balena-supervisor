@@ -41,6 +41,8 @@ services:
       # Needed for locks and balenahup. This needs to match the device
       # used for the `runtime` volume
       - BALENA_HOST_RUNTIME_DIR=/tmp/balena-supervisor
+      # Only send error logs to dashboard
+      - BALENA_LOGS_LEVEL=error
     volumes:
       # Critical configurations
       - config:/config/helios
@@ -63,6 +65,9 @@ services:
       - core
     volumes:
       - runtime:/tmp/run
+    environment:
+      # Only send error logs to dashboard
+      - BALENA_LOGS_LEVEL=error
     healthcheck:
       test: ['CMD', 'wget', '-O', '-', '-q', 'http://127.0.0.1:48484/ping']
 
