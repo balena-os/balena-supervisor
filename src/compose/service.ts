@@ -336,9 +336,20 @@ class ServiceImpl implements Service {
 		}
 		delete config.ports;
 
-		let devices: DockerDevice[] = [];
+		// Partition the compose `devices:` array. CDI device qualifiers
+		// (e.g. `nvidia.com/gpu=all`) get converted to DeviceRequests with
+		// Driver=cdi (the format balena-engine expects); everything else
+		// stays on the legacy HostConfig.Devices field via formatDevice.
+		const devices: DockerDevice[] = [];
+		const cdiDeviceRequests: Dockerode.DeviceRequest[] = [];
 		if (config.devices != null) {
-			devices = _.map(config.devices, ComposeUtils.formatDevice);
+			for (const d of config.devices) {
+				if (ComposeUtils.isCDIDeviceQualifier(d)) {
+					cdiDeviceRequests.push(ComposeUtils.formatCDIDeviceRequest(d));
+				} else {
+					devices.push(ComposeUtils.formatDevice(d));
+				}
+			}
 		}
 		delete config.devices;
 
@@ -414,7 +425,10 @@ class ServiceImpl implements Service {
 			command: [],
 			cgroupParent: '',
 			devices,
-			deviceRequests: [],
+			// Any CDI strings from compose `devices:` are merged into the
+			// deviceRequests default. The gpu label may append additional
+			// entries later in addFeaturesFromLabels.
+			deviceRequests: cdiDeviceRequests,
 			dnsOpt: [],
 			entrypoint: [],
 			extraHosts: [],
