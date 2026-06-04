@@ -36,10 +36,6 @@ const SUPERVISOR_APPS: { [arch: string]: SupervisorMetadata } = {
 	},
 };
 
-export function isSupervisorApp(appUuid: string): boolean {
-	return Object.values(SUPERVISOR_APPS).some(({ uuid }) => uuid === appUuid);
-}
-
 /**
  * Check if the supervisor in the target state belongs to the known
  * supervisors
