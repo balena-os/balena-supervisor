@@ -1,7 +1,7 @@
 version: '2.3'
 
 x-helios-image: &helios-image
-  image: ghcr.io/balena-io/helios:0.26.3
+  image: ghcr.io/alexgg/helios:alexgg-helios-overlay-extensions-hostonly-g984d6f96c624
 
 services:
   # This service can only be named `main`, `balena-supervisor` or `core`
