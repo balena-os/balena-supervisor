@@ -95,10 +95,6 @@ export function createRestartPolicy(name?: string): string {
 		return 'always';
 	}
 
-	if (name === 'no') {
-		return '';
-	}
-
 	return name;
 }
 
