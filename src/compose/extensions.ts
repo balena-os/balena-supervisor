@@ -221,6 +221,17 @@ export async function ensureExtensionImage(
 	}
 	log.info(`Pulling extension image: ${image}`);
 	const fetchOpts = await config.get('fetchOptions');
+
+	// Dedicated AbortController for extension pulls. The outer apply-loop
+	// signal can still abort us (one-way coupling), but our errors and
+	// aborts won't cascade back to the user-app pulls that share the
+	// outer signal. Without this isolation, an extension-deployment
+	// failure aborts in-flight user-app pulls via the shared abortSignal,
+	// which on large user-app images manifests as never-completing pulls
+	// (retry cadence == appUpdatePollInterval).
+	const innerController = new AbortController();
+	const onOuterAbort = () => innerController.abort();
+	abortSignal.addEventListener('abort', onOuterAbort);
 	try {
 		await fetchImageWithProgress(
 			image,
@@ -228,11 +239,13 @@ export async function ensureExtensionImage(
 			() => {
 				/* progress not tracked for extensions */
 			},
-			abortSignal,
+			innerController.signal,
 		);
 	} catch (err: any) {
 		log.error(`Failed to pull extension image ${image}: ${err.message ?? err}`);
 		throw err;
+	} finally {
+		abortSignal.removeEventListener('abort', onOuterAbort);
 	}
 }
 

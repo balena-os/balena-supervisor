@@ -416,10 +416,19 @@ export async function inferNextSteps(
 		}
 	} else if (!(await extraFirmware.isInitialized(config.configJsonBackend))) {
 		steps.push({ action: 'ensureExtraFirmwareVolume' });
-	} else if (extensionGatingSteps.length > 0) {
-		// Apps may depend on overlays being deployed and activated first.
-		steps = steps.concat(extensionGatingSteps);
 	} else {
+		// Extension reconciliation runs in PARALLEL with user-app
+		// reconciliation. The original alexgg/extensions code put this in
+		// an exclusive `else if` branch which starved user-app
+		// fetch-step generation while overlays were pending or failing
+		// deployment. Combined with the shared AbortController in the
+		// apply loop, that caused mid-pull cancels of user-app pulls
+		// every retry cycle (~appUpdatePollInterval). Making the gating
+		// additive lets app pulls progress regardless of extension
+		// deployment state.
+		if (extensionGatingSteps.length > 0) {
+			steps = steps.concat(extensionGatingSteps);
+		}
 		if (downloading.length === 0) {
 			// Avoid cleaning up dangling images while purging
 			if (!keepImages && (await imageManager.isCleanupNeeded())) {
