@@ -1,4 +1,19 @@
 - commits:
+    - subject: Pass correct value for restart policy 'no'
+      hash: 57f300e957f41776ab1ffa24f789a4d4332afe2a
+      body: |
+        The supervisor was passing an empty string '' when receiving
+        `restart_policy: no`, this now passes the direct name which is required
+        by engine v25
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 18.1.1
+  title: ""
+  date: 2026-06-05T18:56:17.011Z
+- commits:
     - subject: Remove any overrides created by helios and restore service
       hash: e5c66d90586f127fee9713445dcc9aa868131c57
       body: |
