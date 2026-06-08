@@ -624,7 +624,15 @@ class ServiceImpl implements Service {
 				(opt: string) => !unsupportedSecurityOpt(opt),
 			),
 			usernsMode: container.HostConfig.UsernsMode ?? '',
-			runtime: container.HostConfig.Runtime ?? '',
+			// Engine reports HostConfig.Runtime = "runc" when nothing was
+			// requested. Normalize that back to '' so target state (which
+			// defaults to '') matches the round-trip read — otherwise every
+			// reconcile cycle sees runtime as "changed" and the supervisor
+			// loops replacing containers.
+			runtime:
+				container.HostConfig.Runtime && container.HostConfig.Runtime !== 'runc'
+					? container.HostConfig.Runtime
+					: '',
 			ipc: container.HostConfig.IpcMode ?? '',
 			macAddress: (container.Config as any).MacAddress ?? '',
 			user: container.Config.User ?? '',
@@ -776,7 +784,12 @@ class ServiceImpl implements Service {
 				ShmSize: this.config.shmSize,
 				Tmpfs: tmpFs,
 				UsernsMode: this.config.usernsMode,
-				Runtime: this.config.runtime,
+				// Only set Runtime if the user explicitly asked for one. Passing
+				// "" makes the engine record HostConfig.Runtime as "runc" and
+				// then the round-trip read normalises that back to "" too —
+				// but omitting the key entirely is closer to the no-op semantic
+				// other compose users will expect.
+				...(this.config.runtime ? { Runtime: this.config.runtime } : {}),
 				NanoCpus: this.config.cpus,
 				IpcMode: this.config.ipc,
 				Init: this.config.init,
