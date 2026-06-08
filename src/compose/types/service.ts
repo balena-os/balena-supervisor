@@ -199,6 +199,7 @@ export interface ServiceComposeConfig {
 		[ulimitName: string]: number | { soft: number; hard: number };
 	};
 	usernsMode?: string;
+	runtime?: string;
 	volumes?: ServiceVolumeConfig[];
 	restart?: string;
 	cpuShares?: number;
@@ -263,6 +264,7 @@ export interface ServiceConfig {
 		[ulimitName: string]: { soft: number; hard: number };
 	};
 	usernsMode: string;
+	runtime: string;
 	volumes: ServiceVolumeConfig[];
 	restart: string;
 	cpuShares: number;

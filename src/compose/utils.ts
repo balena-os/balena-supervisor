@@ -434,6 +434,18 @@ export async function addFeaturesFromLabels(
 				Capabilities: [['gpu']],
 				Options: {},
 			} as Dockerode.DeviceRequest),
+		'io.balena.features.argus-socket': () => {
+			// Bind-mount the NVIDIA Argus camera socket so containers can use
+			// libnvargus_socketclient to drive the host-side nvargus-daemon.
+			// Required by stock NGC camera images (deepstream-l4t, l4t-multimedia)
+			// when running through CSI capture. Without this the container's
+			// nvarguscamerasrc fails to connect to /tmp/argus_socket.
+			service.config.volumes.push({
+				type: 'bind',
+				source: '/tmp/argus_socket',
+				target: '/tmp/argus_socket',
+			} as LongBind);
+		},
 		'io.balena.features.host-os.board-rev': async () => {
 			const osBoardRev = await getOSBoardRev(constants.hostOSVersionPath);
 			if (osBoardRev) {
