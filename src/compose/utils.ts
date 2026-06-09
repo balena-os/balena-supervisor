@@ -313,6 +313,31 @@ export function dockerDeviceToStr(device: DockerDevice): string {
 	return `${device.PathOnHost}:${device.PathInContainer}:${device.CgroupPermissions}`;
 }
 
+// CDI device qualifier format: <vendor>/<class>=<name>.
+// Vendor is domain-like (must contain a dot, per CDI spec), class is
+// alphanumeric, name is alphanumeric+separators. Legacy host devices use
+// `:` as the field separator and never match this pattern.
+const CDI_DEVICE_REGEX =
+	/^[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+=[a-zA-Z0-9._-]+$/;
+
+export function isCDIDeviceQualifier(deviceStr: string): boolean {
+	return CDI_DEVICE_REGEX.test(deviceStr);
+}
+
+// balena-engine routes CDI devices through HostConfig.DeviceRequests with
+// Driver=cdi (verified against engine v25). NOT HostConfig.CDIDevices.
+export function formatCDIDeviceRequest(
+	deviceStr: string,
+): Dockerode.DeviceRequest {
+	return {
+		Driver: 'cdi',
+		Count: 0,
+		DeviceIDs: [deviceStr],
+		Capabilities: null as unknown as string[][],
+		Options: null as unknown as { [key: string]: string },
+	};
+}
+
 // TODO: Export these strings to a constant lib, to
 // enable changing them easily
 // Mutates service
@@ -409,6 +434,18 @@ export async function addFeaturesFromLabels(
 				Capabilities: [['gpu']],
 				Options: {},
 			} as Dockerode.DeviceRequest),
+		'io.balena.features.argus-socket': () => {
+			// Bind-mount the NVIDIA Argus camera socket so containers can use
+			// libnvargus_socketclient to drive the host-side nvargus-daemon.
+			// Required by stock NGC camera images (deepstream-l4t, l4t-multimedia)
+			// when running through CSI capture. Without this the container's
+			// nvarguscamerasrc fails to connect to /tmp/argus_socket.
+			service.config.volumes.push({
+				type: 'bind',
+				source: '/tmp/argus_socket',
+				target: '/tmp/argus_socket',
+			} as LongBind);
+		},
 		'io.balena.features.host-os.board-rev': async () => {
 			const osBoardRev = await getOSBoardRev(constants.hostOSVersionPath);
 			if (osBoardRev) {

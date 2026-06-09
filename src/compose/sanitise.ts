@@ -53,6 +53,7 @@ const supportedComposeFields = [
 	'oomScoreAdj',
 	'privileged',
 	'readOnly',
+	'runtime',
 	'shmSize',
 	'user',
 	'workingDir',

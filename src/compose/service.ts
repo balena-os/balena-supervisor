@@ -336,9 +336,20 @@ class ServiceImpl implements Service {
 		}
 		delete config.ports;
 
-		let devices: DockerDevice[] = [];
+		// Partition the compose `devices:` array. CDI device qualifiers
+		// (e.g. `nvidia.com/gpu=all`) get converted to DeviceRequests with
+		// Driver=cdi (the format balena-engine expects); everything else
+		// stays on the legacy HostConfig.Devices field via formatDevice.
+		const devices: DockerDevice[] = [];
+		const cdiDeviceRequests: Dockerode.DeviceRequest[] = [];
 		if (config.devices != null) {
-			devices = _.map(config.devices, ComposeUtils.formatDevice);
+			for (const d of config.devices) {
+				if (ComposeUtils.isCDIDeviceQualifier(d)) {
+					cdiDeviceRequests.push(ComposeUtils.formatCDIDeviceRequest(d));
+				} else {
+					devices.push(ComposeUtils.formatDevice(d));
+				}
+			}
 		}
 		delete config.devices;
 
@@ -414,7 +425,10 @@ class ServiceImpl implements Service {
 			command: [],
 			cgroupParent: '',
 			devices,
-			deviceRequests: [],
+			// Any CDI strings from compose `devices:` are merged into the
+			// deviceRequests default. The gpu label may append additional
+			// entries later in addFeaturesFromLabels.
+			deviceRequests: cdiDeviceRequests,
 			dnsOpt: [],
 			entrypoint: [],
 			extraHosts: [],
@@ -450,6 +464,7 @@ class ServiceImpl implements Service {
 			oomScoreAdj: 0,
 			privileged: false,
 			readOnly: false,
+			runtime: '',
 			shmSize,
 			hostname: '',
 			user: '',
@@ -609,6 +624,15 @@ class ServiceImpl implements Service {
 				(opt: string) => !unsupportedSecurityOpt(opt),
 			),
 			usernsMode: container.HostConfig.UsernsMode ?? '',
+			// Engine reports HostConfig.Runtime = "runc" when nothing was
+			// requested. Normalize that back to '' so target state (which
+			// defaults to '') matches the round-trip read — otherwise every
+			// reconcile cycle sees runtime as "changed" and the supervisor
+			// loops replacing containers.
+			runtime:
+				container.HostConfig.Runtime && container.HostConfig.Runtime !== 'runc'
+					? container.HostConfig.Runtime
+					: '',
 			ipc: container.HostConfig.IpcMode ?? '',
 			macAddress: (container.Config as any).MacAddress ?? '',
 			user: container.Config.User ?? '',
@@ -760,6 +784,12 @@ class ServiceImpl implements Service {
 				ShmSize: this.config.shmSize,
 				Tmpfs: tmpFs,
 				UsernsMode: this.config.usernsMode,
+				// Only set Runtime if the user explicitly asked for one. Passing
+				// "" makes the engine record HostConfig.Runtime as "runc" and
+				// then the round-trip read normalises that back to "" too —
+				// but omitting the key entirely is closer to the no-op semantic
+				// other compose users will expect.
+				...(this.config.runtime ? { Runtime: this.config.runtime } : {}),
 				NanoCpus: this.config.cpus,
 				IpcMode: this.config.ipc,
 				Init: this.config.init,

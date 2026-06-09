@@ -418,6 +418,12 @@ export async function inferNextSteps(
 		steps.push({ action: 'ensureExtraFirmwareVolume' });
 	} else if (extensionGatingSteps.length > 0) {
 		// Apps may depend on overlays being deployed and activated first.
+		// Keep this in an exclusive else-if branch — extension gating must
+		// run alone, not in parallel with user-app reconciliation. The
+		// parallel-reconcile change we previously tried interfered with
+		// extension install (mobynit not picking up the layer). Pull-cancel
+		// regression from the shared AbortController is now handled via
+		// the inner-AbortController in extensions.ts ensureExtensionImage.
 		steps = steps.concat(extensionGatingSteps);
 	} else {
 		if (downloading.length === 0) {

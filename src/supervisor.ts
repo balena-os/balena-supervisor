@@ -20,8 +20,7 @@ import * as constants from './lib/constants';
 import * as uname from './lib/uname';
 
 // FIXME: remove when we release supervisor v19
-import * as servicesManager from './compose/service-manager';
-import * as supervisorMetadata from './lib/supervisor-metadata';
+// Imports below were used by the (now-removed) recoverFromOverrides helper.
 
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
@@ -36,41 +35,11 @@ const startupConfigFields: config.ConfigKey[] = [
 	'legacyAppsPresent',
 ];
 
-// This function removes any `helios` overrides in order to restore
-// the supervisor functionality as the only service.
-//
-// - It removes the port/endpoint overrides
-// - It stops helios
-//
-// Returns true if the changes were applied
-//
-// FIXME: remove when we release supervisor v19
-async function recoverFromOverrides() {
-	const { listenPortOverride, apiEndpointOverride } = await config.getMany([
-		'listenPortOverride',
-		'apiEndpointOverride',
-	]);
-	if (listenPortOverride != null || apiEndpointOverride != null) {
-		// stop helios-api
-		const [heliosApi] = (
-			await servicesManager.getAll(`service-name=helios-api`)
-		).filter(
-			(svc) =>
-				svc.appUuid != null && supervisorMetadata.isSupervisorApp(svc.appUuid),
-		);
-		if (heliosApi != null) {
-			await servicesManager.kill(heliosApi, { wait: true });
-		}
-
-		log.info('Removing supervisor overrides');
-		await db.models('config').del().where({ key: 'listenPortOverride' });
-		await db.models('config').del().where({ key: 'apiEndpointOverride' });
-
-		// terminate the process
-		log.info('restarting');
-		process.exit(1);
-	}
-}
+// Local patch: recoverFromOverrides() removed because this device's cloud
+// target state (release 234809) still lists helios-api as a managed service.
+// The upstream recover function stops helios-api and exits, then the
+// supervisor's apply loop wedges trying to recreate it. Re-introduce once
+// a matching cloud release lands without helios-api.
 
 export class Supervisor {
 	private api: SupervisorAPI;
@@ -82,7 +51,13 @@ export class Supervisor {
 		await config.initialized();
 
 		// FIXME: remove when we release supervisor v19
-		await recoverFromOverrides();
+		// Disabled locally: the recovery path stops helios-api and exits,
+		// but this device's cloud target state still lists helios-api as a
+		// managed service so the supervisor's apply loop wedges trying to
+		// recreate it. The cloud-side release that drops helios-api hasn't
+		// landed yet for our base composition (release 234809). Re-enable
+		// once the matching cloud release is published.
+		// await recoverFromOverrides();
 
 		await avahi.initialized();
 		log.debug('Starting logging infrastructure');
