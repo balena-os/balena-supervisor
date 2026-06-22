@@ -1,4 +1,17 @@
 - commits:
+    - subject: "Docs: clarify behavior for `PATCH /v2/device/tags`"
+      hash: 13881bed43f564b6168c64f78db4c15d4fdd308c
+      body: |
+        https://balena.fibery.io/Work/Project/1031
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 18.1.2
+  title: ""
+  date: 2026-06-22T11:43:14.014Z
+- commits:
     - subject: Pass correct value for restart policy 'no'
       hash: 57f300e957f41776ab1ffa24f789a4d4332afe2a
       body: |
