@@ -1203,14 +1203,24 @@ Response:
 
 > **Introduced in supervisor v17.8**
 
-Schedule device tags to be set in the balena API, persisting the schedule across restarts.
+Schedule device tags to be set in the balena API, persisting the schedule across restarts
+and retrying as necessary.
 Note that whilst this endpoint will work when the device does not have an available
 connection to the balena API the changes will only be reported once a connection is
 reestablished.
 
 The body should be a JSON object of tag key-value pairs which will be reported to the
 balena API if they differ from the last reported key-value pairs, saving the device from
-unnecessary requests and bandwidth usage. 
+unnecessary requests and bandwidth usage.
+
+Notes:
+* Tag ownership: This does not check for/overwrite user initiated changes to the tags (via the
+dashboard or otherwise) as it is expected that tags which are set by the device via this
+endpoint should only be controlled by the device to avoid conflicts due to unclear
+ownership.
+* Retries: Will retry until success, with a minimum of 15s delay and an exponential backoff up
+a delay matching the `appUpdatePollInterval`
+
 
 ```json
 {
