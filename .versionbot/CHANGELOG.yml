@@ -1,4 +1,30 @@
 - commits:
+    - subject: Rename the supervisor service to core on the commposition
+      hash: 2c6627b369f43fffdd56eedd20c7f3a88b6720a6
+      body: |
+        This will allow it to show on the dashboard with that name in the
+        Supervisor services table.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+    - subject: Report the supervisor main service to backend
+      hash: 14e7f97ea15d6699cd778ad573246932aec5d550
+      body: |
+        The supervisor cannot update itself so its core service is removed from
+        the target state before applying steps. However we do want the service
+        to be reported so it shows up in the new `Supervisor services` table on
+        the dashboard.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 18.2.0
+  title: ""
+  date: 2026-06-22T20:17:31.186Z
+- commits:
     - subject: "Docs: clarify behavior for `PATCH /v2/device/tags`"
       hash: 13881bed43f564b6168c64f78db4c15d4fdd308c
       body: |
