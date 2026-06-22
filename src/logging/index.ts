@@ -6,7 +6,7 @@ import type { LogType } from '../lib/log-types';
 import { BalenaLogBackend } from './balena-backend';
 import { LocalLogBackend } from './local-backend';
 import type { LogBackend } from './log-backend';
-import type { LogMessage } from './types';
+import { LogLevel, type LogMessage } from './types';
 import logMonitor from './monitor';
 
 import * as globalEventBus from '../event-bus';
@@ -126,11 +126,19 @@ export function logSystemMessage(
 	}
 }
 
-type ServiceInfo = { serviceId: number };
-export function attach(containerId: string, { serviceId }: ServiceInfo): void {
+type ServiceInfo = { serviceId: number; logLevel: LogLevel };
+export function attach(
+	containerId: string,
+	{ serviceId, logLevel }: ServiceInfo,
+): void {
 	// First detect if we already have an attached log stream
 	// for this container
 	if (logMonitor.isAttached(containerId)) {
+		return;
+	}
+
+	// skip service attach LogLevel is None
+	if (logLevel === LogLevel.None) {
 		return;
 	}
 
@@ -138,6 +146,11 @@ export function attach(containerId: string, { serviceId }: ServiceInfo): void {
 	// and not directly affecting the container itself, and grabbing the lock can cause a delay which means
 	// that early messages logged from the container are missed and never sent to the backend.
 	logMonitor.attach(containerId, async (message) => {
+		// ignore non stderr messages for an error only service
+		if (logLevel === LogLevel.Err && !message.isStdErr) {
+			return;
+		}
+
 		await log({ ...message, serviceId });
 	});
 }

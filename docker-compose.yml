@@ -1,10 +1,14 @@
 version: '2.3'
 
+x-helios-image: &helios-image
+  image: ghcr.io/balena-io/helios:0.25.12
+
 services:
-  # This service can only be named `main` or `balena-supervisor` as older
-  # devices will keep relying on the `/v6/supervisor_release` endpoint that
-  # identifies the supervisor image by that service name.
-  balena-supervisor:
+  # This service can only be named `main`, `balena-supervisor` or `core`
+  # in a multi-container supervisor, the API `supervisor_release` needs to be able to
+  # identify the "main" supervisor image so the `update-balena-supervisor` script works
+  # properly
+  core:
     build: ./
     privileged: true
     tty: true
@@ -14,3 +18,70 @@ services:
       io.balena.features.balena-api: '1'
       io.balena.features.dbus: '1'
       io.balena.features.balena-socket: '1'
+
+  # This is the next generation supervisor service. When started, it becomes a proxy
+  # for calls between the existing supervisor and the balenaAPI and containers
+  core-next:
+    <<: *helios-image
+    restart: on-failure
+    labels:
+      # Needed to get access to supervisor api variables
+      # and credentials
+      io.balena.features.supervisor-api: '1'
+      # Needed for access to DOCKER_HOST
+      io.balena.features.balena-socket: '1'
+      # Needed to stop the supervisor service
+      io.balena.features.dbus: '1'
+      # Needed to get access to the API credentials
+      io.balena.features.balena-api: '1'
+      # Needed to get Host OS metadata
+      io.balena.features.host-os.board-rev: '1'
+    environment:
+      - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket
+      # Needed for locks and balenahup. This needs to match the device
+      # used for the `runtime` volume
+      - BALENA_HOST_RUNTIME_DIR=/tmp/balena-supervisor
+      # Only send error logs to dashboard
+      - BALENA_LOGS_LEVEL=error
+    volumes:
+      # Critical configurations
+      - config:/config/helios
+      # Request caching
+      - cache:/cache/helios
+      # Persistent system state data that can be reconstructed from
+      # the target state
+      - state:/local/helios
+      # Runtime directory. Data here does not persist after reboots
+      - runtime:/tmp/run
+
+  # The service below relays requests between tcp port 48484 and the socket exposed by
+  # the core-next service
+  service-relay:
+    <<: *helios-image
+    command: socat TCP-LISTEN:48484,reuseaddr,fork UNIX-CONNECT:/tmp/run/helios.sock
+    ports:
+      - 48484
+    depends_on:
+      - core
+    volumes:
+      - runtime:/tmp/run
+    environment:
+      # Only send error logs to dashboard
+      - BALENA_LOGS_LEVEL=error
+    healthcheck:
+      test: ['CMD', 'wget', '-O', '-', '-q', 'http://127.0.0.1:48484/ping']
+
+volumes:
+  config:
+  state:
+    labels:
+      # the database version, can be bumped to re-create the state
+      io.balena.private.db-version: 0
+  cache:
+  runtime:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      # XXX: this directory needs to exist on the host before the container is started
+      device: /tmp/balena-supervisor

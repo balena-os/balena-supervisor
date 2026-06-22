@@ -19,10 +19,6 @@ import * as firewall from './lib/firewall';
 import * as constants from './lib/constants';
 import * as uname from './lib/uname';
 
-// FIXME: remove when we release supervisor v19
-import * as servicesManager from './compose/service-manager';
-import * as supervisorMetadata from './lib/supervisor-metadata';
-
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
 	'listenPort',
@@ -36,42 +32,6 @@ const startupConfigFields: config.ConfigKey[] = [
 	'legacyAppsPresent',
 ];
 
-// This function removes any `helios` overrides in order to restore
-// the supervisor functionality as the only service.
-//
-// - It removes the port/endpoint overrides
-// - It stops helios
-//
-// Returns true if the changes were applied
-//
-// FIXME: remove when we release supervisor v19
-async function recoverFromOverrides() {
-	const { listenPortOverride, apiEndpointOverride } = await config.getMany([
-		'listenPortOverride',
-		'apiEndpointOverride',
-	]);
-	if (listenPortOverride != null || apiEndpointOverride != null) {
-		// stop helios-api
-		const [heliosApi] = (
-			await servicesManager.getAll(`service-name=helios-api`)
-		).filter(
-			(svc) =>
-				svc.appUuid != null && supervisorMetadata.isSupervisorApp(svc.appUuid),
-		);
-		if (heliosApi != null) {
-			await servicesManager.kill(heliosApi, { wait: true });
-		}
-
-		log.info('Removing supervisor overrides');
-		await db.models('config').del().where({ key: 'listenPortOverride' });
-		await db.models('config').del().where({ key: 'apiEndpointOverride' });
-
-		// terminate the process
-		log.info('restarting');
-		process.exit(1);
-	}
-}
-
 export class Supervisor {
 	private api: SupervisorAPI;
 
@@ -80,10 +40,6 @@ export class Supervisor {
 
 		await db.initialized();
 		await config.initialized();
-
-		// FIXME: remove when we release supervisor v19
-		await recoverFromOverrides();
-
 		await avahi.initialized();
 		log.debug('Starting logging infrastructure');
 		await logger.initialized();

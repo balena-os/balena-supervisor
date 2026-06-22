@@ -1,7 +1,8 @@
 export type SupervisorMetadata = {
 	uuid: string;
-	serviceName: string;
 };
+
+const SUPERVISOR_SVC_NAMES = ['main', 'balena-supervisor', 'core'];
 
 /**
  * Although it might feel unsettling to hardcode these ids here.
@@ -13,32 +14,13 @@ export type SupervisorMetadata = {
  * This will only be necessary until the supervisor becomes an actual app
  * on balena
  */
-const SUPERVISOR_APPS: { [arch: string]: SupervisorMetadata } = {
-	amd64: {
-		uuid: '52e35121417640b1b28a680504e4039b',
-		serviceName: 'balena-supervisor',
-	},
-	aarch64: {
-		uuid: '900de4f3cbac4b9bbd232885a35e407b',
-		serviceName: 'balena-supervisor',
-	},
-	armv7hf: {
-		uuid: '2e66a95795c149959c69472a8c2f92b8',
-		serviceName: 'balena-supervisor',
-	},
-	i386: {
-		uuid: '531b357e155c480cbec0fdd33041a1f5',
-		serviceName: 'balena-supervisor',
-	},
-	rpi: {
-		uuid: '6822565f766e413e96d9bebe2227cdcc',
-		serviceName: 'balena-supervisor',
-	},
+const SUPERVISOR_APPS: { [arch: string]: string } = {
+	amd64: '52e35121417640b1b28a680504e4039b',
+	aarch64: '900de4f3cbac4b9bbd232885a35e407b',
+	armv7hf: '2e66a95795c149959c69472a8c2f92b8',
+	i386: '531b357e155c480cbec0fdd33041a1f5',
+	rpi: '6822565f766e413e96d9bebe2227cdcc',
 };
-
-export function isSupervisorApp(appUuid: string): boolean {
-	return Object.values(SUPERVISOR_APPS).some(({ uuid }) => uuid === appUuid);
-}
 
 /**
  * Check if the supervisor in the target state belongs to the known
@@ -49,13 +31,10 @@ export function isSupervisorApp(appUuid: string): boolean {
  *
  * TODO: remove this once the supervisor knows how to update itself
  */
-
 export const isSupervisor = (appUuid: string, svcName: string) => {
 	return (
 		Object.values(SUPERVISOR_APPS).filter(
-			({ uuid, serviceName }) =>
-				// Compare with `main` as well for compatibility with older supervisors
-				appUuid === uuid && (svcName === serviceName || svcName === 'main'),
+			(uuid) => appUuid === uuid && SUPERVISOR_SVC_NAMES.includes(svcName),
 		).length > 0
 	);
 };

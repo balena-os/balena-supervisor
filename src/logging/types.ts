@@ -11,3 +11,9 @@ type ContainerLogMessage = BaseLogMessage & {
 	isSystem?: false;
 };
 export type LogMessage = SystemLogMessage | ContainerLogMessage;
+
+export enum LogLevel {
+	None,
+	Info,
+	Err,
+}
