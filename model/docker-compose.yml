@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  database:
+    image: 'postgres:13.5'
+    restart: always
+    ports: 
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: supervisor
+    volumes:
+      - db-data:/var/lib/postgresql/data/
+  supervisor-api:
+    build: ./
+    restart: on-failure
+    ports: 
+      - 3000:3000
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@database:5432/supervisor
+    command: bash -c './wait-for-it.sh database:5432 -- npm start'
+    depends_on:
+      - database
+
+volumes:
+  db-data:
