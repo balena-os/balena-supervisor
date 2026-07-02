@@ -1,4 +1,17 @@
 - commits:
+    - subject: Clarify documentation on device tags API
+      hash: 29b23c9f867f2ef2b50f70966e97eeee36e2b503
+      body: |
+        Add titles to remove confusion in the device tags API docs section
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Jonathan Berger
+      nested: []
+  version: 18.2.1
+  title: ""
+  date: 2026-07-02T16:03:57.956Z
+- commits:
     - subject: Rename the supervisor service to core on the commposition
       hash: 2c6627b369f43fffdd56eedd20c7f3a88b6720a6
       body: |
