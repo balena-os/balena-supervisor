@@ -17,6 +17,7 @@ import {
 import * as LogTypes from '../lib/log-types';
 import * as logger from '../logging';
 import { ImageDownloadBackoffError } from './errors';
+import { isSupervisor } from '../lib/supervisor-metadata';
 
 import type { Service } from './service';
 import { strict as assert } from 'assert';
@@ -407,10 +408,12 @@ export async function cleanImageData(): Promise<void> {
 				// Ignore errors
 			}
 
-			// If the image is in the DB but not available in docker, return it
-			// for removal on the database
+			// If the image is in the DB but not available in docker, or the image belongs to
+			// the supervisor itself, return it for removal on the database
 			return supervisedImages.filter(
-				(image) => !isAvailableInDocker(image, dockerImages),
+				(image) =>
+					!isAvailableInDocker(image, dockerImages) ||
+					isSupervisor(image.appUuid, image.serviceName),
 			);
 		},
 	);
