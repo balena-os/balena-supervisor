@@ -1177,6 +1177,8 @@ Response:
 
 #### Device tags
 
+##### Fetch tags
+
 > **Introduced in supervisor v9.11**
 
 Retrieve any device tags from the balena API. Note that this endpoint will not work when
@@ -1200,6 +1202,8 @@ Response:
 	]
 }
 ```
+
+##### Set tags
 
 > **Introduced in supervisor v17.8**
 
