@@ -1,4 +1,36 @@
 - commits:
+    - subject: Clean up supervisor images in the database
+      hash: 4b7d733e4c4d0c78284c4090bb10ec82e4ba2df5
+      body: |
+        On supervisor v18.2.0, we renamed the supervisor service to `core` in
+        the [supervisor
+        composition](https://github.com/balena-os/balena-supervisor/blob/v18.2.0/docker-compose.yml). That change also updated the [isSupervisor](https://github.com/balena-os/balena-supervisor/blob/v18.2.0/src/lib/supervisor-metadata.ts#L34) filter in the supervisor-metadata module.
+
+        The problem is that when updating to v18.2.0, the following race
+        condition may happen
+
+        - The device is on v17.8.5, and the user updates the supervisor on the dashboard to v18.2.0. The target state changes
+        - Before the update-balena-supervisor script can run, supervisor v17.8.5,
+          sees the new `core` service which it not part of its filter list and
+          creates the service and image on the database.
+        - Eventually supervisor v18.2.0 runs, it knows to filter `core` and tries
+          to remove the image, but its using the image itself, so it gets stuck
+          in a loop trying to remove the image and failing.
+
+        This adds a `isSupervisor` check to the initial application manager
+        image cleanup to avoid the issue happening altogether.
+
+        If a customer is stuck in the delete loop, updating to this supervisor
+        should fix it.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 18.2.2
+  title: ""
+  date: 2026-07-06T19:00:57.589Z
+- commits:
     - subject: Clarify documentation on device tags API
       hash: 29b23c9f867f2ef2b50f70966e97eeee36e2b503
       body: |
