@@ -1,4 +1,40 @@
 - commits:
+    - subject: Allow to configure logging per service with `BALENA_LOGS_LEVEL` env var
+      hash: ea87039b9c4b16e87c76e8a49632755dec9f71ea
+      body: |
+        Services `core-next` and `service-relay` are configured by default
+        with `BALENA_LOGS_LEVEL: error`.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Add `core-next` and `service-relay` services to composition.
+      hash: cedf0c6dc29938ba8fa4c9749ae835ab1ea2560d
+      body: |
+        These services enable async host OS updates. When the release is
+        installed, the `core-next` takes over the running supervisor and
+        intercepts all communications between the supervisor and the API and
+        other services, allowing the progressive take over of new supervisor
+        features.
+      footer:
+        Change-type: major
+        change-type: major
+      author: Felipe Lalanne
+      nested: []
+    - subject: Remove the uninstall of helios overrides
+      hash: a7ed71f58d69c14f455c5f320dd7e28c85e6485d
+      body: |
+        This reverts commit e5c66d90586f127fee9713445dcc9aa868131c57.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 19.0.0
+  title: ""
+  date: 2026-07-20T14:22:35.878Z
+- commits:
     - subject: Clean up supervisor images in the database
       hash: 4b7d733e4c4d0c78284c4090bb10ec82e4ba2df5
       body: |
