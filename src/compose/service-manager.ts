@@ -372,7 +372,7 @@ export async function start(service: Service) {
 			);
 		}
 
-		logger.attach(container.id, { serviceId });
+		logger.attach(container.id, { serviceId, logLevel: service.logLevel() });
 
 		if (!alreadyStarted) {
 			logger.logSystemEvent(LogTypes.startServiceSuccess, { service });
@@ -433,8 +433,10 @@ export function listenToEvents() {
 										`serviceId not defined for service: ${service.serviceName} in ServiceManager.listenToEvents`,
 									);
 								}
+
 								logger.attach(data.id, {
 									serviceId,
+									logLevel: service.logLevel(),
 								});
 							} else if (status === 'destroy') {
 								logMonitor.detach(data.id);
@@ -489,8 +491,10 @@ export async function attachToRunning() {
 					`containerId not defined for service: ${service.serviceName} in ServiceManager.attachToRunning`,
 				);
 			}
+
 			logger.attach(service.containerId, {
 				serviceId,
+				logLevel: service.logLevel(),
 			});
 		}
 	}
