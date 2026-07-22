@@ -18,6 +18,9 @@ const SUPERVISOR_APPS: { [arch: string]: string } = {
 	rpi: '6822565f766e413e96d9bebe2227cdcc',
 };
 
+export const isSupervisorApp = (appUuid: string) =>
+	Object.values(SUPERVISOR_APPS).includes(appUuid);
+
 /**
  * Check if the supervisor in the target state belongs to the known
  * supervisors
@@ -28,7 +31,5 @@ const SUPERVISOR_APPS: { [arch: string]: string } = {
  * TODO: remove this once the supervisor knows how to update itself
  */
 export const isSupervisor = (appUuid: string, svcName: string) => {
-	return Object.values(SUPERVISOR_APPS).some(
-		(uuid) => appUuid === uuid && SUPERVISOR_SVC_NAMES.includes(svcName),
-	);
+	return isSupervisorApp(appUuid) && SUPERVISOR_SVC_NAMES.includes(svcName);
 };

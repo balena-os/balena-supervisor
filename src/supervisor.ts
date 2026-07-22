@@ -18,6 +18,8 @@ import * as avahi from './lib/avahi';
 import * as firewall from './lib/firewall';
 import * as constants from './lib/constants';
 import * as uname from './lib/uname';
+import * as servicesManager from './compose/service-manager';
+import * as supervisorMetadata from './lib/supervisor-metadata';
 
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
@@ -32,6 +34,51 @@ const startupConfigFields: config.ConfigKey[] = [
 	'legacyAppsPresent',
 ];
 
+async function recoverFromOrphanedApiEndpointOverride() {
+	const { apiEndpointOverride, listenPort, listenPortOverride } =
+		await config.getMany([
+			'apiEndpointOverride',
+			'listenPort',
+			'listenPortOverride',
+		]);
+
+	// Helios takeover moves the legacy API to listenPortOverride and proxies the
+	// original loopback endpoint through the service-relay sidecar. Preserve all
+	// other endpoint overrides, as they may be deliberately configured proxies.
+	if (
+		listenPortOverride == null ||
+		apiEndpointOverride !== `http://127.0.0.1:${listenPort}`
+	) {
+		return;
+	}
+
+	let relayRunning: boolean;
+	try {
+		relayRunning = (
+			await servicesManager.getAll('service-name=service-relay')
+		).some(
+			(service) =>
+				service.appUuid != null &&
+				supervisorMetadata.isSupervisorApp(service.appUuid) &&
+				service.status === 'Running',
+		);
+	} catch (error) {
+		log.warn(
+			'Could not determine service-relay status; preserving API endpoint override',
+			error,
+		);
+		return;
+	}
+	if (relayRunning) {
+		return;
+	}
+
+	log.warn(
+		'Removing API endpoint override because service-relay is not running',
+	);
+	await db.models('config').where({ key: 'apiEndpointOverride' }).delete();
+}
+
 export class Supervisor {
 	private api: SupervisorAPI;
 
@@ -40,6 +87,7 @@ export class Supervisor {
 
 		await db.initialized();
 		await config.initialized();
+		await recoverFromOrphanedApiEndpointOverride();
 		await avahi.initialized();
 		log.debug('Starting logging infrastructure');
 		await logger.initialized();
