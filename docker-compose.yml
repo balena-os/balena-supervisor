@@ -70,8 +70,8 @@ services:
     volumes:
       - runtime:/tmp/run
     environment:
-      # Only send error logs to dashboard
-      - BALENA_LOGS_LEVEL=error
+      # Socat errors are not really useful, don't send them to the dashboard
+      - BALENA_LOGS_LEVEL=none
     healthcheck:
       test: ['CMD', 'wget', '-O', '-', '-q', 'http://127.0.0.1:48484/ping']
 
