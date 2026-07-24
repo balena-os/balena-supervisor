@@ -23,7 +23,7 @@ services:
   # for calls between the existing supervisor and the balenaAPI and containers
   core-next:
     <<: *helios-image
-    restart: on-failure
+    restart: always
     # required to distinguish between stderr/stdout, the supervisor defaults to true
     tty: false
     labels:
