@@ -40,9 +40,9 @@ services:
       io.balena.features.host-os.board-rev: '1'
     environment:
       - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket
-      # Needed for locks and balenahup. This needs to match the device
+      # Needed for locks and balenahup. This needs to match the path
       # used for the `runtime` volume
-      - BALENA_HOST_RUNTIME_DIR=/tmp/balena-supervisor
+      - BALENA_HOST_RUNTIME_DIR=/tmp
       # Only send error logs to dashboard
       - BALENA_LOGS_LEVEL=error
     volumes:
@@ -91,5 +91,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      # XXX: this directory needs to exist on the host before the container is started
-      device: /tmp/balena-supervisor
+      device: /tmp
