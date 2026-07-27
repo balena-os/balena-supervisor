@@ -1,4 +1,22 @@
 - commits:
+    - subject: Update helios to v0.25.24
+      hash: 512b2f439613f4ac3ba0a71aca6b626cb2f8842b
+      body: |
+        Includes:
+        * Improve storage of published ports
+        * Support for additional compose properties
+        * Reduce log level for local API 5xx responses
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Ken Bannister <kb2ma@runbox.com>
+        signed-off-by: Ken Bannister <kb2ma@runbox.com>
+      author: Ken Bannister
+      nested: []
+  version: 19.0.1
+  title: ""
+  date: 2026-07-27T21:22:03.354Z
+- commits:
     - subject: Allow to configure logging per service with `BALENA_LOGS_LEVEL` env var
       hash: ea87039b9c4b16e87c76e8a49632755dec9f71ea
       body: |
