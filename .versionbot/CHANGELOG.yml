@@ -1,4 +1,38 @@
 - commits:
+    - subject: Set core-next restart policy to always
+      hash: 57aeafd14a02fb9d3db7c0fc6cd9119bf54145a6
+      body: |
+        Without the service the supervisor is rendered useless so it should
+        always restart.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Do not send socat logs to the API
+      hash: 59f9470b2c64734a1f9e60eef6220bc8896a09ff
+      body: |
+        They are not really useful. If helios crashes the core-next error
+        logs should tell us why
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Update helios to 0.25.26
+      hash: 5f2f9290b1c85daa8235545e0e432bfa6cb6ef61
+      body: >
+        This brings several takeover process improvements from
+        balena-io/helios#144
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 19.0.2
+  title: ""
+  date: 2026-07-29T20:52:43.923Z
+- commits:
     - subject: Update helios to v0.25.24
       hash: 512b2f439613f4ac3ba0a71aca6b626cb2f8842b
       body: |
