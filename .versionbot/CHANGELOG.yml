@@ -1,4 +1,26 @@
 - commits:
+    - subject: Use `/tmp` as host runtime dir
+      hash: 58f6b5ec826ec26a18185e938ee0aa6368828b6b
+      body: |
+        The path used as the directory for the `local` volume driver needs to
+        exist before creating the container. On reboot, if helios starts before
+        the supervisor, the `/tmp/balena-supervisor` path won't exist resulting
+        in the container failing to start before setting the restart policy and
+        will never be started again.
+
+        This makes `/tmp` the host runtime directory, preventing the issue. Note
+        that this also means that some paths that lived under
+        `/tmp/balena-supervisor` now will be created under `/tmp`, e.g.
+        `/tmp/helios.sock`, `/tmp/balenahup`
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 19.0.3
+  title: ""
+  date: 2026-07-30T22:41:29.376Z
+- commits:
     - subject: Set core-next restart policy to always
       hash: 57aeafd14a02fb9d3db7c0fc6cd9119bf54145a6
       body: |
