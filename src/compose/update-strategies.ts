@@ -76,7 +76,14 @@ export function getStepsFromStrategy(
 						abortSignal: context.abortSignal,
 					}),
 				];
-			} else if (context.needsSpecialKill && context.dependenciesMetForKill) {
+			} else if (
+				(context.needsSpecialKill || context.target == null) &&
+				context.dependenciesMetForKill
+			) {
+				// A missing target means the current container has no service to
+				// hand over to. This happens when the service is being removed, or
+				// when a previous handover was interrupted and left a spurious
+				// container behind.
 				return generateLockThenKillStep(
 					context.current,
 					context.services,
