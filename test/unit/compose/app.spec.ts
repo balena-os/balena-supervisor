@@ -1145,6 +1145,164 @@ describe('compose/app', () => {
 				.to.deep.include({ serviceName: 'aux' });
 		});
 
+		it('should kill the leftover container of an interrupted hand-over', async () => {
+			// A hand-over starts the incoming container alongside the outgoing one
+			// and only then kills the outgoing one. If the Supervisor is interrupted
+			// before the outgoing container is killed, the next state application
+			// loop sees two containers for the same service. The newest container is
+			// kept as the survivor and the outgoing (older) container must be killed
+			// for the state to settle, rather than looping on a noop forever.
+			const handoverLabels = { 'io.balena.update.strategy': 'hand-over' };
+
+			const current = createApp({
+				services: [
+					await createService(
+						{
+							image: 'main-image',
+							appId: 1,
+							serviceName: 'main',
+							commit: 'old-release',
+							labels: handoverLabels,
+						},
+						{
+							// Leftover outgoing container, older than the survivor
+							state: {
+								createdAt: new Date(Date.now() - 60 * 1000),
+							},
+						},
+					),
+					await createService(
+						{
+							image: 'main-image-2',
+							appId: 1,
+							serviceName: 'main',
+							commit: 'new-release',
+							labels: handoverLabels,
+						},
+						{
+							state: {
+								createdAt: new Date(),
+							},
+						},
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services: [
+					await createService({
+						image: 'main-image-2',
+						appId: 1,
+						serviceName: 'main',
+						commit: 'new-release',
+						labels: handoverLabels,
+					}),
+				],
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+
+			const availableImages = [
+				createImage({
+					appId: 1,
+					name: 'main-image-2',
+					serviceName: 'main',
+					commit: 'new-release',
+				}),
+			];
+
+			// Only the outgoing (old-release) container should be killed, not the
+			// survivor, so that the state can settle.
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, availableImages, lock: mockLock },
+				target,
+			);
+			const [killStep] = expectSteps('kill', steps);
+			expect(killStep)
+				.to.have.property('current')
+				.to.deep.include({ serviceName: 'main', commit: 'old-release' });
+			expectNoStep('noop', steps);
+			expectNoStep('handover', steps);
+		});
+
+		it('should kill the leftover container of an interrupted hand-over for service reconfiguration', async () => {
+			const handoverLabels = { 'io.balena.update.strategy': 'hand-over' };
+
+			const current = createApp({
+				services: [
+					await createService(
+						{
+							image: 'main-image',
+							appId: 1,
+							serviceName: 'main',
+							commit: 'new-release',
+							labels: handoverLabels,
+						},
+						{
+							// Leftover outgoing container, older than the survivor
+							state: {
+								createdAt: new Date(Date.now() - 60 * 1000),
+								containerId: 'abc',
+							},
+						},
+					),
+					await createService(
+						{
+							image: 'main-image',
+							appId: 1,
+							serviceName: 'main',
+							commit: 'new-release',
+							labels: handoverLabels,
+						},
+						{
+							state: {
+								createdAt: new Date(),
+								containerId: 'def',
+							},
+						},
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services: [
+					await createService({
+						image: 'main-image',
+						appId: 1,
+						serviceName: 'main',
+						commit: 'new-release',
+						labels: handoverLabels,
+					}),
+				],
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+
+			const availableImages = [
+				createImage({
+					appId: 1,
+					name: 'main-image',
+					serviceName: 'main',
+					commit: 'new-release',
+				}),
+			];
+
+			// Only the outgoing container should be killed, not the
+			// survivor, so that the state can settle.
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, availableImages, lock: mockLock },
+				target,
+			);
+			const [killStep] = expectSteps('kill', steps);
+			expect(killStep).to.have.property('current').to.deep.include({
+				serviceName: 'main',
+				commit: 'new-release',
+				containerId: 'abc',
+			});
+			expectNoStep('noop', steps);
+			expectNoStep('handover', steps);
+		});
+
 		it('should emit a noop when a service which is no longer referenced is already stopping', async () => {
 			const current = createApp({
 				services: [
