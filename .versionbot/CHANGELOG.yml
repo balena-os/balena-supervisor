@@ -1,4 +1,32 @@
 - commits:
+    - subject: Add kill step for handover services without target
+      hash: c4309a06144c49592447d538081bec502610d6b3
+      body: |
+        This makes sure a leftover container from a handover gets removed
+        instead of causing the supervisor to get stuck in a `noop` loop
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Write regression test for interrupted handover issue
+      hash: 47efdbd5dfae0163ece6e804d962916d1abe090e
+      body: |
+        A handover interrupted by a supervisor restart results in the supervisor
+        getting stuck in a `noop` loop after the restart. This is due to the
+        supervisor seeing both the old and new handover containers as part of
+        the current state and not being able to tell which one to kill
+
+        This commit adds a test for this bug
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 19.0.4
+  title: ""
+  date: 2026-07-31T22:59:58.550Z
+- commits:
     - subject: Use `/tmp` as host runtime dir
       hash: 58f6b5ec826ec26a18185e938ee0aa6368828b6b
       body: |
