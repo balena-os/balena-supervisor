@@ -488,4 +488,51 @@ describe('compose/images', () => {
 			{ images },
 		);
 	});
+
+	it('updates the existing db row instead of inserting a duplicate when a rebuild changes the dockerImageId', async () => {
+		const name = 'markassupervised-test:latest';
+		const image = createDBImage({
+			name,
+			appUuid: 'deadbeefdeadbeefdeadbeefdeadbeef',
+			serviceName: 'test',
+			commit: '10ca12e1ea5e',
+		});
+
+		const firstId = await createDockerImage(
+			name,
+			['io.balena.testing=1'],
+			docker,
+		);
+		await imageManager.save(image);
+
+		let rows = await db
+			.models('image')
+			.where({ name, serviceName: 'test' })
+			.select();
+		expect(rows).to.have.lengthOf(1);
+		expect(rows[0].dockerImageId).to.equal(firstId);
+
+		// Simulate a rebuild: same name/service/commit, different content so a
+		// different dockerImageId gets tagged under the same name.
+		const secondId = await createDockerImage(
+			name,
+			['io.balena.testing=1', 'io.balena.testing2=1'],
+			docker,
+		);
+		expect(secondId).to.not.equal(firstId);
+
+		await imageManager.save(image);
+
+		rows = await db
+			.models('image')
+			.where({ name, serviceName: 'test' })
+			.select();
+		expect(
+			rows,
+			'the rebuild should update the row in place, not add a second one',
+		).to.have.lengthOf(1);
+		expect(rows[0].dockerImageId).to.equal(secondId);
+
+		await docker.getImage(name).remove({ force: true });
+	});
 });
