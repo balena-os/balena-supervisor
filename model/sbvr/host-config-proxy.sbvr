@@ -1,0 +1,38 @@
+-- HOST CONFIG PROXY
+-- These don't need to be a database types (the SV rewrites redsocks.conf under the hood) but not sure how to express that
+-- Eventually these fields could be in target state, but we're commenting them now for the hello world example
+
+Term: proxy type
+	Concept Type: Short Text (Type)
+    Definition: "socks4" or "socks5" or "http-connect" or "http-relay"
+
+Term: login
+    Concept Type: Short Text (Type)
+
+Term: password  
+    Concept Type: Hashed (Type)
+    -- SV doesn't implement hashing currently and it may not be necessary
+
+Term: no proxy
+	Synonym: ignore list
+	Fact type: no proxy has ip address
+
+Term: proxy
+
+	Fact type: proxy has proxy type
+		Necessity: each proxy has exactly one proxy type.
+
+	Fact type: proxy has login
+		Necessity: each proxy has at most one login.
+
+	Fact type: proxy has password
+		Necessity: each proxy has at most one password.
+
+	Fact type: proxy has ip address
+		Necessity: each proxy has exactly one ip address.
+
+	Fact type: proxy has port
+		Necessity: each proxy has exactly one port.
+
+	Fact type: proxy has no proxy
+		Necessity: each proxy has at most one no proxy.
