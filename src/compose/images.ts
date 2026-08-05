@@ -573,12 +573,14 @@ const inspectByDigest = async (imageName: string) => {
 		.models('image')
 		.where('name', 'like', `%${digest}`)
 		.orWhere({ name: imageName }) // Default to looking for the full image name
+		// markAsSupervised should now keep this to a single row per image, but
+		// order by the most recently written row as a fallback for any
+		// pre-existing duplicates left over from before that fix.
+		.orderBy('id', 'desc')
 		.select();
 
 	for (const img of images) {
 		if (img.dockerImageId != null) {
-			// Assume that all db entries will point to the same dockerImageId, so use
-			// the first one. If this assumption is false, there is a bug with cleanup
 			return await docker.getImage(img.dockerImageId).inspect();
 		}
 	}
@@ -735,9 +737,21 @@ async function markAsSupervised(image: Image): Promise<void> {
 	await db.upsertModel(
 		'image',
 		formattedImage,
-		// TODO: Upsert to new values only when they already match? This is likely a bug
-		// and currently acts like an "insert if not exists"
-		formattedImage,
+		// Match on the fields that identify "the same declared image for this
+		// service" rather than the full row. Matching on the full row meant that
+		// any change to the remaining metadata - notably the positional
+		// serviceId/imageId, which shift for every service after one is added to
+		// or removed from a composition - could never find the row it was meant
+		// to update, so a new row was inserted alongside the old one. That left
+		// stale rows behind indefinitely, and a later lookup (e.g.
+		// inspectByDigest) could resolve back to one of them instead of the
+		// current image. See balena-os/balena-supervisor#2538.
+		{
+			name: formattedImage.name,
+			appUuid: formattedImage.appUuid,
+			serviceName: formattedImage.serviceName,
+			commit: formattedImage.commit,
+		},
 	);
 }
 
