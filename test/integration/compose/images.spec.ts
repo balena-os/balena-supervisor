@@ -535,4 +535,58 @@ describe('compose/images', () => {
 
 		await docker.getImage(name).remove({ force: true });
 	});
+
+	it('updates the existing db row instead of inserting a duplicate when positional service ids shift', async () => {
+		// This mirrors the real-world trigger reported in #2538. In local mode the
+		// CLI derives serviceId/imageId from the position of each service in the
+		// composition, so adding or removing a service shifts those ids for every
+		// service after it. That difference is what makes application-manager
+		// emit a saveImage step in the first place, and previously it also meant
+		// the upsert could not find the row it was meant to update.
+		const name = 'serviceid-shift-test:latest';
+		const base = {
+			name,
+			appUuid: 'deadbeefdeadbeefdeadbeefdeadbeef',
+			serviceName: 'test',
+			commit: '10ca12e1ea5e',
+		};
+
+		const dockerImageId = await createDockerImage(
+			name,
+			['io.balena.testing=1'],
+			docker,
+		);
+
+		// First push: this service sits at position 2 in the composition
+		await imageManager.save(
+			createDBImage({ ...base, serviceId: 2, imageId: 2 }),
+		);
+
+		let rows = await db
+			.models('image')
+			.where({ name, serviceName: 'test' })
+			.select();
+		expect(rows).to.have.lengthOf(1);
+		expect(rows[0].serviceId).to.equal(2);
+
+		// Second push: a service was added ahead of this one, shifting it to
+		// position 3. The image content - and so the dockerImageId - is unchanged.
+		await imageManager.save(
+			createDBImage({ ...base, serviceId: 3, imageId: 3 }),
+		);
+
+		rows = await db
+			.models('image')
+			.where({ name, serviceName: 'test' })
+			.select();
+		expect(
+			rows,
+			'an id shift should update the row in place, not add a second one',
+		).to.have.lengthOf(1);
+		expect(rows[0].serviceId).to.equal(3);
+		expect(rows[0].imageId).to.equal(3);
+		expect(rows[0].dockerImageId).to.equal(dockerImageId);
+
+		await docker.getImage(name).remove({ force: true });
+	});
 });

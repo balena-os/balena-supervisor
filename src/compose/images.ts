@@ -738,13 +738,14 @@ async function markAsSupervised(image: Image): Promise<void> {
 		'image',
 		formattedImage,
 		// Match on the fields that identify "the same declared image for this
-		// service" rather than the full row. Matching on the full row (which
-		// includes dockerImageId) meant a rebuild that only changed the built
-		// content - same name/service/commit, new dockerImageId - could never
-		// find the row it should update, and every rebuild inserted a new row
-		// instead. That left stale rows behind indefinitely, and a later lookup
-		// (e.g. inspectByDigest) could resolve back to one of them instead of
-		// the current image. See balena-os/balena-supervisor#2538.
+		// service" rather than the full row. Matching on the full row meant that
+		// any change to the remaining metadata - notably the positional
+		// serviceId/imageId, which shift for every service after one is added to
+		// or removed from a composition - could never find the row it was meant
+		// to update, so a new row was inserted alongside the old one. That left
+		// stale rows behind indefinitely, and a later lookup (e.g.
+		// inspectByDigest) could resolve back to one of them instead of the
+		// current image. See balena-os/balena-supervisor#2538.
 		{
 			name: formattedImage.name,
 			appUuid: formattedImage.appUuid,
