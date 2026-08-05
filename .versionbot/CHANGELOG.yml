@@ -1,4 +1,20 @@
 - commits:
+    - subject: Update helios to v0.25.28
+      hash: dd1dd9434064f225b652c67d4316b0db0c3a7411
+      body: |
+        The changes in balena-io/helios#149 cleanup the takeover breadcrumb in
+        case of a failed takeover check to avoid unnecessary restarts.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Relates-to: balena-io/helios#149
+        relates-to: balena-io/helios#149
+      author: Felipe Lalanne
+      nested: []
+  version: 19.0.5
+  title: ""
+  date: 2026-08-05T00:52:07.704Z
+- commits:
     - subject: Add kill step for handover services without target
       hash: c4309a06144c49592447d538081bec502610d6b3
       body: |
