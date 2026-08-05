@@ -77,6 +77,22 @@ fi
 # not a problem.
 modprobe ip6_tables || true
 
+# Derive SUPERVISOR_IMAGE from the resolved balena arch unless one
+# was provided externally (e.g. tests).
+if [ -z "${SUPERVISOR_IMAGE}" ] && [ -r /balena-arch ]; then
+	export SUPERVISOR_IMAGE="balena/$(cat /balena-arch)-supervisor"
+fi
+
+# QEMU_CPU=arm1176 forces faithful Pi Zero CPU emulation when this image
+# runs under QEMU user-mode (e.g. CI on x86_64). On real Pi Zero hardware
+# QEMU isn't in the loop and this var is ignored. Without it, QEMU defaults
+# to a Cortex-A15-class CPU and exposes ARMv7+ features through HWCAP,
+# masking V8 codegen bugs that only fire on real ARMv6 silicon.
+case "$(cat /balena-arch)" in
+	rpi)     export QEMU_CPU=arm1176 ;;   # Pi Zero / Pi 1: ARM1176JZF-S
+	armv7hf) export QEMU_CPU=cortex-a7 ;; # Pi 2: Cortex-A7
+esac
+
 if [ "${LIVEPUSH}" = "1" ]; then
 	exec npx nodemon --watch src --watch typings --ignore tests -e js,ts,json \
 		--exec node -r ts-node/register/transpile-only src/app.ts
