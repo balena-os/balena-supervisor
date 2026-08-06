@@ -325,5 +325,31 @@ describe('compose/volume-manager', () => {
 				docker.getVolume('other-volume').remove(),
 			]);
 		});
+
+		it('keeps overlay extension volumes that have no container references', async () => {
+			await Promise.all([
+				docker.createVolume({
+					Name: 'some-volume',
+				}),
+				docker.createVolume({
+					Name: 'ext_kernel-modules_417a6887f4b0_boot',
+					Labels: {
+						'io.balena.image.class': 'overlay',
+					},
+				}),
+			]);
+
+			await expect(volumeManager.removeOrphanedVolumes([])).to.not.be.rejected;
+
+			await expect(
+				docker.getVolume('ext_kernel-modules_417a6887f4b0_boot').inspect(),
+			).to.not.be.rejected;
+
+			// Asserting the unowned volume went confirms the sweep actually ran
+			await expect(docker.getVolume('some-volume').inspect()).to.be.rejected;
+
+			// Cleanup
+			await docker.getVolume('ext_kernel-modules_417a6887f4b0_boot').remove();
+		});
 	});
 });
