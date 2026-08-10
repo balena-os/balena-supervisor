@@ -1,4 +1,18 @@
 - commits:
+    - subject: fix documentation GET host-config json
+      hash: 688a3661dd2eedecc338cd064ee7fac59cccd55b
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Yann CARDAILLAC <yann.cardaillac@balena.io>
+        signed-off-by: Yann CARDAILLAC <yann.cardaillac@balena.io>
+      author: Yann CARDAILLAC
+      nested: []
+  version: 19.0.7
+  title: ""
+  date: 2026-08-10T21:55:13.231Z
+- commits:
     - subject: Update debian docker image dependency to stable-slim
       hash: 3bfa5479a14bd9060833b7603de48b61e4bd60ce
       body: |
