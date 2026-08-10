@@ -1,4 +1,18 @@
 - commits:
+    - subject: Update debian docker image dependency to stable-slim
+      hash: 3bfa5479a14bd9060833b7603de48b61e4bd60ce
+      body: |
+        For some reason `bookwork-slim` is no longer generating linux/arm/v5
+        images which is causing supervisor releases to fail to build
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 19.0.6
+  title: ""
+  date: 2026-08-10T21:04:24.053Z
+- commits:
     - subject: Update helios to v0.25.28
       hash: dd1dd9434064f225b652c67d4316b0db0c3a7411
       body: |
