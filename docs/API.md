@@ -638,10 +638,10 @@ Response:
 		"proxy":{
 			"ip":"192.168.0.199",
 			"port":"8123",
-			"type":"socks5"
+			"type":"socks5",
+			"dns": "1.1.1.1:53"
 		},
-		"hostname":"27b0fdc",
-		"dns": "1.1.1.1:53"
+		"hostname":"27b0fdc"
 	}
 }
 ```
