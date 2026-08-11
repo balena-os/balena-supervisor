@@ -1,4 +1,52 @@
 - commits:
+    - subject: "compose: do not sweep overlay extension volumes"
+      hash: 7bd5dd8c23656d0b7fb91c2fa07df96ce30329e4
+      body: >
+        When a user calls /v2/cleanup-volumes it may cleanup extension
+
+        volumes that are used for kernel overrides and may be needed
+
+        for rollbacks. It does not respect update locks either.
+
+
+        Overlay extension volumes are owned by the OS and are deliberately left
+
+        container-less between an overlay being superseded and the OS reaping
+        them at the HUP commit
+
+        boundary, because that is the state a rollback needs to find them in.
+
+
+        This commit skips volumes labelled io.balena.image.class=overlay,
+
+        matching the ownership check the OS sweep already applies.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+      nested: []
+    - subject: "compose: only treat appId-prefixed volumes as supervisor-managed"
+      hash: 1cafb942a4f7793d4ab18565144d568753fd9a7b
+      body: >
+        The supervisor infers volume ownership solely from the docker name, so
+        that
+
+        check must be exact. Right now extension managed volumes are incorrectly
+
+        identified as supervisor managed.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+      nested: []
+  version: 19.0.8
+  title: ""
+  date: 2026-08-11T14:25:01.721Z
+- commits:
     - subject: fix documentation GET host-config json
       hash: 688a3661dd2eedecc338cd064ee7fac59cccd55b
       body: ""
