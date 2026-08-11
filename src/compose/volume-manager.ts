@@ -128,7 +128,9 @@ export async function removeOrphanedVolumes(
 		.map((m) => m.Name!)
 		.uniq()
 		.value();
-	const volumeNames = (dockerVolumes.Volumes ?? []).map((v) => v.Name);
+	const volumeNames = (dockerVolumes.Volumes ?? [])
+		.filter((v) => v.Labels?.['io.balena.image.class'] !== 'overlay')
+		.map((v) => v.Name);
 
 	const volumesToRemove = _.difference(
 		volumeNames,
