@@ -775,11 +775,27 @@ function saveAndRemoveImages(
 
 			// The image is not on the database but we know it exists on the
 			// engine because we could find it through inspectByName
-			const isAvailableOnTheEngine = !!targetImageDockerIds[targetImage.name];
+			const engineDockerImageId = targetImageDockerIds[targetImage.name];
+			const isAvailableOnTheEngine = !!engineDockerImageId;
+
+			// The stored Docker ID can become stale in the database when rebuilt under the same
+			// name (e.g. local mode push), causing the stale image to be used for recreation.
+			// See balena-os/balena-supervisor#2538.
+			const isStaleInDb =
+				isAvailableOnTheEngine &&
+				availableImages.some(
+					(availableImage) =>
+						availableImage.name === targetImage.name &&
+						availableImage.appUuid === targetImage.appUuid &&
+						availableImage.serviceName === targetImage.serviceName &&
+						availableImage.commit === targetImage.commit &&
+						availableImage.dockerImageId !== engineDockerImageId,
+				);
 
 			return (
 				(isActuallyAvailable && isNotSaved) ||
-				(!isActuallyAvailable && isAvailableOnTheEngine)
+				(!isActuallyAvailable && isAvailableOnTheEngine) ||
+				isStaleInDb
 			);
 		},
 	);

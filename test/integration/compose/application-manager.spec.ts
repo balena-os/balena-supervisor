@@ -1739,6 +1739,52 @@ describe('compose/application-manager', () => {
 			.that.deep.includes({ name: 'main-image' });
 	});
 
+	it('should infer that an image should be saved if the stored docker id no longer matches the engine', async () => {
+		const targetService = await createService(
+			{ image: 'main-image' },
+			// The image name now resolves to a new id on the engine, as happens
+			// when a service is rebuilt under the same name by a local mode push
+			{ options: { imageInfo: { Id: 'sha256:new' } } },
+		);
+		const targetApps = createApps(
+			{
+				services: [targetService],
+				networks: [DEFAULT_NETWORK],
+			},
+			true,
+		);
+		const { currentApps, availableImages, downloading, containerIdsByAppId } =
+			createCurrentState({
+				services: [],
+				networks: [DEFAULT_NETWORK],
+				// The database has the image under the same name and with identical
+				// metadata, so nothing else marks it as needing a save, but it still
+				// points at the superseded id
+				images: [
+					{
+						...imageManager.imageFromService(targetService),
+						dockerImageId: 'sha256:old',
+					},
+				],
+			});
+
+		const steps = await applicationManager.inferNextSteps(
+			currentApps,
+			targetApps,
+			{
+				downloading,
+				availableImages,
+				containerIdsByAppId,
+				abortSignal: new AbortController().signal,
+			},
+		);
+
+		const [saveImageStep] = expectSteps('saveImage', steps);
+		expect(saveImageStep)
+			.to.have.property('image')
+			.that.deep.includes({ name: 'main-image' });
+	});
+
 	it('should not calculate steps for a rejected app', async () => {
 		const targetApps = createApps(
 			{
