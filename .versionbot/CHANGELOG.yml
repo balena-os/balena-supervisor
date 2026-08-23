@@ -1,4 +1,16 @@
 - commits:
+    - subject: Migrate Flowzone caller off pull_request_target
+      hash: 7f92059c72ab48fba547c718241b0a9a613a13ca
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+      nested: []
+  version: 19.0.9
+  title: ""
+  date: 2026-08-23T17:17:12.212Z
+- commits:
     - subject: "compose: do not sweep overlay extension volumes"
       hash: 7bd5dd8c23656d0b7fb91c2fa07df96ce30329e4
       body: >
