@@ -92,3 +92,16 @@ volumes:
       type: none
       o: bind
       device: /tmp
+
+networks:
+  # Use the 10.114.X range for the default network to minimize the probability
+  # of clashing with the local network environment
+  # TODO: this network should eventually replace the `supervisor0` network
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.114.105.0/25
+          gateway: 10.114.105.1
+
