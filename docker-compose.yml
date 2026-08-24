@@ -1,7 +1,7 @@
 version: '2.3'
 
 x-helios-image: &helios-image
-  image: ghcr.io/balena-io/helios:0.25.28
+  image: ghcr.io/balena-io/helios:build-75b588a3f4f55588d90d4439b5e4a77c1dd3f98d
 
 services:
   # This service can only be named `main`, `balena-supervisor` or `core`
