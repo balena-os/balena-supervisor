@@ -1,7 +1,18 @@
-version: '2.3'
+version: "2.3"
 
-x-helios-image: &helios-image
+# Common configuration for services using the helios image
+x-helios-service: &helios-service
   image: ghcr.io/balena-io/helios:0.26.3
+  restart: always
+  # required to distinguish between stderr/stdout, the supervisor defaults to true
+  tty: false
+  # helios services don't need write access to the container filesystem or any
+  # extra capabilities, all state is written to volumes
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
 
 services:
   # This service can only be named `main`, `balena-supervisor` or `core`
@@ -15,29 +26,26 @@ services:
     restart: always
     network_mode: host
     labels:
-      io.balena.features.balena-api: '1'
-      io.balena.features.dbus: '1'
-      io.balena.features.balena-socket: '1'
+      io.balena.features.balena-api: "1"
+      io.balena.features.dbus: "1"
+      io.balena.features.balena-socket: "1"
 
   # This is the next generation supervisor service. When started, it becomes a proxy
   # for calls between the existing supervisor and the balenaAPI and containers
   core-next:
-    <<: *helios-image
-    restart: always
-    # required to distinguish between stderr/stdout, the supervisor defaults to true
-    tty: false
+    <<: *helios-service
     labels:
       # Needed to get access to supervisor api variables
       # and credentials
-      io.balena.features.supervisor-api: '1'
+      io.balena.features.supervisor-api: "1"
       # Needed for access to DOCKER_HOST
-      io.balena.features.balena-socket: '1'
+      io.balena.features.balena-socket: "1"
       # Needed to stop the supervisor service
-      io.balena.features.dbus: '1'
+      io.balena.features.dbus: "1"
       # Needed to get access to the API credentials
-      io.balena.features.balena-api: '1'
+      io.balena.features.balena-api: "1"
       # Needed to get Host OS metadata
-      io.balena.features.host-os.board-rev: '1'
+      io.balena.features.host-os.board-rev: "1"
     environment:
       - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket
       # Needed for locks and balenahup. This needs to match the path
@@ -59,10 +67,8 @@ services:
   # The service below relays requests between tcp port 48484 and the socket exposed by
   # the core-next service
   service-relay:
-    <<: *helios-image
+    <<: *helios-service
     command: socat TCP-LISTEN:48484,reuseaddr,fork UNIX-CONNECT:/tmp/run/helios.sock
-    # required to distinguish between stderr/stdout, the supervisor defaults to true
-    tty: false
     ports:
       - 48484
     depends_on:
@@ -73,7 +79,7 @@ services:
       # Socat errors are not really useful, don't send them to the dashboard
       - BALENA_LOGS_LEVEL=none
     healthcheck:
-      test: ['CMD', 'wget', '-O', '-', '-q', 'http://127.0.0.1:48484/ping']
+      test: ["CMD", "wget", "-O", "-", "-q", "http://127.0.0.1:48484/ping"]
 
 volumes:
   config:
@@ -85,7 +91,7 @@ volumes:
     labels:
       # the cache version, can be bumped to force re-creation of the volume
       # on a new release
-      io.balena.private.version: '1'
+      io.balena.private.version: "1"
   runtime:
     driver: local
     driver_opts:
@@ -104,4 +110,3 @@ networks:
       config:
         - subnet: 10.114.105.0/25
           gateway: 10.114.105.1
-
