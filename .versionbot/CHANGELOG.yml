@@ -1,4 +1,21 @@
 - commits:
+    - subject: Use the 10.114.105.x subnet for supervisor services
+      hash: bb91c0b84aa40f20c286d690cceca0de81138bfd
+      body: |
+        Supervisor services were using the docker default 172.17.x range for
+        their network configuration. This could cause an issue if that range is
+        used for other devices on the same network. This moves to the `10.114.x`
+        subnet, mirroring what we do for the `supervisor0` network, which should
+        reduce the probability of clashing.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 19.0.10
+  title: ""
+  date: 2026-08-24T20:20:57.795Z
+- commits:
     - subject: Migrate Flowzone caller off pull_request_target
       hash: 7f92059c72ab48fba547c718241b0a9a613a13ca
       body: ""
