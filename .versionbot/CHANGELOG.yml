@@ -1,4 +1,19 @@
 - commits:
+    - subject: Revert "Migrate Flowzone caller off pull_request_target"
+      hash: 96a908dff3742b257e756ec24db5bfd5116726d5
+      body: |
+        This reverts commit 7f92059c72ab48fba547c718241b0a9a613a13ca. Some
+        additional configuration is needed, this change seems to be building
+        multiple balena releases for the supervisor on balenaCloud.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 19.0.11
+  title: ""
+  date: 2026-08-24T22:28:15.560Z
+- commits:
     - subject: Use the 10.114.105.x subnet for supervisor services
       hash: bb91c0b84aa40f20c286d690cceca0de81138bfd
       body: |
