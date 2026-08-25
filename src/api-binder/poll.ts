@@ -1,5 +1,4 @@
 import { EventEmitter } from 'events';
-import url from 'url';
 import { setTimeout } from 'timers/promises';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 import { Agent } from 'https';
@@ -11,6 +10,7 @@ import * as config from '../config';
 import { takeGlobalLockRWDisposer } from '../lib/process-lock';
 import * as constants from '../lib/constants';
 import log from '../lib/supervisor-console';
+import { resolveURL } from '../lib/api-helper';
 
 export class ApiResponseError extends Error {}
 
@@ -132,7 +132,7 @@ export const update = async (
 		);
 	}
 
-	const endpoint = url.resolve(
+	const endpoint = resolveURL(
 		apiEndpointOverride ?? apiEndpoint,
 		`/device/v3/${uuid}/state`,
 	);
@@ -150,6 +150,7 @@ export const update = async (
 			Authorization: `Bearer ${deviceApiKey}`,
 			'If-None-Match': cache?.etag,
 		},
+		enableUnixSockets: true,
 		timeout: {
 			// TODO: We use the same default timeout for all of these in order to have a timeout generally
 			// but it would probably make sense to tune them individually

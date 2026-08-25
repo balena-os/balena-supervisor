@@ -1,4 +1,3 @@
-import url from 'url';
 import type { CoreOptions } from 'request';
 import { performance } from 'perf_hooks';
 import { setTimeout } from 'timers/promises';
@@ -17,6 +16,7 @@ import { shallowDiff, prune, empty } from '../lib/json';
 import { pathOnRoot } from '../lib/host-utils';
 import { touch, writeAndSyncFile } from '../lib/fs-utils';
 import pTimeout from 'p-timeout';
+import { resolveURL } from '../lib/api-helper';
 
 let lastReport: DeviceState = {};
 let lastReportTime = -Infinity;
@@ -53,9 +53,9 @@ async function report({ body, opts }: StateReport) {
 		);
 	}
 
-	const endpoint = url.resolve(
+	const endpoint = resolveURL(
 		apiEndpointOverride ?? apiEndpoint,
-		`/device/v3/state`,
+		'/device/v3/state',
 	);
 	const request = await getRequestInstance();
 

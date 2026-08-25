@@ -17,6 +17,7 @@ import log from './supervisor-console';
 import memoizee from 'memoizee';
 import url from 'url';
 import type { BalenaModel } from 'balena-sdk';
+import { pathOnRoot } from './host-utils';
 
 export type KeyExchangeOpts = config.ConfigType<'provisioningOptions'>;
 
@@ -24,14 +25,15 @@ export const getBalenaApi = memoizee(
 	async () => {
 		await config.initialized();
 
-		const { apiEndpoint, apiEndpointOverride, currentApiKey } =
-			await config.getMany([
-				'apiEndpoint',
-				'apiEndpointOverride',
-				'currentApiKey',
-			]);
+		const { apiEndpoint, currentApiKey } = await config.getMany([
+			'apiEndpoint',
+			'currentApiKey',
+		]);
 
-		const baseUrl = url.resolve(apiEndpointOverride ?? apiEndpoint, '/v7/');
+		// we don't use the apiEndpointOverride here to avoid interfering with
+		// provisioning. Poll/report doesn't use the pine client, so there is no added
+		// benefit of overriding this URL too
+		const baseUrl = url.resolve(apiEndpoint, '/v7/');
 		const passthrough = structuredClone(await request.getRequestOptions());
 		passthrough.headers = passthrough.headers ?? {};
 		passthrough.headers.Authorization = `Bearer ${currentApiKey}`;
@@ -265,3 +267,19 @@ export const provision = async (
 		eventTracker.track('Device bootstrap success');
 	}
 };
+
+/**
+ * Resolve a URL with respect to an endpoint
+ *
+ * If using unix domain sockets, formats the URL/path with a path relative to the root path assuming http
+ */
+export function resolveURL(endpoint: string, path: string): string {
+	// if the URL starts with `/`, assume a unix domain socket
+	if (endpoint.startsWith('/')) {
+		const rootPath = pathOnRoot(endpoint);
+		// see https://github.com/sindresorhus/got/blob/v14.6.6/documentation/2-options.md#enableunixsockets
+		// see https://www.npmjs.com/package/request#unix-domain-sockets
+		return `http://unix:${rootPath}:${path}`;
+	}
+	return url.resolve(endpoint, path);
+}

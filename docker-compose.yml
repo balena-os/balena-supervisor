@@ -1,7 +1,7 @@
 version: '2.3'
 
 x-helios-image: &helios-image
-  image: ghcr.io/balena-io/helios:0.25.28
+  image: ghcr.io/balena-io/helios:0.26.3
 
 services:
   # This service can only be named `main`, `balena-supervisor` or `core`
@@ -85,7 +85,7 @@ volumes:
     labels:
       # the cache version, can be bumped to force re-creation of the volume
       # on a new release
-      io.balena.private.version: "0"
+      io.balena.private.version: '1'
   runtime:
     driver: local
     driver_opts:
