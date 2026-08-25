@@ -1,4 +1,33 @@
 - commits:
+    - subject: Update helios to v0.26.3
+      hash: 4cad3ee000aed4062e13dae06c560f399ca176f5
+      body: |
+        This version of helios now configures the supervisor to read directly
+        from the socket via the `helios-legacy-takeover` call.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Support unix sockets for api endpoint
+      hash: 2c92fcda42c0f0543dbba73c3f61b8855f9e5280
+      body: |
+        For the API poll/report, the code now checks if the given endpoint
+        points to a file and if so it configures the underlying request library
+        to communicate directly to the socket as if it was the API.
+
+        When used in a supervisor running alongside helios, this allows the
+        supervisor to communicate to the helios API directly via the socket,
+        rather than going through a relay service.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 19.1.0
+  title: ""
+  date: 2026-08-25T01:59:14.212Z
+- commits:
     - subject: Revert "Migrate Flowzone caller off pull_request_target"
       hash: 96a908dff3742b257e756ec24db5bfd5116726d5
       body: |
