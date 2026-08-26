@@ -1,4 +1,18 @@
 - commits:
+    - subject: Migrate Flowzone caller off pull_request_target
+      hash: 9a55a6cffe65dabeb10dde7dd47fa21e5a9db86a
+      body: |
+        Reapplies 7f92059c, reverted in 96a908df. The duplicate release issue
+        is fixed in flowzone 23.1.6.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+      nested: []
+  version: 19.1.2
+  title: ""
+  date: 2026-08-26T21:55:14.868Z
+- commits:
     - subject: Make the default network config-only for none networking too
       hash: a5e26a3fe7f7bc5b6802e72e49ddb6679a433750
       body: |
