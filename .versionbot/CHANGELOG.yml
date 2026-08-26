@@ -1,4 +1,22 @@
 - commits:
+    - subject: Make the default network config-only for none networking too
+      hash: a5e26a3fe7f7bc5b6802e72e49ddb6679a433750
+      body: |
+        The default network was only created as config-only when every service
+        used host networking, so a service with network_mode: none still got a
+        real bridge with an auto-assigned subnet that can clash with the
+        device's LAN.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 19.1.1
+  title: ""
+  date: 2026-08-26T20:02:46.684Z
+- commits:
     - subject: Update helios to v0.26.3
       hash: 4cad3ee000aed4062e13dae06c560f399ca176f5
       body: |
