@@ -87,8 +87,10 @@ class AppImpl implements App {
 			this.networks.find((n) => n.name === 'default') == null &&
 			isTargetState
 		) {
-			const allHostNetworking = this.services.every(
-				(svc) => svc.config.networkMode === 'host',
+			const allHostOrNoneNetworking = this.services.every(
+				(svc) =>
+					svc.config.networkMode === 'host' ||
+					svc.config.networkMode === 'none',
 			);
 			// We always want a default network
 			this.networks.push(
@@ -101,7 +103,7 @@ class AppImpl implements App {
 					// aren't using it, to minimize chances of host-Docker address conflicts.
 					// If config_only is specified, the network is created and available in Docker
 					// by name and config only, and no actual networking setup occurs.
-					{ config_only: allHostNetworking },
+					{ config_only: allHostOrNoneNetworking },
 				),
 			);
 		}
