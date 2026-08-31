@@ -220,6 +220,8 @@ export interface ServiceComposeConfig {
 	user?: string;
 	workingDir?: string;
 	tty?: boolean;
+	runtime?: string;
+	annotations?: Record<string, string>;
 }
 
 // This is identical to ServiceComposeConfig, except for the
@@ -285,6 +287,8 @@ export interface ServiceConfig {
 	user: string;
 	workingDir: string;
 	tty: boolean;
+	runtime: string;
+	annotations: Record<string, string>;
 }
 
 export type ServiceConfigArrayField =

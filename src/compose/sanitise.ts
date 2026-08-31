@@ -57,6 +57,8 @@ const supportedComposeFields = [
 	'user',
 	'workingDir',
 	'tty',
+	'runtime',
+	'annotations',
 ];
 
 export function sanitiseComposeConfig(
