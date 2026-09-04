@@ -253,6 +253,8 @@ const MATCH_TESTS = [
 	{ type: 'jetson-xavier-nx-devkit', supported: false },
 	{ type: 'jetson-agx-orin-devkit', supported: true },
 	{ type: 'jetson-agx-orin', supported: false },
+	{ type: 'jetson-agx-thor-devkit', supported: true },
+	{ type: 'jetson-agx-thor', supported: false },
 	{ type: 'jetson-orin-nx-xavier-nx-devkit', supported: true },
 	{ type: 'cti-orin-nx-custom-carrier', supported: true },
 	{ type: 'jetson-orin-agx-nx-xavier-nx-devkit', supported: false },

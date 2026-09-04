@@ -63,6 +63,7 @@ export class ExtraUEnv extends ConfigBackend {
 				deviceType.endsWith('-tx2') ||
 				deviceType.includes('-tx2-nx') ||
 				deviceType.includes('-agx-orin-') ||
+				deviceType.includes('-agx-thor-') ||
 				deviceType.includes('-orin-nx-') ||
 				deviceType.includes('-orin-nano-') ||
 				deviceType.includes('imx8mm-var-som') ||

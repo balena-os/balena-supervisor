@@ -23,6 +23,7 @@ const SUPPORTED_DEVICE_TYPES = [
 	'jetson-orin-nx-seeed-j4012',
 	'jetson-orin-nx-xavier-nx-devkit',
 	'forecr-dsb-ornx-orin-nano-8gb',
+	'jetson-agx-thor-devkit',
 ];
 
 const UNSUPPORTED_DEVICE_TYPES = ['jetson-tx2'];
