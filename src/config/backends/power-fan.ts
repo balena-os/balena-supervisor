@@ -53,7 +53,7 @@ export class PowerFanConfig extends ConfigBackend {
 	}
 
 	public matches(deviceType: string): boolean {
-		return deviceType.includes('-orin-');
+		return deviceType.includes('-orin-') || deviceType.includes('-agx-thor-');
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {
