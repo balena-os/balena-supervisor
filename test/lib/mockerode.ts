@@ -684,6 +684,13 @@ export class MockEngine {
 						statusCode: 404,
 						message: `No such container ${id}`,
 					}),
+				// An Error, unlike the rejection above, so isNotFoundError matches it
+				remove: () =>
+					Promise.reject(
+						Object.assign(new Error(`No such container ${id}`), {
+							statusCode: 404,
+						}),
+					),
 			} as MockContainer;
 		}
 
