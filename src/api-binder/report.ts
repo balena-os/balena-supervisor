@@ -13,7 +13,7 @@ import { log } from '../lib/supervisor-console';
 import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';
 import { shallowDiff, prune, empty } from '../lib/json';
-import { pathOnRoot } from '../lib/host-utils';
+import { pathOnRoot, pathInSupervisorTmp } from '../lib/host-utils';
 import { touch, writeAndSyncFile } from '../lib/fs-utils';
 import pTimeout from 'p-timeout';
 import { resolveURL } from '../lib/api-helper';
@@ -28,7 +28,7 @@ const maxReportFrequency = 10 * 1000;
 // Metrics are low priority, so less frequent than maxReportFrequency.
 const maxMetricsFrequency = 300 * 1000;
 // Path of the cache for last reported state
-const CACHE_PATH = pathOnRoot('/tmp/balena-supervisor/state-report-cache');
+const CACHE_PATH = pathOnRoot(pathInSupervisorTmp('state-report-cache'));
 
 type StateReportOpts = {
 	[key in keyof Pick<
