@@ -1,4 +1,18 @@
 - commits:
+    - subject: Allow custom configuration for Jetson AGX Thor Developer Kit
+      hash: bab38fcaa4944e49dd9f491278464f590eabd71e
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 19.1.4
+  title: ""
+  date: 2026-09-09T20:22:06.962Z
+- commits:
     - subject: Detect stale image entries when a service is rebuilt under the same name
       hash: d548e807d7ebc07d903295edb7494b2401408dc4
       body: >
