@@ -364,6 +364,13 @@ class ServiceImpl implements Service {
 		}
 		config.sysctls = _.mapValues(config.sysctls, String);
 
+		if (Array.isArray(config.annotations)) {
+			config.annotations = Object.fromEntries(
+				_.map(config.annotations, (v) => _.split(v, '=')),
+			);
+		}
+		config.annotations = _.mapValues(config.annotations, String);
+
 		for (const key of ['cpuShares', 'cpuQuota', 'oomScoreAdj']) {
 			const numVal = checkInt(config[key]);
 			if (numVal) {
@@ -410,6 +417,7 @@ class ServiceImpl implements Service {
 
 		service.config = _.defaults(config, {
 			portMaps,
+			annotations: {},
 			capAdd: [],
 			capDrop: [],
 			command: [],
@@ -438,6 +446,7 @@ class ServiceImpl implements Service {
 			usernsMode: '',
 			volumes: [],
 			restart: 'always',
+			runtime: 'runc',
 			cpuShares: 0,
 			cpuQuota: 0,
 			cpus: 0,
@@ -610,6 +619,8 @@ class ServiceImpl implements Service {
 				(opt: string) => !unsupportedSecurityOpt(opt),
 			),
 			usernsMode: container.HostConfig.UsernsMode ?? '',
+			runtime: container.HostConfig.Runtime ?? 'runc',
+			annotations: container.HostConfig.Annotations ?? {},
 			ipc: container.HostConfig.IpcMode ?? '',
 			macAddress: (container.Config as any).MacAddress ?? '',
 			user: container.Config.User ?? '',
@@ -761,6 +772,8 @@ class ServiceImpl implements Service {
 				ShmSize: this.config.shmSize,
 				Tmpfs: tmpFs,
 				UsernsMode: this.config.usernsMode,
+				Runtime: this.config.runtime,
+				Annotations: this.config.annotations,
 				NanoCpus: this.config.cpus,
 				IpcMode: this.config.ipc,
 				Init: this.config.init,

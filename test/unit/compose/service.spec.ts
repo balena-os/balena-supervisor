@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import type { SinonSpy } from 'sinon';
+import type Dockerode from 'dockerode';
 import * as fs from 'node:fs';
 
 import { expect } from 'chai';
@@ -324,6 +325,68 @@ describe('compose/service: unit tests', () => {
 				appName: 'test',
 			} as any);
 			expect(svc3.config).to.not.have.property('init');
+		});
+
+		it('should support the runtime property', async () => {
+			const appConfigWithRuntime = (runtime?: string) => ({
+				appId: 123,
+				serviceId: 123,
+				serviceName: 'test',
+				composition: {
+					runtime,
+				},
+			});
+			const svc = await Service.fromComposeObject(
+				appConfigWithRuntime('nvidia'),
+				{ appName: 'test' } as any,
+			);
+			expect(svc.config).to.have.property('runtime').that.equals('nvidia');
+			expect(svc.toDockerContainer({ deviceName: 'foo' } as any).HostConfig)
+				.to.have.property('Runtime')
+				.that.equals('nvidia');
+
+			// The runtime defaults to runc, matching what the engine
+			// reports for a container created without an explicit runtime
+			const svc2 = await Service.fromComposeObject(appConfigWithRuntime(), {
+				appName: 'test',
+			} as any);
+			expect(svc2.config).to.have.property('runtime').that.equals('runc');
+		});
+
+		it('should support the annotations property', async () => {
+			const appConfigWithAnnotations = (value?: any) => ({
+				appId: 123,
+				serviceId: 123,
+				serviceName: 'test',
+				composition: {
+					annotations: value,
+				},
+			});
+			const annotations = { 'com.example.foo': 'bar' };
+			const svc = await Service.fromComposeObject(
+				appConfigWithAnnotations(annotations),
+				{ appName: 'test' } as any,
+			);
+			expect(svc.config)
+				.to.have.property('annotations')
+				.that.deep.equals(annotations);
+			expect(svc.toDockerContainer({ deviceName: 'foo' } as any).HostConfig)
+				.to.have.property('Annotations')
+				.that.deep.equals(annotations);
+
+			// Annotations may also be defined as an array of key=value strings
+			const svc2 = await Service.fromComposeObject(
+				appConfigWithAnnotations(['com.example.foo=bar']),
+				{ appName: 'test' } as any,
+			);
+			expect(svc2.config)
+				.to.have.property('annotations')
+				.that.deep.equals(annotations);
+
+			const svc3 = await Service.fromComposeObject(appConfigWithAnnotations(), {
+				appName: 'test',
+			} as any);
+			expect(svc3.config).to.have.property('annotations').that.deep.equals({});
 		});
 
 		describe('Parsing memory strings from compose configuration', () => {
@@ -1062,6 +1125,39 @@ describe('compose/service: unit tests', () => {
 			expect(composeConfig).to.deep.equal(dockerConfig);
 
 			expect(dockerSvc.isEqualConfig(composeSvc, {})).to.equals(true);
+		});
+
+		it('should correctly read the runtime and annotations from a container', () => {
+			const containerWithHostConfig = (hostConfig: Dockerode.HostConfig = {}) =>
+				createContainer({
+					Id: 'deadbeef',
+					Name: 'main_123_456_789',
+					HostConfig: hostConfig,
+					Config: {
+						Labels: {
+							'io.balena.app-id': '1011165',
+							'io.balena.service-id': '123',
+							'io.balena.service-name': 'main',
+							'io.balena.supervised': 'true',
+						},
+					},
+				}).inspectInfo;
+
+			const svc = Service.fromDockerContainer(
+				containerWithHostConfig({
+					Runtime: 'nvidia',
+					Annotations: { 'com.example.foo': 'bar' },
+				}),
+			);
+			expect(svc.config).to.have.property('runtime').that.equals('nvidia');
+			expect(svc.config)
+				.to.have.property('annotations')
+				.that.deep.equals({ 'com.example.foo': 'bar' });
+
+			// Defaults when the engine reports neither field
+			const svc2 = Service.fromDockerContainer(containerWithHostConfig());
+			expect(svc2.config).to.have.property('runtime').that.equals('runc');
+			expect(svc2.config).to.have.property('annotations').that.deep.equals({});
 		});
 
 		describe('Networks', () => {
