@@ -7,6 +7,7 @@ import log from '../lib/supervisor-console';
 // TODO: Generate these fields from the interface we define
 // in service-types.
 const supportedComposeFields = [
+	'annotations',
 	'capAdd',
 	'capDrop',
 	'command',
