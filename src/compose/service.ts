@@ -1140,14 +1140,17 @@ class ServiceImpl implements Service {
 			`${appId}_${volumeSource.trim()}`;
 
 		for (const volume of composeVolumes ?? []) {
-			const isString = typeof volume === 'string';
-			// Bind mounts are not allowed
+			const volumeStr =
+				typeof volume === 'string' ? volume : JSON.stringify(volume);
+			// Only binds from host /tmp are allowed; feature label binds are added later
 			if (LongBind.is(volume) || ShortBind.is(volume)) {
-				log.warn(
-					`Ignoring invalid bind mount ${
-						isString ? volume : JSON.stringify(volume)
-					}`,
-				);
+				if (ComposeUtils.isAllowedBindMount(volume)) {
+					volumes.push(volume);
+				} else {
+					log.warn(
+						`Ignoring invalid bind mount ${volumeStr}: ${ComposeUtils.bindMountRule}`,
+					);
+				}
 			} else if (
 				LongTmpfs.is(volume) ||
 				LongAnonymousVolume.is(volume) ||
@@ -1165,11 +1168,7 @@ class ServiceImpl implements Service {
 				}
 				volumes.push(volumeDef);
 			} else {
-				log.warn(
-					`Ignoring invalid compose volume definition ${
-						isString ? volume : JSON.stringify(volume)
-					}`,
-				);
+				log.warn(`Ignoring invalid compose volume definition ${volumeStr}`);
 			}
 		}
 

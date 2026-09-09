@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import type { SinonSpy } from 'sinon';
+import type { SinonSpy, SinonStub } from 'sinon';
 import * as fs from 'node:fs';
 
 import { expect } from 'chai';
@@ -7,6 +7,7 @@ import { createContainer } from '~/test-lib/mockerode';
 
 import { Service } from '~/src/compose/service';
 import { Volume } from '~/src/compose/volume';
+import * as ComposeUtils from '~/src/compose/utils';
 import * as ServiceT from '~/src/compose/types/service';
 import * as constants from '~/lib/constants';
 import log from '~/src/lib/supervisor-console';
@@ -1301,6 +1302,12 @@ describe('compose/service: unit tests', () => {
 					target: '/yet/another',
 				},
 				{ type: 'bind', source: '/mnt/data', target: '/data' },
+				{
+					type: 'bind',
+					source: '/tmp/data',
+					target: '/tmpdata',
+					readOnly: true,
+				},
 				{ type: 'tmpfs', target: '/home/tmp' },
 			];
 			const service = await Service.fromComposeObject(
@@ -1315,6 +1322,7 @@ describe('compose/service: unit tests', () => {
 							'myvolume:/myvolume',
 							'readonly:/readonly:ro',
 							'/home/mybind:/mybind',
+							'/tmp/mybind:/mybind:ro',
 							'anonymous_volume',
 							...longSyntaxVolumes,
 						],
@@ -1326,19 +1334,20 @@ describe('compose/service: unit tests', () => {
 
 			// Only tmpfs from composition should be added to config.tmpfs
 			expect(service.config.tmpfs).to.deep.equal(['/var/tmp']);
-			// config.volumes should include all long syntax and short syntax mounts, excluding binds
+			// config.volumes should include all long syntax and short syntax mounts, excluding binds outside /tmp
 			expect(service.config.volumes).to.deep.include.members([
 				`${appId}_myvolume:/myvolume`,
 				`${appId}_readonly:/readonly:ro`,
+				'/tmp/mybind:/mybind:ro',
 				'anonymous_volume',
-				...longSyntaxVolumes.filter(({ type }) => type !== 'bind'),
+				...longSyntaxVolumes.filter(({ source }) => source !== '/mnt/data'),
 				`/tmp/balena-supervisor/services/${appId}/${serviceName}:/tmp/resin`,
 				`/tmp/balena-supervisor/services/${appId}/${serviceName}:/tmp/balena`,
 			]);
-			// bind mounts are not allowed
+			// bind mounts outside /tmp are not allowed
 			expect(service.config.volumes).to.not.deep.include.members([
 				'/home/mybind:/mybind',
-				...longSyntaxVolumes.filter(({ type }) => type === 'bind'),
+				{ type: 'bind', source: '/mnt/data', target: '/data' },
 			]);
 
 			/**
@@ -1374,6 +1383,12 @@ describe('compose/service: unit tests', () => {
 						Source: constants.dockerSocket,
 						Target: constants.containerDockerSocket,
 					},
+					{
+						Type: 'bind',
+						Source: '/tmp/data',
+						Target: '/tmpdata',
+						ReadOnly: true,
+					},
 				]);
 
 			// bind mounts except for the engine feature label should be filtered out
@@ -1392,6 +1407,7 @@ describe('compose/service: unit tests', () => {
 					`/tmp/balena-supervisor/services/${appId}/${serviceName}:/tmp/resin`,
 					`/tmp/balena-supervisor/services/${appId}/${serviceName}:/tmp/balena`,
 					'/var/log/journal:/var/log/journal:ro',
+					'/tmp/mybind:/mybind:ro',
 				]);
 
 			// Tmpfs volumes defined through compose's service.tmpfs are under HostConfig.Tmpfs.
@@ -1473,6 +1489,191 @@ describe('compose/service: unit tests', () => {
 			expect(service.config)
 				.to.have.property('tmpfs')
 				.that.deep.equals(['/var/tmp1']);
+		});
+	});
+
+	describe('Host bind mounts', () => {
+		const fromVolumes = (volumes: any[], labels = {}) =>
+			Service.fromComposeObject(
+				{
+					appId: 5,
+					serviceId: 3,
+					imageId: 2,
+					releaseId: 4,
+					commit: 'deadbeef',
+					serviceName: 'main',
+					composition: { volumes },
+					labels,
+				},
+				{ appName: 'test' } as any,
+			);
+		const warn = () => log.warn as SinonStub;
+
+		it('should only allow sources strictly under /tmp', () => {
+			for (const s of [
+				'/tmp/argus_socket',
+				'/tmp/a/b',
+				'/tmp/a/',
+				'/tmp/./a',
+				'/tmp/a/../b',
+			]) {
+				expect(ComposeUtils.isAllowedBindSource(s), s).to.be.true;
+			}
+			for (const s of [
+				'/tmp',
+				'/tmp/',
+				'/tmp/.',
+				'/tmpfoo',
+				'/tmp2/x',
+				'/tmp/../etc',
+				'/tmp/a/../../etc',
+				'/mnt/data',
+				'/home/x',
+				'relative',
+				'',
+				constants.supervisorTmpDir,
+				`${constants.supervisorTmpDir}/`,
+				`${constants.supervisorTmpDir}/services/1/main`,
+				constants.legacySupervisorTmpDir,
+				`${constants.legacySupervisorTmpDir}/services`,
+			]) {
+				expect(ComposeUtils.isAllowedBindSource(s), s).to.be.false;
+			}
+		});
+
+		it('should only allow ro/rw modes and the readOnly option', () => {
+			for (const v of [
+				'/tmp/a:/b',
+				'/tmp/a:/b:ro',
+				'/tmp/a:/b:rw',
+				{ type: 'bind', source: '/tmp/a', target: '/b' },
+				{ type: 'bind', source: '/tmp/a', target: '/b', readOnly: true },
+			]) {
+				expect(ComposeUtils.isAllowedBindMount(v as any), JSON.stringify(v)).to
+					.be.true;
+			}
+			for (const v of [
+				'/tmp/a:/b:rshared',
+				'/tmp/a:/b:rw,rshared',
+				'/tmp/a:/b:z',
+				'/tmp/a:/b:ro:extra',
+				'/tmp/a:',
+				{
+					type: 'bind',
+					source: '/tmp/a',
+					target: '/b',
+					bind: { propagation: 'rshared' },
+				},
+				{
+					type: 'bind',
+					source: '/tmp/a',
+					target: '/b',
+					volume: { nocopy: true },
+				},
+			]) {
+				expect(ComposeUtils.isAllowedBindMount(v as any), JSON.stringify(v)).to
+					.be.false;
+			}
+		});
+
+		it('should pass /tmp binds through to the container config unchanged', async () => {
+			const longBind = {
+				type: 'bind',
+				source: '/tmp/argus_socket',
+				target: '/tmp/argus_socket',
+				readOnly: true,
+			};
+			const service = await fromVolumes([
+				'/tmp/argus_socket:/tmp/argus_socket',
+				'/tmp/data/:/data:ro',
+				longBind,
+			]);
+			expect(service.config.volumes).to.deep.include.members([
+				'/tmp/argus_socket:/tmp/argus_socket',
+				'/tmp/data/:/data:ro',
+				longBind,
+			]);
+			expect(warn()).to.not.have.been.calledWithMatch(/bind mount/);
+
+			const ctn = service.toDockerContainer({ deviceName: 'x' } as any);
+			expect(ctn.HostConfig?.Binds).to.include.members([
+				'/tmp/argus_socket:/tmp/argus_socket',
+				'/tmp/data/:/data:ro',
+			]);
+			expect(ctn.HostConfig?.Mounts).to.deep.include({
+				Type: 'bind',
+				Source: '/tmp/argus_socket',
+				Target: '/tmp/argus_socket',
+				ReadOnly: true,
+			});
+		});
+
+		it('should drop binds outside /tmp with a warning', async () => {
+			const rejected = [
+				'/home/mybind:/mybind',
+				'/tmpfoo:/x',
+				'/tmp:/x',
+				'/tmp/../etc:/x',
+				`${constants.supervisorTmpDir}/services/5/main:/x`,
+				'/tmp/a:/a:rw,rshared',
+				{ type: 'bind', source: '/mnt/data', target: '/data' },
+				{
+					type: 'bind',
+					source: '/tmp/a',
+					target: '/a',
+					bind: { propagation: 'rshared' },
+				},
+			];
+			const service = await fromVolumes(rejected);
+			expect(service.config.volumes).to.not.deep.include.members(rejected);
+			expect(warn().callCount).to.equal(rejected.length);
+			for (const call of warn().getCalls()) {
+				expect(call.firstArg)
+					.to.match(/^Ignoring invalid bind mount /)
+					.and.include(ComposeUtils.bindMountRule);
+			}
+			// Default binds are added after the filter
+			expect(service.config.volumes).to.include(
+				`${constants.supervisorTmpDir}/services/5/main:/tmp/balena`,
+			);
+		});
+
+		it('should not filter binds added by feature labels', async () => {
+			const service = await fromVolumes(['/etc:/etc'], {
+				'io.balena.features.journal-logs': '1',
+			});
+			expect(service.config.volumes).to.not.include('/etc:/etc');
+			expect(service.config.volumes).to.include(
+				'/etc/machine-id:/etc/machine-id:ro',
+			);
+		});
+
+		it('should compare equal to a running container with the same binds', async () => {
+			const target = await Service.fromComposeObject(
+				{
+					...configs.simple.compose,
+					composition: {
+						...configs.simple.compose.composition,
+						volumes: [
+							'/tmp/a:/a',
+							'/tmp/b:/b:ro',
+							{ type: 'bind', source: '/tmp/c', target: '/c', readOnly: true },
+						],
+					},
+				},
+				configs.simple.imageInfo,
+			);
+			const inspect = _.cloneDeep(configs.simple.inspect);
+			inspect.HostConfig.Binds.push('/tmp/a:/a', '/tmp/b:/b:ro');
+			inspect.HostConfig.Mounts = [
+				{ Type: 'bind', Source: '/tmp/c', Target: '/c', ReadOnly: true },
+			];
+			const current = Service.fromDockerContainer(inspect);
+
+			expect(current.config.volumes).to.have.deep.members(
+				target.config.volumes,
+			);
+			expect(current.isEqualConfig(target, {})).to.be.true;
 		});
 	});
 

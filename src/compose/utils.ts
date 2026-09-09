@@ -1,6 +1,7 @@
 import type Dockerode from 'dockerode';
 import Duration from 'duration-js';
 import _ from 'lodash';
+import path from 'path';
 import { parse as parseCommand } from 'shell-quote';
 
 import * as constants from '../lib/constants';
@@ -617,6 +618,40 @@ export function compareArrayFields<T extends Dictionary<unknown>>(
 	} else {
 		return { equal, difference };
 	}
+}
+
+const bindRoot = '/tmp';
+const reservedBindDirs = [
+	constants.supervisorTmpDir,
+	constants.legacySupervisorTmpDir,
+];
+const within = (p: string, dir: string) => p === dir || p.startsWith(dir + '/');
+
+export const bindMountRule = `only host paths under ${bindRoot} with an optional ro/rw mode are allowed`;
+
+// Lexical check only; symlinks are not resolved
+export function isAllowedBindSource(source: string): boolean {
+	const p = path.posix.normalize(source).replace(/\/$/, '');
+	return (
+		p !== bindRoot &&
+		within(p, bindRoot) &&
+		!reservedBindDirs.some((dir) => within(p, dir))
+	);
+}
+
+// Short: `source:target[:ro|rw]`. Long: `{type: 'bind', source, target, readOnly?}`
+export function isAllowedBindMount(volume: string | LongBind): boolean {
+	if (typeof volume === 'string') {
+		const [source, target, mode, ...rest] = volume.split(':');
+		return (
+			rest.length === 0 &&
+			!!target &&
+			[undefined, 'ro', 'rw'].includes(mode) &&
+			isAllowedBindSource(source)
+		);
+	}
+	const extra = _.omit(volume, ['type', 'source', 'target', 'readOnly']);
+	return _.isEmpty(extra) && isAllowedBindSource(volume.source);
 }
 
 export function serviceMountToDockerMount(
