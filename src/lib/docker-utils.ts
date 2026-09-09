@@ -55,6 +55,15 @@ const DELTA_TOKEN_TIMEOUT = 10 * 60 * 1000;
 const DELTA_APPLY_RETRY_COUNT = 3;
 
 export const docker = new Dockerode();
+
+// The engine writes its default runtime name into HostConfig.Runtime of
+// containers created without one. Read once: the engine configuration does
+// not change while the supervisor runs
+export const getDefaultRuntime = memoizee(
+	async (): Promise<string> => (await docker.info()).DefaultRuntime,
+	{ promise: true },
+);
+
 export const dockerProgress = new DockerProgress({
 	docker,
 });

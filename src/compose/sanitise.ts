@@ -39,6 +39,7 @@ const supportedComposeFields = [
 	'usernsMode',
 	'volumes',
 	'restart',
+	'runtime',
 	'cpuShares',
 	'cpuQuota',
 	'cpus',

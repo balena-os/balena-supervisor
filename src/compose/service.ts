@@ -357,6 +357,12 @@ class ServiceImpl implements Service {
 			delete config.init;
 		}
 
+		// Only keep a runtime that differs from the engine default. Unset means
+		// the engine default, on both the target and the current state
+		if (!config.runtime || config.runtime === options.defaultRuntime) {
+			delete config.runtime;
+		}
+
 		if (Array.isArray(config.sysctls)) {
 			config.sysctls = Object.fromEntries(
 				_.map(config.sysctls, (v) => _.split(v, '=')),
@@ -474,6 +480,7 @@ class ServiceImpl implements Service {
 
 	public static fromDockerContainer(
 		container: Dockerode.ContainerInspectInfo,
+		defaultRuntime?: string,
 	): Service {
 		const svc = new Service();
 
@@ -622,6 +629,13 @@ class ServiceImpl implements Service {
 			svc.config.init = container.HostConfig.Init;
 		}
 
+		// The engine stores its default runtime name on containers created
+		// without one, so only an explicitly selected runtime is kept
+		const { Runtime } = container.HostConfig;
+		if (Runtime && Runtime !== defaultRuntime) {
+			svc.config.runtime = Runtime;
+		}
+
 		const appId = checkInt(svc.config.labels['io.balena.app-id']);
 		if (appId == null) {
 			throw new InternalInconsistencyError(
@@ -761,6 +775,7 @@ class ServiceImpl implements Service {
 				ShmSize: this.config.shmSize,
 				Tmpfs: tmpFs,
 				UsernsMode: this.config.usernsMode,
+				Runtime: this.config.runtime,
 				NanoCpus: this.config.cpus,
 				IpcMode: this.config.ipc,
 				Init: this.config.init,
