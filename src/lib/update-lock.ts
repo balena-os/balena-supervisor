@@ -4,7 +4,11 @@ import { setTimeout } from 'timers/promises';
 import type ReadWriteLock from 'rwlock';
 
 import { isENOENT, UpdatesLockedError } from './errors';
-import { pathOnRoot, pathExistsOnState } from './host-utils';
+import {
+	pathOnRoot,
+	pathExistsOnState,
+	pathInSupervisorTmp,
+} from './host-utils';
 import { mkdirp } from './fs-utils';
 import * as lockfile from './lockfile';
 import { takeGlobalLockRWDisposer } from './process-lock';
@@ -12,7 +16,7 @@ import * as logTypes from './log-types';
 import * as logger from '../logging';
 
 export const LOCKFILE_UID = 65534;
-export const BASE_LOCK_DIR = '/tmp/balena-supervisor/services';
+export const BASE_LOCK_DIR = pathInSupervisorTmp('services');
 
 export function lockPath(appId: string | number, serviceName?: string): string {
 	return path.join(BASE_LOCK_DIR, appId.toString(), serviceName ?? '');

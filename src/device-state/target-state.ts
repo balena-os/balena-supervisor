@@ -17,11 +17,11 @@ import * as applicationManager from '../compose/application-manager';
 
 import { TargetState } from '../types';
 import * as fsUtils from '../lib/fs-utils';
-import { pathOnRoot } from '../lib/host-utils';
+import { pathOnRoot, pathInSupervisorTmp } from '../lib/host-utils';
 import type { InstancedAppState } from '../compose/types';
 
 const TARGET_STATE_CONFIG_DUMP = pathOnRoot(
-	'/tmp/balena-supervisor/target-state-config',
+	pathInSupervisorTmp('target-state-config'),
 );
 
 export interface InstancedDeviceState {
