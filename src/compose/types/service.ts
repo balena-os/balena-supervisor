@@ -169,6 +169,7 @@ export interface ServiceComposeConfig {
 	// with the type system, as least at the moment
 	[key: string]: any;
 
+	annotations?: { [key: string]: string };
 	capAdd?: string[];
 	capDrop?: string[];
 	command?: string[] | string;
@@ -228,6 +229,7 @@ export interface ServiceComposeConfig {
 export interface ServiceConfig {
 	portMaps: PortMap[];
 
+	annotations: { [key: string]: string };
 	capAdd: string[];
 	capDrop: string[];
 	command: string[];
