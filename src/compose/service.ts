@@ -370,6 +370,11 @@ class ServiceImpl implements Service {
 		}
 		config.sysctls = _.mapValues(config.sysctls, String);
 
+		// Annotations are a map, like labels. Values are sent as strings
+		config.annotations = Object.fromEntries(
+			Object.entries(config.annotations ?? {}).map(([k, v]) => [k, String(v)]),
+		);
+
 		for (const key of ['cpuShares', 'cpuQuota', 'oomScoreAdj']) {
 			const numVal = checkInt(config[key]);
 			if (numVal) {
@@ -416,6 +421,7 @@ class ServiceImpl implements Service {
 
 		service.config = _.defaults(config, {
 			portMaps,
+			annotations: {},
 			capAdd: [],
 			capDrop: [],
 			command: [],
@@ -617,6 +623,7 @@ class ServiceImpl implements Service {
 				(opt: string) => !unsupportedSecurityOpt(opt),
 			),
 			usernsMode: container.HostConfig.UsernsMode ?? '',
+			annotations: container.HostConfig.Annotations ?? {},
 			ipc: container.HostConfig.IpcMode ?? '',
 			macAddress: (container.Config as any).MacAddress ?? '',
 			user: container.Config.User ?? '',
@@ -776,6 +783,7 @@ class ServiceImpl implements Service {
 				Tmpfs: tmpFs,
 				UsernsMode: this.config.usernsMode,
 				Runtime: this.config.runtime,
+				Annotations: this.config.annotations,
 				NanoCpus: this.config.cpus,
 				IpcMode: this.config.ipc,
 				Init: this.config.init,
