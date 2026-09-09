@@ -202,6 +202,7 @@ export interface ServiceComposeConfig {
 	usernsMode?: string;
 	volumes?: ServiceVolumeConfig[];
 	restart?: string;
+	runtime?: string;
 	cpuShares?: number;
 	cpuQuota?: number;
 	cpus?: number;
@@ -266,6 +267,7 @@ export interface ServiceConfig {
 	usernsMode: string;
 	volumes: ServiceVolumeConfig[];
 	restart: string;
+	runtime: string;
 	cpuShares: number;
 	cpuQuota: number;
 	cpus: number;

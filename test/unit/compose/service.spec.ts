@@ -326,6 +326,32 @@ describe('compose/service: unit tests', () => {
 			expect(svc3.config).to.not.have.property('init');
 		});
 
+		it('should support the runtime property', async () => {
+			const appConfigWithRuntime = (runtime?: string) => ({
+				appId: 123,
+				serviceId: 123,
+				serviceName: 'test',
+				composition: {
+					runtime,
+				},
+			});
+			const svc = await Service.fromComposeObject(
+				appConfigWithRuntime('nvidia'),
+				{ appName: 'test' } as any,
+			);
+			expect(svc.config).to.have.property('runtime').that.equals('nvidia');
+			expect(svc.toDockerContainer({ deviceName: 'foo' } as any).HostConfig)
+				.to.have.property('Runtime')
+				.that.equals('nvidia');
+
+			// The runtime defaults to runc, matching what the engine
+			// reports for a container created without an explicit runtime
+			const svc2 = await Service.fromComposeObject(appConfigWithRuntime(), {
+				appName: 'test',
+			} as any);
+			expect(svc2.config).to.have.property('runtime').that.equals('runc');
+		});
+
 		describe('Parsing memory strings from compose configuration', () => {
 			const makeComposeServiceWithLimit = async (memLimit?: string | number) =>
 				await Service.fromComposeObject(
@@ -1062,6 +1088,31 @@ describe('compose/service: unit tests', () => {
 			expect(composeConfig).to.deep.equal(dockerConfig);
 
 			expect(dockerSvc.isEqualConfig(composeSvc, {})).to.equals(true);
+		});
+
+		it('should correctly read the runtime from a container', () => {
+			const containerWithRuntime = (runtime?: string) =>
+				createContainer({
+					Id: 'deadbeef',
+					Name: 'main_123_456_789',
+					HostConfig: {
+						...(runtime != null && { Runtime: runtime }),
+					},
+					Config: {
+						Labels: {
+							'io.balena.app-id': '1011165',
+							'io.balena.service-id': '123',
+							'io.balena.service-name': 'main',
+							'io.balena.supervised': 'true',
+						},
+					},
+				}).inspectInfo;
+
+			const svc = Service.fromDockerContainer(containerWithRuntime('nvidia'));
+			expect(svc.config).to.have.property('runtime').that.equals('nvidia');
+
+			const svc2 = Service.fromDockerContainer(containerWithRuntime());
+			expect(svc2.config).to.have.property('runtime').that.equals('runc');
 		});
 
 		describe('Networks', () => {
