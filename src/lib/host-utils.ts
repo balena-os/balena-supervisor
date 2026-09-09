@@ -41,6 +41,9 @@ export const pathOnState = withBase(constants.stateMountPoint);
 export const pathExistsOnState = async (p: string) =>
 	await exists(pathOnState(p));
 
+// Returns a host path inside the supervisor's /tmp directory
+export const pathInSupervisorTmp = withBase(constants.supervisorTmpDir);
+
 class CodedError extends Error {
 	constructor(
 		msg: string,
