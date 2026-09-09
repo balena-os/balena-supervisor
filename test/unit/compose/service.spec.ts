@@ -1558,6 +1558,8 @@ describe('compose/service: unit tests', () => {
 				'/tmp/a:/b:z',
 				'/tmp/a:/b:ro:extra',
 				'/tmp/a:',
+				'/tmp/a:data',
+				{ type: 'bind', source: '/tmp/a', target: 'data' },
 				{
 					type: 'bind',
 					source: '/tmp/a',

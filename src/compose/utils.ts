@@ -639,19 +639,21 @@ export function isAllowedBindSource(source: string): boolean {
 	);
 }
 
+const isAllowedBind = (source: string, target?: string) =>
+	path.posix.isAbsolute(target ?? '') && isAllowedBindSource(source);
+
 // Short: `source:target[:ro|rw]`. Long: `{type: 'bind', source, target, readOnly?}`
 export function isAllowedBindMount(volume: string | LongBind): boolean {
 	if (typeof volume === 'string') {
 		const [source, target, mode, ...rest] = volume.split(':');
 		return (
 			rest.length === 0 &&
-			!!target &&
 			[undefined, 'ro', 'rw'].includes(mode) &&
-			isAllowedBindSource(source)
+			isAllowedBind(source, target)
 		);
 	}
 	const extra = _.omit(volume, ['type', 'source', 'target', 'readOnly']);
-	return _.isEmpty(extra) && isAllowedBindSource(volume.source);
+	return _.isEmpty(extra) && isAllowedBind(volume.source, volume.target);
 }
 
 export function serviceMountToDockerMount(
