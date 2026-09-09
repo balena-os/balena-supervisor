@@ -60,6 +60,7 @@ describe('lib/contracts', () => {
 						{ type: 'hw.device-type', slug: 'raspberrypi3' },
 						{ type: 'arch.sw', slug: 'aarch64' },
 						{ type: 'sw.os' },
+						{ type: 'sw.spec', slug: 'compose', version: '>=2' },
 					],
 				}),
 			).to.not.throw();
@@ -380,6 +381,55 @@ describe('lib/contracts', () => {
 			)
 				.to.have.property('valid')
 				.that.equals(true);
+		});
+
+		it('should correctly evaluate sw.spec requirements', () => {
+			const withSpecRequirement = (requirement: object) =>
+				contracts.containerContractsFulfilled([
+					{
+						commit: 'd0',
+						serviceName: 'service',
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container',
+							requires: [requirement],
+						},
+						optional: false,
+					},
+				]);
+
+			// The current compose spec level satisfies the requirement
+			expect(
+				withSpecRequirement({
+					type: 'sw.spec',
+					slug: 'compose',
+					version: `>=${semver.major(contracts.composeSpecVersion)}`,
+				}),
+			)
+				.to.have.property('valid')
+				.that.equals(true);
+
+			// A spec level above the current one is unmet
+			expect(
+				withSpecRequirement({
+					type: 'sw.spec',
+					slug: 'compose',
+					version: `>=${semver.major(contracts.composeSpecVersion) + 1}`,
+				}),
+			)
+				.to.have.property('valid')
+				.that.equals(false);
+
+			// A different sw.spec slug is unmet
+			expect(
+				withSpecRequirement({
+					type: 'sw.spec',
+					slug: 'not-compose',
+					version: '>=2',
+				}),
+			)
+				.to.have.property('valid')
+				.that.equals(false);
 		});
 
 		it('should refuse to run containers whose requirements are not satisfied', () => {
