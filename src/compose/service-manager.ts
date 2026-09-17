@@ -211,17 +211,23 @@ export function kill(service: Service, opts: KillOpts = {}) {
 
 export async function remove(service: Service) {
 	logger.logSystemEvent(LogTypes.removeDeadService, { service });
-	const existingService = await get(service);
 
-	if (existingService.containerId == null) {
+	// Use the id of the dead container this step was generated for. Matching on
+	// config instead loses containers part way through removal, as those have
+	// had their networks detached and no longer match their own definition
+	if (service.containerId == null) {
 		throw new InternalInconsistencyError(
-			`No containerId provided for service ${service.serviceName} in ServiceManager.updateMetadata. Service: ${service}`,
+			`No containerId provided for service ${service.serviceName} in ServiceManager.remove. Service: ${service}`,
 		);
 	}
 
 	try {
-		await docker.getContainer(existingService.containerId).remove({ v: true });
+		// Force, as the Engine has already failed to remove this container once
+		await docker
+			.getContainer(service.containerId)
+			.remove({ v: true, force: true });
 	} catch (e: unknown) {
+		// 404 means the container is gone, precisely what we want
 		if (!isNotFoundError(e)) {
 			logger.logSystemEvent(LogTypes.removeDeadServiceError, {
 				service,
