@@ -64,12 +64,18 @@ interface ServiceWithContract extends ServiceCtx {
 
 const validRequirementTypes = [
 	'sw.supervisor',
+	'sw.spec',
 	'sw.l4t',
 	'sw.os',
 	'sw.kernel',
 	'hw.device-type',
 	'arch.sw',
 ];
+
+// The compose spec level this supervisor implements. The builder attaches
+// a `sw.spec` requirement (slug `compose`) to services that use compose
+// features beyond the baseline, e.g. `runtime` or `annotations`
+export const composeSpecVersion = '2.0.0';
 const deviceContract: Universe = new Universe();
 
 export function initializeContractRequirements(opts: {
@@ -91,6 +97,11 @@ export function initializeContractRequirements(opts: {
 			type: 'sw.application',
 			slug: 'balena-supervisor',
 			version: opts.supervisorVersion,
+		}),
+		new Contract({
+			type: 'sw.spec',
+			slug: 'compose',
+			version: composeSpecVersion,
 		}),
 		new Contract({
 			type: 'hw.device-type',

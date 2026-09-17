@@ -357,12 +357,23 @@ class ServiceImpl implements Service {
 			delete config.init;
 		}
 
+		// Only keep a runtime that differs from the engine default. Unset means
+		// the engine default, on both the target and the current state
+		if (!config.runtime || config.runtime === options.defaultRuntime) {
+			delete config.runtime;
+		}
+
 		if (Array.isArray(config.sysctls)) {
 			config.sysctls = Object.fromEntries(
 				_.map(config.sysctls, (v) => _.split(v, '=')),
 			);
 		}
 		config.sysctls = _.mapValues(config.sysctls, String);
+
+		// Annotations are a map, like labels. Values are sent as strings
+		config.annotations = Object.fromEntries(
+			Object.entries(config.annotations ?? {}).map(([k, v]) => [k, String(v)]),
+		);
 
 		for (const key of ['cpuShares', 'cpuQuota', 'oomScoreAdj']) {
 			const numVal = checkInt(config[key]);
@@ -410,6 +421,7 @@ class ServiceImpl implements Service {
 
 		service.config = _.defaults(config, {
 			portMaps,
+			annotations: {},
 			capAdd: [],
 			capDrop: [],
 			command: [],
@@ -474,6 +486,7 @@ class ServiceImpl implements Service {
 
 	public static fromDockerContainer(
 		container: Dockerode.ContainerInspectInfo,
+		defaultRuntime?: string,
 	): Service {
 		const svc = new Service();
 
@@ -610,6 +623,7 @@ class ServiceImpl implements Service {
 				(opt: string) => !unsupportedSecurityOpt(opt),
 			),
 			usernsMode: container.HostConfig.UsernsMode ?? '',
+			annotations: container.HostConfig.Annotations ?? {},
 			ipc: container.HostConfig.IpcMode ?? '',
 			macAddress: (container.Config as any).MacAddress ?? '',
 			user: container.Config.User ?? '',
@@ -620,6 +634,13 @@ class ServiceImpl implements Service {
 		// Only add `init` if true or false, otherwise leave blank
 		if (typeof container.HostConfig.Init === 'boolean') {
 			svc.config.init = container.HostConfig.Init;
+		}
+
+		// The engine stores its default runtime name on containers created
+		// without one, so only an explicitly selected runtime is kept
+		const { Runtime } = container.HostConfig;
+		if (Runtime && Runtime !== defaultRuntime) {
+			svc.config.runtime = Runtime;
 		}
 
 		const appId = checkInt(svc.config.labels['io.balena.app-id']);
@@ -761,6 +782,8 @@ class ServiceImpl implements Service {
 				ShmSize: this.config.shmSize,
 				Tmpfs: tmpFs,
 				UsernsMode: this.config.usernsMode,
+				Runtime: this.config.runtime,
+				Annotations: this.config.annotations,
 				NanoCpus: this.config.cpus,
 				IpcMode: this.config.ipc,
 				Init: this.config.init,

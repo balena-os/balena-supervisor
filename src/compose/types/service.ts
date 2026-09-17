@@ -169,6 +169,7 @@ export interface ServiceComposeConfig {
 	// with the type system, as least at the moment
 	[key: string]: any;
 
+	annotations?: { [key: string]: string };
 	capAdd?: string[];
 	capDrop?: string[];
 	command?: string[] | string;
@@ -202,6 +203,7 @@ export interface ServiceComposeConfig {
 	usernsMode?: string;
 	volumes?: ServiceVolumeConfig[];
 	restart?: string;
+	runtime?: string;
 	cpuShares?: number;
 	cpuQuota?: number;
 	cpus?: number;
@@ -227,6 +229,7 @@ export interface ServiceComposeConfig {
 export interface ServiceConfig {
 	portMaps: PortMap[];
 
+	annotations: { [key: string]: string };
 	capAdd: string[];
 	capDrop: string[];
 	command: string[];
@@ -266,6 +269,7 @@ export interface ServiceConfig {
 	usernsMode: string;
 	volumes: ServiceVolumeConfig[];
 	restart: string;
+	runtime?: string;
 	cpuShares: number;
 	cpuQuota: number;
 	cpus: number;
@@ -315,6 +319,8 @@ export interface ConfigMap {
 // is typescript
 export interface DeviceMetadata {
 	imageInfo?: Dockerode.ImageInspectInfo;
+	// Engine default runtime; a compose runtime equal to it is treated as unset
+	defaultRuntime?: string;
 	uuid: string | null;
 	appName: string;
 	version: string;
