@@ -1,4 +1,46 @@
 - commits:
+    - subject: Allow compose bind mounts for host paths under /tmp
+      hash: 06ffa7bad3e31e9419ec54db195db5089abd19f9
+      body: >
+        Compose volumes that bind mount a host path are no longer dropped when
+        the
+
+        source is strictly under host /tmp. Both short (source:target[:ro|rw])
+        and
+
+        long (type: bind) syntax are accepted. Relative targets and mount
+        propagation options are rejected, and rejected binds log
+
+        a warning that states the rule.
+
+
+        This lets containers reach host sockets such as /tmp/argus_socket
+        created
+
+        by the NVIDIA runtime hostapp extension.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Shaun Mulligan <switchflip.shaun@gmail.com>
+        signed-off-by: Shaun Mulligan <switchflip.shaun@gmail.com>
+      author: Shaun Mulligan
+      nested: []
+    - subject: Centralise the supervisor host /tmp directory
+      hash: 4febcb7302ca4495fbdad7f8900ce79a2b868ebf
+      body: |
+        Replace the four copies of the '/tmp/balena-supervisor' literal with
+        constants.supervisorTmpDir and a pathInSupervisorTmp helper.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Shaun Mulligan <switchflip.shaun@gmail.com>
+        signed-off-by: Shaun Mulligan <switchflip.shaun@gmail.com>
+      author: Shaun Mulligan
+      nested: []
+  version: 19.2.0
+  title: ""
+  date: 2026-09-17T14:58:23.073Z
+- commits:
     - subject: Allow custom configuration for Jetson AGX Thor Developer Kit
       hash: bab38fcaa4944e49dd9f491278464f590eabd71e
       body: ""
