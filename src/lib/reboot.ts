@@ -1,4 +1,4 @@
-import { pathOnRoot } from '../lib/host-utils';
+import { pathOnRoot, pathInSupervisorTmp } from '../lib/host-utils';
 import * as fsUtils from '../lib/fs-utils';
 import { promises as fs } from 'fs';
 import * as logger from '../logging';
@@ -8,9 +8,7 @@ import * as logger from '../logging';
 // by some config changes, we leave this here for now. There is planned
 // functionality to allow image installs to require reboots, at that moment
 // this constant can be moved somewhere else
-const REBOOT_BREADCRUMB = pathOnRoot(
-	'/tmp/balena-supervisor/reboot-after-apply',
-);
+const REBOOT_BREADCRUMB = pathOnRoot(pathInSupervisorTmp('reboot-after-apply'));
 
 export async function setRebootBreadcrumb(source: Dictionary<any> = {}) {
 	// Just create the file. The last step in the target state calculation will check

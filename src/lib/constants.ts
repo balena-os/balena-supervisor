@@ -33,6 +33,8 @@ const constants = {
 	migrationBackupFile: path.join(dataMountPoint, 'backup.tgz'),
 	// State paths
 	stateMountPoint,
+	// Host /tmp paths
+	supervisorTmpDir: '/tmp/balena-supervisor',
 	// Other constants: network, Engine, /sys
 	containerId: checkString(process.env.SUPERVISOR_CONTAINER_ID) ?? undefined,
 	dockerSocket: process.env.DOCKER_SOCKET ?? '/var/run/docker.sock',
