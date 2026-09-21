@@ -230,6 +230,8 @@ const MALFORMED_CONFIGS = [
 const MATCH_TESTS = [
 	{ type: 'astro-tx2', supported: true },
 	{ type: 'blackboard-tx2', supported: true },
+	{ type: 'edgeai-orn-nx', supported: true },
+	{ type: 'edgeai', supported: false },
 	{ type: 'jetson-tx2', supported: true },
 	{ type: 'n310-tx2', supported: true },
 	{ type: 'n510-tx2', supported: true },
