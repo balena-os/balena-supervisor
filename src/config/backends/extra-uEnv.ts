@@ -66,6 +66,7 @@ export class ExtraUEnv extends ConfigBackend {
 				deviceType.includes('-agx-thor-') ||
 				deviceType.includes('-orin-nx-') ||
 				deviceType.includes('-orin-nano-') ||
+				deviceType.includes('edgeai-orn') ||
 				deviceType.includes('imx8mm-var-som') ||
 				deviceType === 'iot-gate-imx8plus' ||
 				deviceType === 'iot-gate-imx8plus-d1d8' ||

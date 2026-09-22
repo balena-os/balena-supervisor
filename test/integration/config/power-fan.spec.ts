@@ -24,6 +24,7 @@ const SUPPORTED_DEVICE_TYPES = [
 	'jetson-orin-nx-xavier-nx-devkit',
 	'forecr-dsb-ornx-orin-nano-8gb',
 	'jetson-agx-thor-devkit',
+	'edgeai-orn-nx',
 ];
 
 const UNSUPPORTED_DEVICE_TYPES = ['jetson-tx2'];
