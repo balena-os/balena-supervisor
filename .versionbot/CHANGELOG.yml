@@ -1,4 +1,18 @@
 - commits:
+    - subject: Allow custom configuration for Compulab EdgeAI Orin NX 16GB
+      hash: 9ae436de4f67cf5597e19819a5a7c47e8b7715ca
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 19.2.1
+  title: ""
+  date: 2026-09-22T18:38:09.065Z
+- commits:
     - subject: Allow compose bind mounts for host paths under /tmp
       hash: 06ffa7bad3e31e9419ec54db195db5089abd19f9
       body: >
