@@ -7,7 +7,7 @@ import { promises as fs } from 'fs';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
-import { docker } from '../lib/docker-utils';
+import { docker, getDefaultRuntime } from '../lib/docker-utils';
 import * as logger from '../logging';
 
 import { PermissiveNumber } from '../config/types';
@@ -62,6 +62,7 @@ export const getAll = async (
 ): Promise<Service[]> => {
 	const filterLabels = ['supervised'].concat(extraLabelFilters);
 	const containers = await listWithBothLabels(filterLabels);
+	const defaultRuntime = await getDefaultRuntime();
 
 	const services = await Promise.all(
 		containers.map(async (container) => {
@@ -69,7 +70,10 @@ export const getAll = async (
 				const serviceInspect = await docker
 					.getContainer(container.Id)
 					.inspect();
-				const service = Service.fromDockerContainer(serviceInspect);
+				const service = Service.fromDockerContainer(
+					serviceInspect,
+					defaultRuntime,
+				);
 				// We know that the containerId is set below, because `fromDockerContainer`
 				// always sets it
 				const vState = volatileState[service.containerId!];
@@ -146,7 +150,7 @@ export async function getByDockerContainerId(
 	) {
 		return null;
 	}
-	return Service.fromDockerContainer(container);
+	return Service.fromDockerContainer(container, await getDefaultRuntime());
 }
 
 export async function updateMetadata(service: Service, target: Service) {
@@ -288,7 +292,10 @@ async function create(service: Service): Promise<Service> {
 		const container = await docker.createContainer(conf);
 		const inspectInfo = await container.inspect();
 
-		service = Service.fromDockerContainer(inspectInfo);
+		service = Service.fromDockerContainer(
+			inspectInfo,
+			await getDefaultRuntime(),
+		);
 
 		await Promise.all(
 			_.map((nets ?? {})?.EndpointsConfig, (endpointConfig, name) =>
