@@ -1,4 +1,54 @@
 - commits:
+    - subject: Add support for the compose annotations field
+      hash: a185f052d1aa81ca2f82bf7b89377227b44206cf
+      body: >
+        Services can now pass OCI annotations to the container runtime with the
+
+        compose annotations field, mapped to HostConfig.Annotations. Values are
+
+        sent as strings.
+
+
+        HostConfig.Annotations requires Engine API v1.43+ (balenaEngine v25).
+
+        Older engines silently drop the field, which makes the supervisor
+
+        recreate a service that sets it on every state apply. On balenaEngine
+
+        v20.10 (API 1.41) this was observed as a kill/install cycle roughly
+        every
+
+        6 seconds with no backoff.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Shaun Mulligan <switchflip.shaun@gmail.com>
+        signed-off-by: Shaun Mulligan <switchflip.shaun@gmail.com>
+      author: Shaun Mulligan
+      nested: []
+    - subject: Add support for the compose runtime field
+      hash: 9e9e701aa9c5009b03de3fb534ebb6349c7672f0
+      body: |
+        Services can now select an alternate OCI runtime (e.g. nvidia) with the
+        compose runtime field, mapped to HostConfig.Runtime. When unset, no
+        runtime is passed and the engine applies its default.
+
+        The engine writes its default runtime name into containers created
+        without one. The supervisor reads that name once from the engine and
+        treats it as unset on both the target and the current state, so a
+        service without a runtime, or with the default runtime, is not recreated
+        on every apply.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Shaun Mulligan <switchflip.shaun@gmail.com>
+        signed-off-by: Shaun Mulligan <switchflip.shaun@gmail.com>
+      author: Shaun Mulligan
+      nested: []
+  version: 19.3.0
+  title: ""
+  date: 2026-09-29T09:21:29.888Z
+- commits:
     - subject: Allow custom configuration for Compulab EdgeAI Orin NX 16GB
       hash: 9ae436de4f67cf5597e19819a5a7c47e8b7715ca
       body: ""
