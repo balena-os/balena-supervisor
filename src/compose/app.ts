@@ -8,7 +8,7 @@ import { Service } from './service';
 import * as imageManager from './images';
 import { generateStep } from './composition-steps';
 import type * as targetStateCache from '../device-state/target-state-cache';
-import { getNetworkGateway } from '../lib/docker-utils';
+import { getNetworkGateway, getDefaultRuntime } from '../lib/docker-utils';
 import * as constants from '../lib/constants';
 import {
 	getStepsFromStrategy,
@@ -1032,7 +1032,7 @@ class AppImpl implements App {
 			return Network.fromComposeObject(name, app.appId, app.uuid, conf ?? {});
 		});
 
-		const [opts, supervisorApiHost, hostPathExists, hostname] =
+		const [opts, supervisorApiHost, hostPathExists, hostname, defaultRuntime] =
 			await Promise.all([
 				config.get('extendedEnvOptions'),
 				getNetworkGateway(constants.supervisorNetworkInterface).catch(
@@ -1047,6 +1047,7 @@ class AppImpl implements App {
 						(await config.get('hostname')) ??
 						(await fs.readFile('/etc/hostname', 'utf-8'))
 					).trim())(),
+				getDefaultRuntime(),
 			]);
 
 		const svcOpts = {
@@ -1054,6 +1055,7 @@ class AppImpl implements App {
 			supervisorApiHost,
 			hostPathExists,
 			hostname,
+			defaultRuntime,
 			...opts,
 		};
 

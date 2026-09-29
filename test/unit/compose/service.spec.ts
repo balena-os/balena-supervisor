@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import type { SinonSpy, SinonStub } from 'sinon';
+import type Dockerode from 'dockerode';
 import * as fs from 'node:fs';
 
 import { expect } from 'chai';
@@ -325,6 +326,82 @@ describe('compose/service: unit tests', () => {
 				appName: 'test',
 			} as any);
 			expect(svc3.config).to.not.have.property('init');
+		});
+
+		it('should support the runtime property', async () => {
+			const appConfigWithRuntime = (runtime?: string) => ({
+				appId: 123,
+				serviceId: 123,
+				serviceName: 'test',
+				composition: {
+					runtime,
+				},
+			});
+			const svc = await Service.fromComposeObject(
+				appConfigWithRuntime('nvidia'),
+				{ appName: 'test' } as any,
+			);
+			expect(svc.config).to.have.property('runtime').that.equals('nvidia');
+			expect(svc.toDockerContainer({ deviceName: 'foo' } as any).HostConfig)
+				.to.have.property('Runtime')
+				.that.equals('nvidia');
+
+			// Without a runtime the engine applies its default
+			const svc2 = await Service.fromComposeObject(appConfigWithRuntime(), {
+				appName: 'test',
+			} as any);
+			expect(svc2.config).to.not.have.property('runtime');
+			expect(
+				svc2.toDockerContainer({ deviceName: 'foo' } as any).HostConfig,
+			).to.have.property('Runtime').that.is.undefined;
+
+			// A runtime equal to the engine default is the same as unset
+			const svc3 = await Service.fromComposeObject(
+				appConfigWithRuntime('runc'),
+				{ appName: 'test', defaultRuntime: 'runc' } as any,
+			);
+			expect(svc3.config).to.not.have.property('runtime');
+			const svc4 = await Service.fromComposeObject(
+				appConfigWithRuntime('nvidia'),
+				{ appName: 'test', defaultRuntime: 'runc' } as any,
+			);
+			expect(svc4.config).to.have.property('runtime').that.equals('nvidia');
+		});
+
+		it('should support the annotations property', async () => {
+			const appConfigWithAnnotations = (value?: any) => ({
+				appId: 123,
+				serviceId: 123,
+				serviceName: 'test',
+				composition: {
+					annotations: value,
+				},
+			});
+			const annotations = { 'com.example.foo': 'bar' };
+			const svc = await Service.fromComposeObject(
+				appConfigWithAnnotations(annotations),
+				{ appName: 'test' } as any,
+			);
+			expect(svc.config)
+				.to.have.property('annotations')
+				.that.deep.equals(annotations);
+			expect(svc.toDockerContainer({ deviceName: 'foo' } as any).HostConfig)
+				.to.have.property('Annotations')
+				.that.deep.equals(annotations);
+
+			// Values are sent to the engine as strings
+			const svc2 = await Service.fromComposeObject(
+				appConfigWithAnnotations({ 'com.example.count': 1 }),
+				{ appName: 'test' } as any,
+			);
+			expect(svc2.config)
+				.to.have.property('annotations')
+				.that.deep.equals({ 'com.example.count': '1' });
+
+			const svc3 = await Service.fromComposeObject(appConfigWithAnnotations(), {
+				appName: 'test',
+			} as any);
+			expect(svc3.config).to.have.property('annotations').that.deep.equals({});
 		});
 
 		describe('Parsing memory strings from compose configuration', () => {
@@ -1028,7 +1105,10 @@ describe('compose/service: unit tests', () => {
 				configs.simple.compose,
 				configs.simple.imageInfo,
 			);
-			const dockerSvc = Service.fromDockerContainer(configs.simple.inspect);
+			const dockerSvc = Service.fromDockerContainer(
+				configs.simple.inspect,
+				'runc',
+			);
 
 			const composeConfig = omitConfigForComparison(composeSvc.config);
 			const dockerConfig = omitConfigForComparison(dockerSvc.config);
@@ -1042,7 +1122,10 @@ describe('compose/service: unit tests', () => {
 				configs.entrypoint.compose,
 				configs.entrypoint.imageInfo,
 			);
-			const dockerSvc = Service.fromDockerContainer(configs.entrypoint.inspect);
+			const dockerSvc = Service.fromDockerContainer(
+				configs.entrypoint.inspect,
+				'runc',
+			);
 
 			const composeConfig = omitConfigForComparison(composeSvc.config);
 			const dockerConfig = omitConfigForComparison(dockerSvc.config);
@@ -1056,13 +1139,88 @@ describe('compose/service: unit tests', () => {
 				configs.init.compose,
 				configs.init.imageInfo,
 			);
-			const dockerSvc = Service.fromDockerContainer(configs.init.inspect);
+			const dockerSvc = Service.fromDockerContainer(
+				configs.init.inspect,
+				'runc',
+			);
 
 			const composeConfig = omitConfigForComparison(composeSvc.config);
 			const dockerConfig = omitConfigForComparison(dockerSvc.config);
 			expect(composeConfig).to.deep.equal(dockerConfig);
 
 			expect(dockerSvc.isEqualConfig(composeSvc, {})).to.equals(true);
+		});
+
+		it('should correctly read the runtime and annotations from a container', () => {
+			const containerWithHostConfig = (hostConfig: Dockerode.HostConfig = {}) =>
+				createContainer({
+					Id: 'deadbeef',
+					Name: 'main_123_456_789',
+					HostConfig: hostConfig,
+					Config: {
+						Labels: {
+							'io.balena.app-id': '1011165',
+							'io.balena.service-id': '123',
+							'io.balena.service-name': 'main',
+							'io.balena.supervised': 'true',
+						},
+					},
+				}).inspectInfo;
+
+			const svc = Service.fromDockerContainer(
+				containerWithHostConfig({
+					Runtime: 'nvidia',
+					Annotations: { 'com.example.foo': 'bar' },
+				}),
+				'runc',
+			);
+			expect(svc.config).to.have.property('runtime').that.equals('nvidia');
+			expect(svc.config)
+				.to.have.property('annotations')
+				.that.deep.equals({ 'com.example.foo': 'bar' });
+
+			// The engine reports its default runtime on containers created
+			// without one; that is not an explicit runtime
+			const svc2 = Service.fromDockerContainer(
+				containerWithHostConfig({ Runtime: 'runc' }),
+				'runc',
+			);
+			expect(svc2.config).to.not.have.property('runtime');
+			expect(svc2.config).to.have.property('annotations').that.deep.equals({});
+
+			// Any runtime other than the engine default is explicit
+			const svc3 = Service.fromDockerContainer(
+				containerWithHostConfig({ Runtime: 'runc' }),
+				'nvidia',
+			);
+			expect(svc3.config).to.have.property('runtime').that.equals('runc');
+		});
+
+		it('should compare the runtime against the engine default', async () => {
+			const target = (runtime?: string) =>
+				Service.fromComposeObject(
+					{
+						...configs.simple.compose,
+						composition: { ...configs.simple.compose.composition, runtime },
+					},
+					{ ...configs.simple.imageInfo, defaultRuntime: 'runc' },
+				);
+			const current = (Runtime: string) =>
+				Service.fromDockerContainer(
+					{
+						...configs.simple.inspect,
+						HostConfig: { ...configs.simple.inspect.HostConfig, Runtime },
+					},
+					'runc',
+				);
+			expect(current('runc').isEqualConfig(await target(), {})).to.be.true;
+			expect(current('runc').isEqualConfig(await target('runc'), {})).to.be
+				.true;
+			expect(current('nvidia').isEqualConfig(await target('nvidia'), {})).to.be
+				.true;
+			expect(current('nvidia').isEqualConfig(await target(), {})).to.be.false;
+			expect(current('runc').isEqualConfig(await target('nvidia'), {})).to.be
+				.false;
 		});
 
 		describe('Networks', () => {
@@ -1203,6 +1361,7 @@ describe('compose/service: unit tests', () => {
 			);
 			const dockerSvc = Service.fromDockerContainer(
 				configs.networkModeService.inspect,
+				'runc',
 			);
 
 			const composeConfig = omitConfigForComparison(composeSvc.config);
@@ -1220,6 +1379,7 @@ describe('compose/service: unit tests', () => {
 			);
 			const dockerSvc = Service.fromDockerContainer(
 				configs.networkModeService.inspect,
+				'runc',
 			);
 
 			const composeConfig = omitConfigForComparison(composeSvc.config);
@@ -1665,7 +1825,7 @@ describe('compose/service: unit tests', () => {
 			inspect.HostConfig.Mounts = [
 				{ Type: 'bind', Source: '/tmp/c', Target: '/c', ReadOnly: true },
 			];
-			const current = Service.fromDockerContainer(inspect);
+			const current = Service.fromDockerContainer(inspect, 'runc');
 
 			expect(current.config.volumes).to.have.deep.members(
 				target.config.volumes,
