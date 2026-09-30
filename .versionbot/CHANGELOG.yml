@@ -1,4 +1,58 @@
 - commits:
+    - subject: Don't fail the state transition when a dead container is already gone
+      hash: 035673bdb63b81fff4502fb64329927d79b27145
+      body: >
+        The remove step for a dead container re-resolved it with get(), which
+
+        matches on configuration, and let the resulting 404 escape. Both ways of
+
+        missing were reachable: a container part way through removal has had its
+
+        network endpoints detached, so it stops matching the definition it was
+
+        read from, and one the Engine has finished removing is not there at all.
+
+        Steps are generated from a snapshot taken at the top of the apply loop
+
+        while kill steps remove containers in the background, so either can
+
+        happen between generating the step and running it.
+
+
+        The throw aborts the whole transition. For an intermediate apply that is
+
+        fatal rather than retried, so a restart request fails with
+
+          503 Failed to apply state transition steps. Could not find a container
+          matching this service definition Steps:["remove","noop",...,"kill",...]
+
+        leaving the app half torn down until the next apply picks it up. Every
+
+        other teardown path treats a missing container as the outcome it wanted;
+
+        killContainer says so where it handles 404.
+
+
+        Remove by the containerId the step already carries instead, which is the
+
+        dead container and nothing else, and treat 404 from the removal as
+
+        success. Force it, since a dead container is by definition one the
+        Engine
+
+        already failed to remove once, and while it exists it holds the
+        container
+
+        name the service would be recreated under.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Chase Busacker
+      nested: []
+  version: 19.3.1
+  title: ""
+  date: 2026-09-30T18:49:30.267Z
+- commits:
     - subject: Add support for the compose annotations field
       hash: a185f052d1aa81ca2f82bf7b89377227b44206cf
       body: >
