@@ -2,7 +2,7 @@ version: '2.3'
 
 # Common configuration for services using the helios image
 x-helios-service: &helios-service
-  image: ghcr.io/balena-io/helios:0.26.3
+  image: ghcr.io/balena-io/helios:build-d9beb496a52f450bff6c5a6091d032f74ab8244c
   restart: always
   # required to distinguish between stderr/stdout, the supervisor defaults to true
   tty: false
@@ -86,7 +86,7 @@ volumes:
   state:
     labels:
       # the database version, can be bumped to re-create the state
-      io.balena.private.db-version: 0
+      io.balena.private.db-version: '1'
   cache:
     labels:
       # the cache version, can be bumped to force re-creation of the volume
