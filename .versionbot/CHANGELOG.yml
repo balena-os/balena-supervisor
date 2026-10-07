@@ -1,4 +1,21 @@
 - commits:
+    - subject: Ensure supervisor0 interface is available before starting API
+      hash: 3aa0dc9b26a0b8e27834d5cb9a724e73692e000c
+      body: |
+        In override mode, the supervisor API listens on 10.114.104.1:48480,
+        which requires the supervisor0 network to be available. If that's not
+        the case, the API will fail to start with `EADDRNOTAVAIL`.
+
+        This ensures the interface exists before starting the API
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 19.3.2
+  title: ""
+  date: 2026-10-07T20:15:44.904Z
+- commits:
     - subject: Don't fail the state transition when a dead container is already gone
       hash: 035673bdb63b81fff4502fb64329927d79b27145
       body: >
