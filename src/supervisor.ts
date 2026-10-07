@@ -7,6 +7,7 @@ import * as logger from './logging';
 import SupervisorAPI from './device-api';
 import * as v1 from './device-api/v1';
 import * as v2 from './device-api/v2';
+import * as networkManager from './compose/network-manager';
 import logMonitor from './logging/monitor';
 
 import { initializeContractRequirements } from './lib/contracts';
@@ -83,6 +84,12 @@ export class Supervisor {
 		const listenAddr = conf.listenPortOverride
 			? constants.supervisorNetworkGateway
 			: undefined;
+
+		// The gateway address only exists once the supervisor network
+		// does, so it needs to be created before listening on it
+		if (listenAddr != null) {
+			await networkManager.ensureSupervisorNetwork();
+		}
 
 		// Start the state engine, the device API and API binder in parallel
 		await Promise.all([
