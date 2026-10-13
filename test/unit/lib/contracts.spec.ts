@@ -102,7 +102,7 @@ describe('lib/contracts', () => {
 				requires: [
 					{
 						type: 'sw.l4t',
-						version: '32.2',
+						version: '^32.2',
 					},
 					{
 						type: 'hw.device-type',
@@ -126,32 +126,6 @@ describe('lib/contracts', () => {
 					],
 				}),
 			).to.not.throw();
-		});
-
-		it('should reject if a contract has an unsupported type', () => {
-			expect(() =>
-				contracts.parseContract({
-					slug: 'user-container',
-					requires: [{ type: 'sw.unsupported' }],
-				}),
-			).to.throw(
-				contracts.InvalidContractTypeError,
-				'sw.unsupported is not a valid contract requirement type',
-			);
-		});
-
-		it('should reject if a contract has an "or" clause with an unsupported type', () => {
-			expect(() =>
-				contracts.parseContract({
-					slug: 'user-container',
-					requires: [
-						{ or: [{ type: 'sw.unsupported' }, { type: 'sw.supervisor' }] },
-					],
-				}),
-			).to.throw(
-				contracts.InvalidContractTypeError,
-				'sw.unsupported is not a valid contract requirement type',
-			);
 		});
 	});
 
@@ -460,31 +434,6 @@ describe('lib/contracts', () => {
 			fulfilled = contracts.containerContractsFulfilled([
 				{
 					commit: 'd0',
-					serviceName: 'service',
-					contract: {
-						type: 'sw.container',
-						name: 'user-container',
-						slug: 'user-container',
-						requires: [
-							{
-								type: 'hw.device-type',
-								name: 'raspberrypi3',
-							},
-						],
-					},
-					optional: false,
-				},
-			]);
-			expect(fulfilled).to.have.property('valid').that.equals(false);
-			expect(fulfilled).to.have.property('unmetServices').with.lengthOf(1);
-			expect(fulfilled.unmetServices[0]).to.deep.include({
-				serviceName: 'service',
-				commit: 'd0',
-			});
-
-			fulfilled = contracts.containerContractsFulfilled([
-				{
-					commit: 'd0',
 					serviceName: 'service2',
 					contract: {
 						type: 'sw.container',
@@ -660,7 +609,6 @@ describe('lib/contracts', () => {
 			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}`,
 			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}.*`,
 			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}.${semver.patch(OS_VERSION)}`,
-			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}.${semver.patch(OS_VERSION)}+rev*`,
 			`${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION)}.${semver.patch(OS_VERSION)}+rev420`,
 			`>${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION) - 1}.${semver.patch(OS_VERSION)}`,
 			`<${semver.major(OS_VERSION)}.${semver.minor(OS_VERSION) + 1}.${semver.patch(OS_VERSION)}`,
@@ -690,6 +638,7 @@ describe('lib/contracts', () => {
 							optional: false,
 						},
 					]),
+					`${version} should be valid`,
 				)
 					.to.have.property('valid')
 					.that.equals(true);

@@ -30,6 +30,7 @@
   },
   "private": true,
   "dependencies": {
+    "@balena/contrato": "^0.14.0-build-migrate-to-rust-18d5ac8c400cee12646220a5546e4e3a449656a2-1",
     "@balena/systemd": "^0.5.11",
     "async-mutex": "^0.5.0",
     "sqlite3": "^5.1.7"
@@ -40,7 +41,6 @@
   },
   "devDependencies": {
     "@balena/compose": "^7.4.0",
-    "@balena/contrato": "^0.13.0",
     "@balena/es-version": "^1.0.4",
     "@balena/lint": "^9.4.0",
     "@balena/sbvr-types": "^11.1.6",
