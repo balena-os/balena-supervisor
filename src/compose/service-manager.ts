@@ -663,7 +663,7 @@ async function prepareForHandover(service: Service) {
 	});
 }
 
-async function waitToKill(service: Service, timeout: number | string) {
+export async function waitToKill(service: Service, timeout: number | string) {
 	const pollInterval = 100;
 	timeout = checkInt(timeout, { positive: true }) ?? 60000;
 	const deadline = Date.now() + timeout;
@@ -674,12 +674,10 @@ async function waitToKill(service: Service, timeout: number | string) {
 		try {
 			await Promise.any(
 				handoverCompletePaths.map(async (file) => {
-					try {
-						await fs.stat(file);
-						await fs.unlink(file);
-					} catch {
-						// noop
-					}
+					// A missing file must reject, so that Promise.any keeps waiting
+					// until one of the paths appears or the timeout passes
+					await fs.stat(file);
+					await fs.unlink(file).catch(_.noop);
 				}),
 			);
 		} catch {
