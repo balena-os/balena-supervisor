@@ -2,7 +2,7 @@ ARG ARCH=%%BALENA_ARCH%%
 ARG FATRW_VERSION=0.2.21
 ARG NODE="nodejs~=22"
 ARG NPM="npm~=11"
-ARG ALPINE_VERSION="3.22"
+ARG ALPINE_VERSION="3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11"
 
 ###################################################
 # Build the supervisor dependencies
@@ -63,7 +63,7 @@ RUN /setup-journal.sh
 # Extra dependencies. This uses alpine 3.11 as the
 # procmail package was removed on 3.12
 ###################################################
-FROM alpine:3.11 AS extra
+FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11 AS extra
 
 RUN apk add --update --no-cache procmail
 
