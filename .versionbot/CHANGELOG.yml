@@ -1,4 +1,24 @@
 - commits:
+    - subject: Wait for the handover-complete signal before killing the old service
+      hash: 7a3c7f7cb265fdf7f1a4c0035d2298c8ec95931f
+      body: |
+        Since the conversion from Bluebird to native promises, each check in
+        waitToKill caught its own error, so a missing handover-complete file
+        counted as a fulfilled promise. Promise.any then resolved on the first
+        pass and the old container was killed right after the new one started,
+        ignoring both the signal and io.balena.update.handover-timeout.
+
+        A missing file rejects again, so the supervisor polls until one of the
+        paths appears or the timeout passes, as it did before.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Niels Vanmassenhove
+      nested: []
+  version: 19.3.3
+  title: ""
+  date: 2026-10-13T19:30:08.267Z
+- commits:
     - subject: Ensure supervisor0 interface is available before starting API
       hash: 3aa0dc9b26a0b8e27834d5cb9a724e73692e000c
       body: |
