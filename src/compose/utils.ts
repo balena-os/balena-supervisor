@@ -37,6 +37,12 @@ export function camelCaseConfig(
 		});
 	}
 
+	if (config.healthcheck != null && typeof config.healthcheck === 'object') {
+		config.healthcheck = _.mapKeys(config.healthcheck, (_v, k) =>
+			_.camelCase(k),
+		);
+	}
+
 	return config as ServiceComposeConfig;
 }
 
