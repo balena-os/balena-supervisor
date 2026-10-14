@@ -1,4 +1,20 @@
 - commits:
+    - subject: Camel case healthcheck keys when processing composition
+      hash: 11b10f889a2aac79cdb92d9ff8ac3f7343df5e3a
+      body: |
+        The camelCase conversion only recurses into networks, however that means
+        that `healthcheck.start_period` goes ignored. We now recurse into
+        healtcheck keys. This also adds some more coverage tests to the
+        conversion function.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 19.3.4
+  title: ""
+  date: 2026-10-14T06:36:40.989Z
+- commits:
     - subject: Wait for the handover-complete signal before killing the old service
       hash: 7a3c7f7cb265fdf7f1a4c0035d2298c8ec95931f
       body: |
