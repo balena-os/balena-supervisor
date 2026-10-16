@@ -1,7 +1,7 @@
 version: '2.3'
 
 x-helios-image: &helios-image
-  image: ghcr.io/balena-io/helios:0.26.3
+  image: ghcr.io/balena-io/helios:build-cb041cd598da86f6b3b8e7564690d671c7b70419-unstable
 
 services:
   # This service can only be named `main`, `balena-supervisor` or `core`
@@ -24,6 +24,7 @@ services:
   core-next:
     <<: *helios-image
     restart: always
+    network_mode: bridge
     # required to distinguish between stderr/stdout, the supervisor defaults to true
     tty: false
     labels:
@@ -80,7 +81,7 @@ volumes:
   state:
     labels:
       # the database version, can be bumped to re-create the state
-      io.balena.private.db-version: 0
+      io.balena.private.db-version: '1'
   cache:
     labels:
       # the cache version, can be bumped to force re-creation of the volume
