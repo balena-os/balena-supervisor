@@ -1,4 +1,31 @@
 - commits:
+    - subject: Use helios to v0.29.1
+      hash: dcc11805a3479582900c19f8ab5a7b562796253e
+      body: >
+        This brings helios support for hostapp-extensions and a new DNS resolver
+        to
+
+        improve service robusness on different network environments.
+      footer:
+        Change-type: major
+        change-type: major
+      author: Felipe Lalanne
+      nested: []
+    - subject: Restrict system services capabilities
+      hash: 98163bcae7789c844d86654e18be5139ab6e587a
+      body: |
+        System services should not write to the container layer or need any
+        special capabilities. This adds some extra configurations to limit their
+        exposure.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 20.0.0
+  title: ""
+  date: 2026-10-20T19:13:52.993Z
+- commits:
     - subject: Camel case healthcheck keys when processing composition
       hash: 11b10f889a2aac79cdb92d9ff8ac3f7343df5e3a
       body: |
