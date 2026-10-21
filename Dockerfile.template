@@ -27,7 +27,9 @@ RUN apk add --update --no-cache \
 	libuv \
 	sqlite-dev \
 	cargo \
-	rust
+	rust \
+	# eMudhra mitigation
+	'ca-certificates-bundle>=20261020-r0'
 
 COPY package*.json ./
 COPY ./build-utils/rust-arch.sh /
@@ -98,7 +100,8 @@ RUN apk add --update --no-cache \
 	sqlite-libs \
 	lsblk \
 	kmod \
-	device-mapper
+	# eMudhra mitigation
+	'ca-certificates-bundle>=20261020-r0'
 
 # Iptables should be pinned to 1.8.9 (legacy) as balenaOS still uses iptables-legacy
 RUN apk add --update --no-cache \
