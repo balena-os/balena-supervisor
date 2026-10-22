@@ -1,4 +1,21 @@
 - commits:
+    - subject: Restore device-mapper in supervisor runtime image
+      hash: 498b0836831a7284d3dbc3308920b45ee78672de
+      body: |
+        The eMudhra mitigation commit accidentally replaced the device-mapper
+        package instead of appending to the list, dropping dmsetup from the
+        image. On devices with encrypted partitions, mount-partitions.sh needs
+        dmsetup to resume the dm-crypt devices, so the supervisor failed to
+        start on v20.0.1.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+      nested: []
+  version: 20.0.2
+  title: ""
+  date: 2026-10-22T23:28:19.153Z
+- commits:
     - subject: Use patched ca-certificates for supervisor base image
       hash: db6949288d76b311c0d0246228879c7623b7f2d4
       body: |
