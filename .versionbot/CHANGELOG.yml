@@ -1,4 +1,36 @@
 - commits:
+    - subject: Use patched ca-certificates for supervisor base image
+      hash: db6949288d76b311c0d0246228879c7623b7f2d4
+      body: |
+        The supervisor's Node.js (Alpine build) uses `NODE_OPENSSL_CERT_STORE`
+        which means it uses the certificate bundle provided by the image. This
+        pins the `ca-certificates` bundle to the patched package removing the
+        eMudhra roots.
+
+        The build stage is pinned too, so that fetching dependencies during
+        the build uses the same bundle.
+
+        Note that this requires balenaOS v6.12.2 or above because previous OS
+        versions mounted `/etc/ssl/certs` on the container, meaning trust
+        depends on the OS.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Update helios to v0.29.5
+      hash: 2cd81ecaa05c5ea23ea5b6b9218b7082548dcc03
+      body: |
+        The update includes mitigation for the emudhra incident.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 20.0.1
+  title: ""
+  date: 2026-10-22T08:27:42.984Z
+- commits:
     - subject: Use helios to v0.29.1
       hash: dcc11805a3479582900c19f8ab5a7b562796253e
       body: >
