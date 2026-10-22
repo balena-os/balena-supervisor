@@ -110,11 +110,20 @@ RUN apk add --update --no-cache \
 	iptables~=1.8.9 \
 	ip6tables~=1.8.9
 
+# balenaOS < 6.12.2 would mount `/etc/ssl/certs` and `/usr/share/ca-certificates`
+# on the supervisor container, overriding the patched certificate. This copies the
+# certificates to a new directory and the code below points `SSL_CERT_FILE` and `SSL_CERT_DIR`
+# to the new location.
+RUN mkdir -p /usr/lib/balena-supervisor/ssl/certs && \
+	cp /etc/ssl/certs/ca-certificates.crt /usr/lib/balena-supervisor/ssl/ca-certificates.crt
+
 ARG ARCH
 ARG VERSION=master
 ENV LED_FILE=/dev/null \
 	SUPERVISOR_IMAGE=balena/$ARCH-supervisor \
-	VERSION=$VERSION
+	VERSION=$VERSION \
+	SSL_CERT_FILE=/usr/lib/balena-supervisor/ssl/ca-certificates.crt \
+	SSL_CERT_DIR=/usr/lib/balena-supervisor/ssl/certs
 
 ###############################################################
 # Use the base image to run integration tests and for livepush
