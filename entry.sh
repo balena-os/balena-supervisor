@@ -28,15 +28,11 @@ if [ ! -d "${DOCKER_LIB_PATH}" ]; then
 	ln -s "${DOCKER_ROOT}" "${DOCKER_LIB_PATH}"
 fi
 
-# Include self-signed CAs, should they exist
-if [ -n "${BALENA_ROOT_CA}" ]; then
-	if [ ! -e '/etc/ssl/certs/balenaRootCA.pem' ]; then
-		echo "${BALENA_ROOT_CA}" >/etc/ssl/certs/balenaRootCA.pem
-
-		# Include the balenaRootCA in the system store for services like Docker
-		mkdir -p /usr/local/share/ca-certificates
-		echo "${BALENA_ROOT_CA}" >/usr/local/share/ca-certificates/balenaRootCA.crt
-		update-ca-certificates
+# Include self-signed CAs, should they exist. This is skipped if the host
+# provides its own SSL_CERT_FILE
+if [ -n "${BALENA_ROOT_CA}" ] && [ "${SSL_CERT_FILE}" = '/usr/lib/balena-supervisor/ssl/ca-certificates.crt' ]; then
+	if ! grep -qF "${BALENA_ROOT_CA}" "${SSL_CERT_FILE}"; then
+		echo "${BALENA_ROOT_CA}" >>"${SSL_CERT_FILE}"
 	fi
 fi
 
