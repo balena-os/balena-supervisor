@@ -1,4 +1,25 @@
 - commits:
+    - subject: Use custom SSL_CERT_DIR to ensure emudhra patch is used
+      hash: a7b144f93dc4544c5b071a99bbb53155e0425a13
+      body: >
+        balenaOS < 6.12.2 mounts `/etc/ssl/certs` from the host into the
+
+        container, overriding the fixes introduced by the patched certificates.
+
+
+        The supervisor now configures a different path as `SSL_CERT_DIR`. The
+
+        env var can be overriden by the host, as seen on
+        balena-os/meta-balena#3963.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 20.0.3
+  title: ""
+  date: 2026-10-23T19:52:22.507Z
+- commits:
     - subject: Restore device-mapper in supervisor runtime image
       hash: 498b0836831a7284d3dbc3308920b45ee78672de
       body: |
