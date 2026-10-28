@@ -1333,6 +1333,66 @@ describe('compose/app', () => {
 			expectNoStep('handover', steps);
 		});
 
+		it('should take the update lock before handing over a service', async () => {
+			const handoverLabels = { 'io.balena.update.strategy': 'hand-over' };
+			const current = createApp({
+				services: [
+					await createService({
+						image: 'main-image',
+						appId: 1,
+						serviceName: 'main',
+						commit: 'old-release',
+						labels: handoverLabels,
+					}),
+				],
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services: [
+					await createService({
+						image: 'main-image-2',
+						appId: 1,
+						serviceName: 'main',
+						commit: 'new-release',
+						labels: handoverLabels,
+					}),
+				],
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+			const availableImages = [
+				createImage({
+					appId: 1,
+					name: 'main-image-2',
+					serviceName: 'main',
+					commit: 'new-release',
+				}),
+			];
+
+			// The handover kills the outgoing container, so the lock must be
+			// taken first
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, availableImages },
+				target,
+			);
+			const [takeLockStep] = expectSteps('takeLock', steps);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.equals(['main']);
+			expectNoStep('handover', steps);
+
+			// Infer the handover once the lock is taken
+			const steps2 = current.nextStepsForAppUpdate(
+				{ ...defaultContext, availableImages, lock: mockLock },
+				target,
+			);
+			const [handoverStep] = expectSteps('handover', steps2);
+			expect(handoverStep)
+				.to.have.property('current')
+				.to.deep.include({ serviceName: 'main', commit: 'old-release' });
+			expectNoStep('takeLock', steps2);
+		});
+
 		it('should emit a noop when a service which is no longer referenced is already stopping', async () => {
 			const current = createApp({
 				services: [
