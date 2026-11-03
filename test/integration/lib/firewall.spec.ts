@@ -532,7 +532,16 @@ describe('lib/firewall', function () {
 	});
 
 	describe('Supervisor API override access', () => {
+		let matchesPublishedPort: string[];
+
 		before(async () => {
+			matchesPublishedPort = [
+				'-m conntrack',
+				'--ctstate DNAT',
+				'--ctdir ORIGINAL',
+				`--ctorigdstport ${listenPort}`,
+			];
+
 			// override the API port
 			await db
 				.models('config')
@@ -605,7 +614,7 @@ describe('lib/firewall', function () {
 					const allowRuleIdx = expectRule({
 						chain: 'BALENA-SUPERVISOR',
 						proto: 'tcp',
-						matches: [`--dport ${listenPort}`, `-i resin-vpn`],
+						matches: [...matchesPublishedPort, `-i resin-vpn`],
 						target: 'ACCEPT',
 						family: 4,
 					});
@@ -613,7 +622,7 @@ describe('lib/firewall', function () {
 					// make sure we have a rule to block traffic on ANY interface also
 					const rejectRuleIdx = expectRule({
 						proto: 'tcp',
-						matches: [`--dport ${listenPort}`],
+						matches: matchesPublishedPort,
 						target: 'REJECT',
 						chain: 'BALENA-SUPERVISOR',
 						table: 'filter',
@@ -621,6 +630,31 @@ describe('lib/firewall', function () {
 					});
 
 					expect(allowRuleIdx).to.be.lessThan(rejectRuleIdx);
+
+					// make sure direct connections to the relay container are blocked
+					const rejectDirectIdx = expectRule({
+						proto: 'tcp',
+						matches: [
+							`-d ${constants.serviceRelayNetworkSubnet}`,
+							`--dport ${listenPort}`,
+						],
+						target: 'REJECT',
+						chain: 'BALENA-SUPERVISOR',
+						table: 'filter',
+						family: 4,
+					});
+
+					expect(allowRuleIdx).to.be.lessThan(rejectDirectIdx);
+
+					// outbound container traffic to the port should not be blocked
+					expectNoRule({
+						proto: 'tcp',
+						matches: [`--dport ${listenPort}`],
+						target: 'REJECT',
+						chain: 'BALENA-SUPERVISOR',
+						table: 'filter',
+						family: 4,
+					});
 				},
 			);
 		});
@@ -686,7 +720,7 @@ describe('lib/firewall', function () {
 					expectNoRule({
 						chain: 'BALENA-SUPERVISOR',
 						proto: 'tcp',
-						matches: [`--dport ${listenPort}`, `-i resin-vpn`],
+						matches: [...matchesPublishedPort, `-i resin-vpn`],
 						target: 'ACCEPT',
 						family: 4,
 					});
@@ -694,7 +728,19 @@ describe('lib/firewall', function () {
 					// make sure we have a rule to block traffic on ANY interface also
 					expectNoRule({
 						proto: 'tcp',
-						matches: [`--dport ${listenPort}`],
+						matches: matchesPublishedPort,
+						target: 'REJECT',
+						chain: 'BALENA-SUPERVISOR',
+						table: 'filter',
+						family: 4,
+					});
+
+					expectNoRule({
+						proto: 'tcp',
+						matches: [
+							`-d ${constants.serviceRelayNetworkSubnet}`,
+							`--dport ${listenPort}`,
+						],
 						target: 'REJECT',
 						chain: 'BALENA-SUPERVISOR',
 						table: 'filter',

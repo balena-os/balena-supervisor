@@ -86,20 +86,20 @@ const standardPolicy: iptables.Rule[] = [
 	},
 ];
 
-let supervisorAccessRules: iptables.Rule[] = [];
-function updateSupervisorAccessRules(
+let hostFirewallSupervisorRules: iptables.Rule[] = [];
+function updateHostFirewallSupervisorRules(
 	localMode: boolean,
 	interfaces: string[],
 	port: number,
 	overridePort?: number | null,
 ) {
-	supervisorAccessRules = [];
+	hostFirewallSupervisorRules = [];
 
 	// if there is an override port set, then just allow traffic on the supervisor0
 	// interface to the override port
 	if (overridePort != null) {
 		// Allow traffic on the override port on the supervisor0 interface
-		supervisorAccessRules.push({
+		hostFirewallSupervisorRules.push({
 			comment: 'Supervisor API',
 			action: iptables.RuleAction.Append,
 			proto: 'tcp',
@@ -117,7 +117,7 @@ function updateSupervisorAccessRules(
 			? [[]]
 			: interfaces.map((intf) => [`-i ${intf}`]);
 		for (const intf of matchesIntf) {
-			supervisorAccessRules.push({
+			hostFirewallSupervisorRules.push({
 				comment: 'Supervisor API',
 				action: iptables.RuleAction.Append,
 				proto: 'tcp',
@@ -128,7 +128,7 @@ function updateSupervisorAccessRules(
 	}
 
 	// now block access to the port for any interface, since the above should have allowed legitimate traffic...
-	supervisorAccessRules.push({
+	hostFirewallSupervisorRules.push({
 		comment: 'Supervisor API',
 		action: iptables.RuleAction.Append,
 		proto: 'tcp',
@@ -137,34 +137,55 @@ function updateSupervisorAccessRules(
 	});
 }
 
-let supervisorOverrideAccessRules: iptables.Rule[] = [];
-function updateSupervisorOverrideAccessRules(
+let dockerUserSupervisorRules: iptables.Rule[] = [];
+function updateDockerUserSupervisorRules(
 	localMode: boolean,
 	port: number,
 	overridePort?: number | null,
 ) {
-	supervisorOverrideAccessRules = [];
+	dockerUserSupervisorRules = [];
 
 	// if the override port is set, we assume the regular API port
 	// is controlled by the docker firewall, so we just need to add a
 	// couple of rules for backwards compatibility. This means
 	// allowing traffic only for the resin-vpn interface when in non local-mode
 	if (overridePort != null && !localMode) {
-		supervisorOverrideAccessRules.push({
+		// DOCKER-USER sees all forwarded traffic, including outbound traffic
+		// from containers, so only match connections that were DNATed from
+		// the published API port on the host
+		const matchesPublishedPort = [
+			'-m conntrack',
+			'--ctstate DNAT',
+			'--ctdir ORIGINAL',
+			`--ctorigdstport ${port}`,
+		];
+
+		dockerUserSupervisorRules.push({
 			comment: 'Supervisor API override',
 			action: iptables.RuleAction.Append,
 			proto: 'tcp',
-			matches: [`--dport ${port}`, `-i resin-vpn`],
+			matches: [...matchesPublishedPort, `-i resin-vpn`],
 			target: 'ACCEPT',
 			family: 4,
 		});
 
 		// block access to the port for anything else
-		supervisorOverrideAccessRules.push({
+		dockerUserSupervisorRules.push({
 			comment: 'Supervisor API override',
 			action: iptables.RuleAction.Append,
 			proto: 'tcp',
-			matches: [`--dport ${port}`],
+			matches: matchesPublishedPort,
+			target: 'REJECT',
+			family: 4,
+		});
+
+		// block connections routed directly to the relay container, bypassing
+		// the published port
+		dockerUserSupervisorRules.push({
+			comment: 'Supervisor API override',
+			action: iptables.RuleAction.Append,
+			proto: 'tcp',
+			matches: [`-d ${constants.serviceRelayNetworkSubnet}`, `--dport ${port}`],
 			target: 'REJECT',
 			family: 4,
 		});
@@ -197,7 +218,7 @@ async function applyFirewall(
 	};
 
 	// update the Supervisor API access rules...
-	updateSupervisorAccessRules(
+	updateHostFirewallSupervisorRules(
 		localMode,
 		constants.allowedInterfaces,
 		listenPort,
@@ -205,11 +226,7 @@ async function applyFirewall(
 	);
 
 	// update the Supervisor API override rules
-	updateSupervisorOverrideAccessRules(
-		localMode,
-		listenPort,
-		listenPortOverride,
-	);
+	updateDockerUserSupervisorRules(localMode, listenPort, listenPortOverride);
 
 	// apply the firewall rules...
 	await applyFirewallMode(firewallMode ?? '');
@@ -304,7 +321,7 @@ export const applyFirewallMode = async function applyFirewallMode(
 					.forChain(BALENA_FIREWALL_CHAIN, (chain) =>
 						chain
 							.addRule(prepareChain)
-							.addRule(supervisorAccessRules)
+							.addRule(hostFirewallSupervisorRules)
 							.addRule(standardServices)
 							.addRule(standardPolicy)
 							.addRule(returnIfOff)
@@ -327,7 +344,7 @@ export const applyFirewallMode = async function applyFirewallMode(
 						return chain;
 					})
 					.forChain(BALENA_SUPERVISOR_CHAIN, (chain) =>
-						chain.addRule(prepareChain).addRule(supervisorOverrideAccessRules),
+						chain.addRule(prepareChain).addRule(dockerUserSupervisorRules),
 					),
 			)
 			.apply(ruleAdaptor);
