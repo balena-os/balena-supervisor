@@ -1,4 +1,37 @@
 - commits:
+    - subject: Tolerate the same-name rename error instead of inspecting first
+      hash: 4037f07ff9a264c3910c45fdd6bb60f0c247f05a
+      body: |
+        Rename unconditionally and ignore the Engine's 400 for a rename to the
+        current name, which saves an inspect call on every handover. The tests
+        now take the container names from toDockerContainer, so they follow the
+        naming scheme.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Niels Vanmassenhove
+      nested: []
+    - subject: Skip the handover rename when the container already has the old name
+      hash: 88cce5e278bab79f27c7ddfb63e5383c8f117f47
+      body: |
+        prepareForHandover renames the running container to
+        `old_<service>_<imageId>_<releaseId>_<commit>` before starting the
+        target. If anything after the rename fails, the next attempt renames the
+        same container again, and the Engine rejects that with a 400 ("Renaming
+        a container with the same name as its current name"). The handover step
+        then fails on every retry and the device never reaches its target
+        release.
+
+        Inspect the container first and only rename it when its name differs.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Niels Vanmassenhove
+      nested: []
+  version: 20.0.4
+  title: ""
+  date: 2026-11-03T00:37:29.416Z
+- commits:
     - subject: Use custom SSL_CERT_DIR to ensure emudhra patch is used
       hash: a7b144f93dc4544c5b071a99bbb53155e0425a13
       body: >
