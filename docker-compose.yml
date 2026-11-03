@@ -2,7 +2,7 @@ version: "2.3"
 
 # Common configuration for services using the helios image
 x-helios-service: &helios-service
-  image: ghcr.io/balena-io/helios:0.29.13
+  image: ghcr.io/balena-io/helios:build-fafe6d24e52a122feb841d609dc68c6505911462 # testing PR #197
   restart: always
   # required to distinguish between stderr/stdout, the supervisor defaults to true
   tty: false
