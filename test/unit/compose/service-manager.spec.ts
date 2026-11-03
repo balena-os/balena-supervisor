@@ -5,6 +5,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 import * as serviceManager from '~/src/compose/service-manager';
+import type { Service } from '~/src/compose/service';
 import * as logger from '~/src/logging';
 import { createService } from '~/test-lib/state-helper';
 import { createContainer, withMockerode } from '~/test-lib/mockerode';
@@ -119,6 +120,109 @@ describe('compose/service-manager', () => {
 
 				await expect(serviceManager.remove(service)).to.be.rejected;
 			});
+		});
+	});
+
+	describe('preparing a handover', () => {
+		const toDockerContainer = (service: Service) =>
+			service.toDockerContainer({ deviceName: 'foo', containerIds: {} });
+
+		// The name the supervisor creates the service's container with
+		const containerName = (service: Service) =>
+			toDockerContainer(service).name!;
+
+		// The name the handover gives the old container
+		const oldName = (service: Service) => `old_${containerName(service)}`;
+
+		// The container the supervisor would have created for the service, under
+		// the given name
+		const createServiceContainer = (service: Service, Name: string) => {
+			const { HostConfig, NetworkingConfig, ...Config } =
+				toDockerContainer(service);
+			return createContainer({
+				Id: 'deadbeef',
+				Name,
+				HostConfig,
+				Config,
+				NetworkSettings: { Networks: NetworkingConfig?.EndpointsConfig ?? {} },
+			});
+		};
+
+		const handover = async (name: (current: Service) => string) => {
+			// Set every device variable the container environment carries, so the
+			// container reads back as the service it was created from
+			const current = await createService(
+				{},
+				{
+					state: { containerId: 'deadbeef' },
+					options: {
+						appName: 'app',
+						uuid: 'deviceuuid',
+						deviceType: 'raspberrypi4-64',
+						deviceArch: 'aarch64',
+						osVersion: 'balenaOS 6.0.0',
+					},
+				},
+			);
+			const target = await createService({ commit: 'target-commit' });
+			const container = createServiceContainer(current, name(current));
+			const update = sinon.stub().resolves();
+			// The Engine refuses to rename a container to the name it already has
+			const rename = sinon
+				.stub()
+				.callsFake(({ name: newName }) =>
+					container.inspectInfo.Name.replace(/^\//, '') === newName
+						? Promise.reject(
+								Object.assign(
+									new Error(
+										'Renaming a container with the same name as its current name',
+									),
+									{ statusCode: 400 },
+								),
+							)
+						: Promise.resolve(),
+				);
+
+			let error: unknown;
+			await withMockerode(
+				async (mockerode) => {
+					mockerode.info.resolves({ DefaultRuntime: 'runc' } as any);
+					mockerode.getContainer.returns({
+						...container,
+						update,
+						rename,
+					} as any);
+
+					// Starting the target is not under test, and fails against the mock
+					error = await serviceManager.handover(current, target).then(
+						() => undefined,
+						(e: unknown) => e,
+					);
+				},
+				{ containers: [container] },
+			);
+
+			return { current, update, rename, error };
+		};
+
+		const isSameNameError = (e: unknown) =>
+			e instanceof Error && /same name/i.test(e.message);
+
+		it('stops the old container from restarting and renames it', async () => {
+			const { current, update, rename } = await handover(containerName);
+
+			expect(update).to.have.been.calledWith({ RestartPolicy: {} });
+			expect(rename).to.have.been.calledOnceWith({ name: oldName(current) });
+		});
+
+		// A handover that fails after the rename is retried against a container
+		// that already carries the old_ name
+		it('continues past a container that an earlier attempt already renamed', async () => {
+			const { current, update, rename, error } = await handover(oldName);
+
+			expect(update).to.have.been.calledWith({ RestartPolicy: {} });
+			expect(rename).to.have.been.calledOnceWith({ name: oldName(current) });
+			expect(isSameNameError(error)).to.be.false;
 		});
 	});
 

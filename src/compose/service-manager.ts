@@ -15,6 +15,7 @@ import * as constants from '../lib/constants';
 import type { StatusCodeError } from '../lib/errors';
 import {
 	InternalInconsistencyError,
+	isBadRequestError,
 	isNotFoundError,
 	isStatusError,
 } from '../lib/errors';
@@ -658,9 +659,19 @@ async function prepareForHandover(service: Service) {
 	}
 	const container = docker.getContainer(svc.containerId);
 	await container.update({ RestartPolicy: {} });
-	return await container.rename({
-		name: `old_${service.serviceName}_${service.imageId}_${service.releaseId}_${service.commit}`,
-	});
+
+	// A handover that failed after this point is retried against a container
+	// that already carries the old name, and the Engine refuses to rename a
+	// container to its current name
+	try {
+		await container.rename({
+			name: `old_${service.serviceName}_${service.imageId}_${service.releaseId}_${service.commit}`,
+		});
+	} catch (e) {
+		if (!isBadRequestError(e) || !/same name/i.test(e.message)) {
+			throw e;
+		}
+	}
 }
 
 export async function waitToKill(service: Service, timeout: number | string) {
