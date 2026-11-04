@@ -91,6 +91,13 @@ export function getStepsFromStrategy(
 					context.appsToLock,
 				);
 			} else if (context.dependenciesMetForStart && context.target) {
+				// The handover kills the current container, so take the lock first
+				if (!context.servicesLocked) {
+					for (const svc of context.services) {
+						context.appsToLock[svc.appId].add(svc.serviceName);
+					}
+					return [];
+				}
 				return [
 					generateStep('handover', {
 						current: context.current,
