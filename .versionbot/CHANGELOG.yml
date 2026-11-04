@@ -1,4 +1,23 @@
 - commits:
+    - subject: "firewall: only filter DNATed and direct traffic to the relay port"
+      hash: 32b7429fb282e9904a361e1fb7bef36accd1fc7c
+      body: |
+        The DOCKER-USER rules added in v18 rejected any forwarded packet with
+        destination port 48484, which blocked containers from connecting to
+        port 48484 on external hosts. Match only connections DNATed from the
+        published API port, and block direct connections to the
+        service-relay network.
+
+        Also rename the rule builders after the chain they target.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 20.0.6
+  title: ""
+  date: 2026-11-04T22:20:07.836Z
+- commits:
     - subject: Take the update lock before a hand-over
       hash: cc2d22e2e2c940e5ebeffdb218de2adb9f320e76
       body: |
