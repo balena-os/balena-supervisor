@@ -73,6 +73,9 @@ const constants = {
 	backoffIncrement: 500,
 	supervisorNetworkSubnet: '10.114.104.0/25',
 	supervisorNetworkGateway: '10.114.104.1',
+	// Subnet of the default network in docker-compose.yml, where the
+	// service-relay container runs. Both need to be kept in sync
+	serviceRelayNetworkSubnet: '10.114.105.0/25',
 	// How much of a jitter we can add to our api polling
 	// (this number is used as an upper bound when generating
 	// a random jitter)
