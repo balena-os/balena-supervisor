@@ -1,4 +1,24 @@
 - commits:
+    - subject: Take the update lock before a hand-over
+      hash: cc2d22e2e2c940e5ebeffdb218de2adb9f320e76
+      body: |
+        The hand-over strategy started the incoming container and then killed
+        the outgoing one without taking the update lock. A service holding the
+        lock was killed anyway, although the docs state that every update
+        strategy honors update locks, and the handover step executor assumes a
+        takeLock step precedes it.
+
+        Request the lock for the app's services before inferring a handover
+        step, as the other strategies do before a kill.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Niels Vanmassenhove
+      nested: []
+  version: 20.0.5
+  title: ""
+  date: 2026-11-04T19:16:20.593Z
+- commits:
     - subject: Tolerate the same-name rename error instead of inspecting first
       hash: 4037f07ff9a264c3910c45fdd6bb60f0c247f05a
       body: |
