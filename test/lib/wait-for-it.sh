@@ -79,11 +79,19 @@ abort_if_not_ready() {
 	exit 1
 }
 
+abort_if_stopped() {
+	echo "Interrupted from external signal" >&2
+	kill "$timer_pid"
+	exit 1
+}
+
 # Trap the signal and start the timer if user timeout is greater than 0
 if [ "$timeout" -gt 0 ]; then
 	trap 'abort_if_not_ready' USR2
 	set_abort_timer "$timeout" $$ &
 	timer_pid=$!
+	# Fail if a signal stops the script
+	trap 'abort_if_stopped' INT TERM
 fi
 
 # Wait for docker
