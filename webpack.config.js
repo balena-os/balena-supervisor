@@ -22,6 +22,7 @@ const externalModules = [
 	/mssql\/.*/,
 	'osx-temperature-sensor',
 	'@balena/systemd',
+	'@balena/contrato',
 ];
 
 let requiredModules = [];
