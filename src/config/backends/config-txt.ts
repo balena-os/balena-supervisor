@@ -103,6 +103,7 @@ export class ConfigTxt extends ConfigBackend {
 				'revpi-connect-s',
 				'revpi-core-3',
 				'revpi-connect-4',
+				'iotg-rpi5',
 			].includes(deviceType) || deviceType.startsWith('raspberry')
 		);
 	}
