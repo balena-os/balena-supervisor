@@ -1,4 +1,20 @@
 - commits:
+    - subject: Add IOT-GATE-RPI5 to RPi variants
+      hash: 326c692734d45fa2f09566061ac650cafe4f664a
+      body: |
+        So the supervisor can manage config.txt
+        settings on the Compulab IOT-GATE-RPI5.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 20.0.7
+  title: ""
+  date: 2026-11-09T19:18:12.751Z
+- commits:
     - subject: "firewall: only filter DNATed and direct traffic to the relay port"
       hash: 32b7429fb282e9904a361e1fb7bef36accd1fc7c
       body: |
