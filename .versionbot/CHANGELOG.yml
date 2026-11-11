@@ -1,4 +1,27 @@
 - commits:
+    - subject: Update helios to v0.29.13
+      hash: cb7ef34f61d07560434c247ecf4189a7178703fa
+      body: |
+        The new version fixes an issue with downloads restarting when the poll
+        re-sets. This happens because helios provides the target state to the
+        supervisor but it always returns a 2xx status, which tells the
+        supervisor the target state has changed and aborts any running
+        downloads.
+
+        The new version of helios provides an ETag header and returns
+        304 if the target has not changed since the last request, better
+        mirroring the behavior of the API.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Depends-on: balena-io/helios#193
+        depends-on: balena-io/helios#193
+      author: Felipe Lalanne
+      nested: []
+  version: 20.0.8
+  title: ""
+  date: 2026-11-11T23:03:19.652Z
+- commits:
     - subject: Add IOT-GATE-RPI5 to RPi variants
       hash: 326c692734d45fa2f09566061ac650cafe4f664a
       body: |
