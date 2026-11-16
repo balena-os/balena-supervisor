@@ -1,4 +1,18 @@
 - commits:
+    - subject: Fix force placement in host-config API docs
+      hash: a004d949410090a7a4bc35d5c3392aa8953f3af2
+      body: |
+        The force field is read from the top level of the request body,
+        not from under network.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+      nested: []
+  version: 20.0.9
+  title: ""
+  date: 2026-11-16T21:39:35.472Z
+- commits:
     - subject: Update helios to v0.29.13
       hash: cb7ef34f61d07560434c247ecf4189a7178703fa
       body: |
