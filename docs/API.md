@@ -572,9 +572,9 @@ By default, with [balenaOS 2.82.6](https://github.com/balena-os/meta-balena/blob
 			"noProxy": [ "152.10.30.4", "253.1.1.0/16" ],
 			"dns": "1.1.1.1:53"
 		},
-		"hostname": "mynewhostname",
-		"force": true
-	}
+		"hostname": "mynewhostname"
+	},
+	"force": true
 }
 ```
 
