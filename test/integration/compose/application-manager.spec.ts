@@ -2749,6 +2749,45 @@ describe('compose/application-manager', () => {
 			const [releaseLockStep] = expectSteps('releaseLock', steps, 1, 1);
 			expect(releaseLockStep).to.have.property('appId').that.equals(1);
 		});
+
+		it('should release locks for an app that has been fully removed', async () => {
+			// App 1 was removed from the target (e.g. the device moved to another
+			// fleet) and all its components are gone, so it no longer appears in
+			// the current state, but the lock taken to kill its services is still held
+			const targetApps = createApps(
+				{
+					services: [await createService({ appId: 2, serviceName: 'main' })],
+					networks: [Network.fromComposeObject('default', 2, 'deadbeef', {})],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [await createService({ appId: 2, serviceName: 'main' })],
+					networks: [Network.fromComposeObject('default', 2, 'deadbeef', {})],
+				});
+			expect(currentApps).to.not.have.property('1');
+
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					appLocks: {
+						'1': {
+							async unlock() {
+								/* noop */
+							},
+						},
+					},
+					abortSignal: new AbortController().signal,
+				},
+			);
+			const [releaseLockStep] = expectSteps('releaseLock', steps, 1, 1);
+			expect(releaseLockStep).to.have.property('appId').that.equals(1);
+		});
 	});
 
 	describe("getting application's current state", () => {

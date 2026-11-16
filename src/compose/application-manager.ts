@@ -291,6 +291,23 @@ export async function inferNextSteps(
 				);
 			}
 
+			// An app is dropped from the current state once all its components
+			// are gone, before stepsToRemoveApp can infer its releaseLock step.
+			// Release any lock still held for an app that is in neither state
+			const removedAppIds = Object.keys(appLocks)
+				.map((i) => parseInt(i, 10))
+				.filter(
+					(id) => !currentAppIds.includes(id) && !targetAppIds.includes(id),
+				);
+			for (const id of removedAppIds) {
+				steps.push(
+					generateStep('releaseLock', {
+						appId: id,
+						lock: appLocks[id],
+					}),
+				);
+			}
+
 			// For apps in the target state but not the current state, we generate steps to
 			// create the app by mocking an existing app which contains nothing
 			for (const id of onlyTarget) {
