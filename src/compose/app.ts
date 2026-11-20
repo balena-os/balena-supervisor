@@ -237,11 +237,6 @@ class AppImpl implements App {
 					: generateStep('kill', { current: service }),
 			);
 		}
-		if (Object.keys(this.networks).length > 0) {
-			return Object.values(this.networks).map((network) =>
-				generateStep('removeNetwork', { current: network }),
-			);
-		}
 		// Don't remove volumes in local mode
 		if (!state.keepVolumes) {
 			if (Object.keys(this.volumes).length > 0) {
@@ -259,6 +254,14 @@ class AppImpl implements App {
 					lock: state.lock,
 				}),
 			];
+		}
+
+		// Network removal doesn't need locks, since all services have already been stopped
+		// this also makes sure that locks are cleaned up before fully removing the app.
+		if (Object.keys(this.networks).length > 0) {
+			return Object.values(this.networks).map((network) =>
+				generateStep('removeNetwork', { current: network }),
+			);
 		}
 
 		return [];

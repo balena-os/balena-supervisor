@@ -2738,5 +2738,120 @@ describe('compose/app', () => {
 			const [releaseLockStep] = expectSteps('releaseLock', steps, 1);
 			expect(releaseLockStep).to.have.property('appId').that.equals(1);
 		});
+
+		it('should infer a releaseLock step before removing networks when removing an app', () => {
+			const current = createApp({
+				services: [],
+				networks: [DEFAULT_NETWORK],
+			});
+
+			const steps = current.stepsToRemoveApp({
+				...defaultContext,
+				lock: mockLock,
+			});
+			const [releaseLockStep] = expectSteps('releaseLock', steps, 1);
+			expect(releaseLockStep).to.have.property('appId').that.equals(1);
+			expectNoStep('removeNetwork', steps);
+		});
+
+		it('should infer a releaseLock step for leftover locks before removing networks when removing an app', () => {
+			const current = createApp({
+				services: [],
+				networks: [DEFAULT_NETWORK],
+			});
+
+			const steps = current.stepsToRemoveApp({
+				...defaultContext,
+				hasLeftoverLocks: true,
+			});
+			const [releaseLockStep] = expectSteps('releaseLock', steps, 1);
+			expect(releaseLockStep).to.have.property('appId').that.equals(1);
+			expect(releaseLockStep).to.have.property('lock').that.is.null;
+			expectNoStep('removeNetwork', steps);
+		});
+
+		it('should remove volumes before releasing locks when removing an app', () => {
+			const current = createApp({
+				services: [],
+				networks: [DEFAULT_NETWORK],
+				volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
+			});
+
+			const steps = current.stepsToRemoveApp({
+				...defaultContext,
+				lock: mockLock,
+			});
+			expectSteps('removeVolume', steps, 1);
+			expectNoStep('releaseLock', steps);
+			expectNoStep('removeNetwork', steps);
+		});
+
+		it('should release locks without removing volumes when removing an app with keepVolumes', () => {
+			const current = createApp({
+				services: [],
+				networks: [DEFAULT_NETWORK],
+				volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
+			});
+
+			const steps = current.stepsToRemoveApp({
+				...defaultContext,
+				keepVolumes: true,
+				lock: mockLock,
+			});
+			expectSteps('releaseLock', steps, 1);
+			expectNoStep('removeVolume', steps);
+			expectNoStep('removeNetwork', steps);
+		});
+
+		it('should remove networks once there are no locks left when removing an app', () => {
+			const current = createApp({
+				services: [],
+				networks: [DEFAULT_NETWORK],
+			});
+
+			const steps = current.stepsToRemoveApp(defaultContext);
+			expectSteps('removeNetwork', steps, 1);
+			expectNoStep('releaseLock', steps);
+		});
+
+		it('should take locks, kill services, release locks and then remove networks when removing an app', async () => {
+			const services = [
+				await createService({ serviceName: 'server' }),
+				await createService({ serviceName: 'client' }),
+			];
+
+			// takeLock
+			const current = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+			});
+			const steps = current.stepsToRemoveApp(defaultContext);
+			expectSteps('takeLock', steps, 1);
+
+			// kill
+			const steps2 = current.stepsToRemoveApp({
+				...defaultContext,
+				lock: mockLock,
+			});
+			expectSteps('kill', steps2, 2);
+			expectNoStep('releaseLock', steps2);
+			expectNoStep('removeNetwork', steps2);
+
+			// releaseLock while the app network still exists
+			const intermediate = createApp({
+				services: [],
+				networks: [DEFAULT_NETWORK],
+			});
+			const steps3 = intermediate.stepsToRemoveApp({
+				...defaultContext,
+				lock: mockLock,
+			});
+			expectSteps('releaseLock', steps3, 1);
+			expectNoStep('removeNetwork', steps3);
+
+			// removeNetwork after locks are released
+			const steps4 = intermediate.stepsToRemoveApp(defaultContext);
+			expectSteps('removeNetwork', steps4, 1);
+		});
 	});
 });
