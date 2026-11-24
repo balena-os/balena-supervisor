@@ -1,5 +1,7 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import * as path from 'path';
+import { testfs } from 'mocha-pod';
 import Docker from 'dockerode';
 import * as applicationManager from '~/src/compose/application-manager';
 import * as imageManager from '~/src/compose/images';
@@ -19,6 +21,9 @@ import {
 	expectNoStep,
 } from '~/test-lib/state-helper';
 import type { InstancedAppState } from '~/src/compose/types';
+import type { CompositionStep } from '~/src/compose/composition-steps';
+import * as updateLock from '~/lib/update-lock';
+import { pathOnRoot } from '~/lib/host-utils';
 import * as extraFirmware from '~/lib/extra-firmware';
 import * as testDb from '~/src/db';
 import * as dbFormat from '~/src/device-state/db-format';
@@ -2748,6 +2753,173 @@ describe('compose/application-manager', () => {
 			);
 			const [releaseLockStep] = expectSteps('releaseLock', steps, 1, 1);
 			expect(releaseLockStep).to.have.property('appId').that.equals(1);
+		});
+
+		it('should release locks before removing networks when moving to a different app', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({
+							serviceName: 'main',
+							appId: 2,
+							appUuid: 'app-two',
+						}),
+					],
+					networks: [Network.fromComposeObject('default', 2, 'app-two', {})],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [
+						await createService({
+							serviceName: 'main',
+							appId: 1,
+							appUuid: 'app-one',
+						}),
+					],
+					networks: [Network.fromComposeObject('default', 1, 'app-one', {})],
+					images: [],
+				});
+			const mockLocks = {
+				'1': {
+					async unlock() {
+						/* noop */
+					},
+				},
+			};
+			const stepsForApp1 = (allSteps: CompositionStep[]) =>
+				allSteps.filter(
+					(s: any) =>
+						s.appId === 1 || s.current?.appId === 1 || s.target?.appId === 1,
+				);
+
+			// takeLock
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+				},
+			);
+			const [takeLockStep] = expectSteps('takeLock', stepsForApp1(steps));
+			expect(takeLockStep).to.have.property('appId').that.equals(1);
+
+			// kill
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					appLocks: mockLocks,
+					abortSignal: new AbortController().signal,
+				},
+			);
+			expectSteps('kill', stepsForApp1(steps2));
+			expectNoStep('removeNetwork', steps2);
+
+			// releaseLock while the app network still exists
+			const intermediateCurrent = createCurrentState({
+				services: [],
+				networks: [Network.fromComposeObject('default', 1, 'app-one', {})],
+				images: [],
+			});
+			const steps3 = await applicationManager.inferNextSteps(
+				intermediateCurrent.currentApps,
+				targetApps,
+				{
+					downloading: intermediateCurrent.downloading,
+					availableImages: intermediateCurrent.availableImages,
+					containerIdsByAppId: intermediateCurrent.containerIdsByAppId,
+					appLocks: mockLocks,
+					abortSignal: new AbortController().signal,
+				},
+			);
+			const [releaseLockStep] = expectSteps('releaseLock', steps3);
+			expect(releaseLockStep).to.have.property('appId').that.equals(1);
+			expectNoStep('removeNetwork', steps3);
+
+			// removeNetwork once locks are released
+			const steps4 = await applicationManager.inferNextSteps(
+				intermediateCurrent.currentApps,
+				targetApps,
+				{
+					downloading: intermediateCurrent.downloading,
+					availableImages: intermediateCurrent.availableImages,
+					containerIdsByAppId: intermediateCurrent.containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+				},
+			);
+			const [removeNetworkStep] = expectSteps('removeNetwork', steps4);
+			expect(removeNetworkStep)
+				.to.have.property('current')
+				.that.deep.includes({ appId: 1 });
+			expectNoStep('releaseLock', steps4);
+		});
+
+		it('should release leftover locks before removing networks when moving to a different app', async () => {
+			const targetApps = createApps(
+				{
+					services: [
+						await createService({
+							serviceName: 'main',
+							appId: 2,
+							appUuid: 'app-two',
+						}),
+					],
+					networks: [Network.fromComposeObject('default', 2, 'app-two', {})],
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: [],
+					networks: [Network.fromComposeObject('default', 1, 'app-one', {})],
+					images: [],
+				});
+
+			// Leftover supervisor-owned lock for the removed app
+			const tmp = await testfs({
+				[path.join(pathOnRoot(updateLock.lockPath(1, 'main')), 'updates.lock')]:
+					testfs.file({ uid: updateLock.LOCKFILE_UID }),
+			}).enable();
+
+			try {
+				const steps = await applicationManager.inferNextSteps(
+					currentApps,
+					targetApps,
+					{
+						downloading,
+						availableImages,
+						containerIdsByAppId,
+						abortSignal: new AbortController().signal,
+					},
+				);
+				const [releaseLockStep] = expectSteps('releaseLock', steps);
+				expect(releaseLockStep).to.have.property('appId').that.equals(1);
+				expectNoStep('removeNetwork', steps);
+			} finally {
+				await tmp.restore();
+			}
+
+			// removeNetwork once leftover locks are gone
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+					abortSignal: new AbortController().signal,
+				},
+			);
+			expectSteps('removeNetwork', steps2);
+			expectNoStep('releaseLock', steps2);
 		});
 	});
 
