@@ -654,15 +654,11 @@ function hasSameDigest(
 }
 
 async function removeImageIfNotNeeded(image: Image): Promise<void> {
-	let removed: boolean;
+	let removed = false;
 
 	// We first fetch the image from the DB to ensure it exists,
 	// and get the dockerImageId and any other missing fields
 	const images: Image[] = await db.models('image').select().where(image);
-
-	if (images.length === 0) {
-		removed = false;
-	}
 
 	const img = images[0];
 	try {
@@ -693,11 +689,25 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 		// This random delay tries to prevent that
 		await setTimeout(Math.random() * 100);
 
+		// Remove a reference from the engine. A reference that no longer
+		// exists (e.g. removed concurrently) must not prevent the removal of
+		// the remaining references, otherwise they would be left on the engine
+		// without a database entry and never be cleaned up
+		const removeReference = async (ref: string) => {
+			try {
+				await docker.getImage(ref).remove();
+				removed = true;
+			} catch (e: unknown) {
+				if (!isNotFoundError(e)) {
+					throw e;
+				}
+			}
+		};
+
 		// Remove all matching tags in sequence
 		// as removing in parallel causes some engine weirdness (see above)
-		// this stops on the first error
 		for (const tag of tags) {
-			await docker.getImage(tag).remove();
+			await removeReference(tag);
 		}
 
 		// Check for any remaining digests.
@@ -710,16 +720,7 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 
 		// Remove all remaining digests
 		for (const digest of digests) {
-			await docker.getImage(digest).remove();
-		}
-
-		// Mark the image as removed
-		removed = true;
-	} catch (e: unknown) {
-		if (isNotFoundError(e)) {
-			removed = false;
-		} else {
-			throw e;
+			await removeReference(digest);
 		}
 	} finally {
 		reportEvent('finish', image);
