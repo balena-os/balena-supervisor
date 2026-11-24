@@ -1,4 +1,30 @@
 - commits:
+    - subject: Remove locks before fully deleting the app
+      hash: 1a207c5470a029b20ea7067332408974b40cc17d
+      body: >
+        The `stepsToRemoveApp` now removes locks before networks. This is safe
+
+        to do since containers have already been removed by this point. Before
+        this change,
+
+        once networks were removed, the `removeLocks` step would never run,
+
+        since from the point of view of the supervisor the app already has been
+
+        uninstalled. These leftover locks could affect an OS update, since the
+
+        OS scans the full locks directory before reboot.
+      footer:
+        See: https://balena.zendesk.com/agent/tickets/6923
+        see: https://balena.zendesk.com/agent/tickets/6923
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 20.0.10
+  title: ""
+  date: 2026-11-24T21:02:16.176Z
+- commits:
     - subject: Fix force placement in host-config API docs
       hash: a004d949410090a7a4bc35d5c3392aa8953f3af2
       body: |
