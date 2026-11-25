@@ -1054,6 +1054,114 @@ describe('compose/service: unit tests', () => {
 			});
 		});
 
+		describe('io.balena.features.ca-certificates', () => {
+			const caMounts = [
+				{
+					type: 'bind',
+					source: '/etc/ssl/certs',
+					target: '/host/ssl/certs',
+					readOnly: true,
+					bind: { propagation: 'rslave' },
+				},
+				{
+					type: 'bind',
+					source: '/usr/share/ca-certificates',
+					target: '/usr/share/ca-certificates',
+					readOnly: true,
+					bind: { propagation: 'rslave' },
+				},
+				{
+					type: 'bind',
+					source: '/etc/ca-certificates.conf',
+					target: '/host/ca-certificates.conf',
+					readOnly: true,
+				},
+			];
+
+			it('should mount the host CA certificates and override SSL_CERT_* variables when the feature is set', async () => {
+				const s = await Service.fromComposeObject(
+					{
+						appId: 123,
+						serviceId: 123,
+						serviceName: 'test',
+						labels: {
+							'io.balena.features.ca-certificates': '1',
+						},
+						environment: {
+							SSL_CERT_FILE: '/etc/ssl/certs/ca-certificates.crt',
+							SSL_CERT_DIR: '/etc/ssl/certs',
+						},
+					},
+					{ appName: 'test' } as any,
+				);
+
+				expect(s.config.volumes).to.deep.include.members(caMounts);
+				expect(s.config.environment).to.include({
+					SSL_CERT_FILE: '/host/ssl/certs/ca-certificates.crt',
+					SSL_CERT_DIR: '/host/ssl/certs',
+				});
+			});
+
+			it('should pass the CA certificate binds to the engine as read-only mounts', async () => {
+				const s = await Service.fromComposeObject(
+					{
+						appId: 123,
+						serviceId: 123,
+						serviceName: 'test',
+						labels: {
+							'io.balena.features.ca-certificates': '1',
+						},
+					},
+					{ appName: 'test' } as any,
+				);
+
+				const { HostConfig } = s.toDockerContainer({
+					deviceName: 'foo',
+					containerIds: {},
+				} as any);
+				expect(HostConfig?.Mounts).to.deep.include.members([
+					{
+						Type: 'bind',
+						Source: '/etc/ssl/certs',
+						Target: '/host/ssl/certs',
+						ReadOnly: true,
+						BindOptions: { Propagation: 'rslave' },
+					},
+					{
+						Type: 'bind',
+						Source: '/usr/share/ca-certificates',
+						Target: '/usr/share/ca-certificates',
+						ReadOnly: true,
+						BindOptions: { Propagation: 'rslave' },
+					},
+					{
+						Type: 'bind',
+						Source: '/etc/ca-certificates.conf',
+						Target: '/host/ca-certificates.conf',
+						ReadOnly: true,
+					},
+				]);
+			});
+
+			it('should not mount the host CA certificates when the feature is not set', async () => {
+				const s = await Service.fromComposeObject(
+					{
+						appId: 123,
+						serviceId: 123,
+						serviceName: 'test',
+						labels: {},
+					},
+					{ appName: 'test' } as any,
+				);
+
+				for (const m of caMounts) {
+					expect(s.config.volumes).to.not.deep.include(m);
+				}
+				expect(s.config.environment).to.not.have.property('SSL_CERT_FILE');
+				expect(s.config.environment).to.not.have.property('SSL_CERT_DIR');
+			});
+		});
+
 		describe('io.balena.features.extra-firmware', () => {
 			it('should add extra-firmware volume mount when the feature is set', async () => {
 				const s = await Service.fromComposeObject(

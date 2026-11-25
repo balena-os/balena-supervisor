@@ -46,6 +46,8 @@ services:
       io.balena.features.balena-api: "1"
       # Needed to get Host OS metadata
       io.balena.features.host-os.board-rev: "1"
+      # Needed to trust the host CA certificates, including balenaRootCA
+      io.balena.features.ca-certificates: "1"
     environment:
       - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket
       # Needed for locks and balenahup. This needs to match the path

@@ -426,6 +426,40 @@ export async function addFeaturesFromLabels(
 				target: '/extra-firmware',
 			} as LongDefinition);
 		},
+		'io.balena.features.ca-certificates': () => {
+			// Mount the directory rather than the bundle file so the container
+			// follows changes to the bundle, and use rslave propagation so the
+			// container follows mounts on top of /etc/ssl/certs on the host
+			service.config.volumes.push({
+				type: 'bind',
+				source: '/etc/ssl/certs',
+				target: '/host/ssl/certs',
+				readOnly: true,
+				bind: { propagation: 'rslave' },
+			} as LongBind);
+			// Entries in /etc/ssl/certs are absolute symlinks into this directory
+			service.config.volumes.push({
+				type: 'bind',
+				source: '/usr/share/ca-certificates',
+				target: '/usr/share/ca-certificates',
+				readOnly: true,
+				bind: { propagation: 'rslave' },
+			} as LongBind);
+			// Long syntax binds are passed to the engine as Mounts, which fail
+			// if the source does not exist rather than creating it
+			service.config.volumes.push({
+				type: 'bind',
+				source: '/etc/ca-certificates.conf',
+				target: '/host/ca-certificates.conf',
+				readOnly: true,
+			} as LongBind);
+
+			// Override any user defined values so the container trusts
+			// exactly the host CAs
+			service.config.environment['SSL_CERT_FILE'] =
+				'/host/ssl/certs/ca-certificates.crt';
+			service.config.environment['SSL_CERT_DIR'] = '/host/ssl/certs';
+		},
 	};
 
 	for (const feature of Object.keys(features) as [keyof typeof features]) {
