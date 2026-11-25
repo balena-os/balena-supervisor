@@ -1,4 +1,20 @@
 - commits:
+    - subject: Remove unused target state check when pinning device
+      hash: 182bb3d14537022422e185b1d8c0d357ed056776
+      body: |
+        The target config fetched in pinDevice was never used. The check was
+        accidentally duplicated from reportInitialEnv during a rebase in
+        d50f7791, and forced an unnecessary target state fetch from the API
+        before pinning, failing provisioning if that fetch failed.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 20.0.11
+  title: ""
+  date: 2026-11-25T21:05:24.941Z
+- commits:
     - subject: Remove locks before fully deleting the app
       hash: 1a207c5470a029b20ea7067332408974b40cc17d
       body: >
