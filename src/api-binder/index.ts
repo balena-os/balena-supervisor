@@ -272,19 +272,6 @@ async function pinDevice({ app, commit }: DevicePinInfo) {
 			return;
 		}
 
-		// We force a fresh get to make sure we have the latest state
-		// and can guarantee we don't clash with any already reported config
-		const uuid = await config.get('uuid');
-		if (!uuid) {
-			throw new InternalInconsistencyError('No uuid for local device');
-		}
-
-		const targetConfigUnformatted = (await TargetState.get())?.[uuid]?.config;
-		if (targetConfigUnformatted == null) {
-			throw new InternalInconsistencyError(
-				'Attempt to report initial state with malformed target state',
-			);
-		}
 		await balenaApi.patch({
 			resource: 'device',
 			id: deviceId,
