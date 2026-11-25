@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 import * as imageManager from '~/src/compose/images';
-import { createImage, withMockerode } from '~/test-lib/mockerode';
+import { createImage, MockEngine, withMockerode } from '~/test-lib/mockerode';
 import { createDockerImage } from '~/test-lib/docker-helper';
 
 import Docker from 'dockerode';
@@ -484,6 +484,60 @@ describe('compose/images', () => {
 				expect(
 					await db.models('image').select().where(imageWithSameDockerImageId),
 				).to.have.lengthOf(1);
+			},
+			{ images },
+		);
+	});
+
+	it('removes all remaining tags when one of them is removed concurrently', async () => {
+		const imageToRemove = createDBImage({
+			name: 'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
+			dockerImageId: 'sha256:image-one-id',
+		});
+		await db.models('image').insert([imageToRemove]);
+
+		const images = [
+			createImage(
+				{ Id: imageToRemove.dockerImageId! },
+				{
+					References: [
+						'registry2.balena-cloud.com/v2/one:delta-one',
+						'registry2.balena-cloud.com/v2/one:delta-two',
+					],
+				},
+			),
+		];
+
+		await withMockerode(
+			async (mockerode) => {
+				// Simulate another actor removing the first tag between the
+				// listImages call and our removal request: the tag is gone and
+				// the engine answers with a 404
+				mockerode.removeImage.onFirstCall().callsFake(async function (
+					this: MockEngine,
+					name: string,
+				) {
+					await MockEngine.prototype.removeImage.call(this, name);
+					throw Object.assign(new Error(`No such image: ${name}`), {
+						statusCode: 404,
+					});
+				});
+
+				await imageManager.remove(imageToRemove);
+
+				expect(mockerode.removeImage).to.have.been.calledWith(
+					'registry2.balena-cloud.com/v2/one:delta-two',
+				);
+
+				// No references to the image should be left on the engine
+				expect(
+					await mockerode.listImages({
+						filters: { reference: ['registry2.balena-cloud.com/v2/one'] },
+					}),
+				).to.be.empty;
+
+				expect(await db.models('image').select().where(imageToRemove)).to.be
+					.empty;
 			},
 			{ images },
 		);

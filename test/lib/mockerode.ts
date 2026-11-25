@@ -312,6 +312,14 @@ const parseReference = (uri: string): Reference => {
 	};
 };
 
+// Returns true if reference `r` is the same as the one identified by `ref`.
+// A reference is identified by its repository and either its tag or digest,
+// e.g. removing `repo:tag` must not affect `repo:other-tag`
+const isSameReference = (r: Reference, ref: Reference) =>
+	r.repository === ref.repository &&
+	((ref.digest != null && r.digest === ref.digest) ||
+		(ref.tag != null && r.tag === ref.tag));
+
 export function createImage(
 	// Do not allow RepoTags or RepoDigests to be provided.
 	// References must be used instead
@@ -836,11 +844,7 @@ export class MockEngine {
 		const ref = parseReference(name);
 
 		const References = image.references
-			.filter(
-				(r) =>
-					r.repository !== ref.repository ||
-					(r.digest !== ref.digest && r.tag !== ref.tag),
-			)
+			.filter((r) => !isSameReference(r, ref))
 			.map((r) => r.toString());
 
 		if (References.length > 0) {
@@ -866,12 +870,8 @@ export class MockEngine {
 		const ref = parseReference(name);
 
 		return Object.values(this.images).find((img) =>
-			img.references.some(
-				(r) =>
-					// Find an image that has a reference with matching digest or tag
-					r.repository === ref.repository &&
-					(r.digest === ref.digest || r.tag === ref.tag),
-			),
+			// Find an image that has a reference with matching digest or tag
+			img.references.some((r) => isSameReference(r, ref)),
 		);
 	}
 
