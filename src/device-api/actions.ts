@@ -87,6 +87,19 @@ export const regenerateKey = async (oldKey: string) => {
 };
 
 /**
+ * applyTarget returns without error when its abortSignal fires, e.g. when
+ * another exclusive apply pre-empts this one. Multi-phase actions must not
+ * carry on to their next phase (or report success) in that case.
+ */
+const throwIfInterrupted = (abortSignal: AbortSignal, action: string) => {
+	if (abortSignal.aborted) {
+		throw new Error(
+			`${action} was interrupted by another purge or restart request`,
+		);
+	}
+};
+
+/**
  * Restarts an application by recreating containers.
  * Used by:
  * - POST /v1/restart
@@ -107,27 +120,35 @@ export const doRestart = async (appId: number, force = false) => {
 
 	try {
 		await deviceState.withExclusiveApply(async (abortSignal) => {
-			// Remove services
-			app.services = [];
-			deviceState.setIntermediateTarget(currentState);
-			await deviceState.applyTarget({
-				intermediate: true,
-				force,
-				abortSignal,
-			});
+			try {
+				// Remove services
+				app.services = [];
+				deviceState.setIntermediateTarget(currentState);
+				await deviceState.applyTarget({
+					intermediate: true,
+					force,
+					abortSignal,
+				});
+				throwIfInterrupted(abortSignal, 'Restart');
 
-			// Recreate services
-			app.services = services;
-			deviceState.setIntermediateTarget(currentState);
-			await deviceState.applyTarget({
-				intermediate: true,
-				keepVolumes: false,
-				force,
-				abortSignal,
-			});
+				// Recreate services
+				app.services = services;
+				deviceState.setIntermediateTarget(currentState);
+				await deviceState.applyTarget({
+					intermediate: true,
+					keepVolumes: false,
+					force,
+					abortSignal,
+				});
+				throwIfInterrupted(abortSignal, 'Restart');
+			} finally {
+				// Clear the intermediate target while the exclusive lock is still
+				// held. Clearing it after withExclusiveApply returns would race with
+				// the next exclusive call, which may already have set its own target.
+				deviceState.setIntermediateTarget(null);
+			}
 		});
 	} finally {
-		deviceState.setIntermediateTarget(null);
 		deviceState.triggerApplyTarget();
 	}
 };
@@ -160,25 +181,32 @@ export const doPurge = async (appId: number, force = false) => {
 
 	try {
 		await deviceState.withExclusiveApply(async (abortSignal) => {
-			// Purposely tell the apply function to delete volumes so
-			// they can get deleted even in local mode
-			deviceState.setIntermediateTarget(currentState);
-			await deviceState.applyTarget({
-				intermediate: true,
-				keepVolumes: false,
-				force,
-				abortSignal,
-			});
+			try {
+				// Purposely tell the apply function to delete volumes so
+				// they can get deleted even in local mode
+				deviceState.setIntermediateTarget(currentState);
+				await deviceState.applyTarget({
+					intermediate: true,
+					keepVolumes: false,
+					force,
+					abortSignal,
+				});
+				throwIfInterrupted(abortSignal, 'Purge');
 
-			// Purge the extra-firmware system volume
-			log.info('Purging extra-firmware volume');
-			await extraFirmware.remove();
-			await extraFirmware.create();
+				// Purge the extra-firmware system volume
+				log.info('Purging extra-firmware volume');
+				await extraFirmware.remove();
+				await extraFirmware.create();
 
-			// Restore user app after purge
-			currentState.local.apps[appId] = app;
-			deviceState.setIntermediateTarget(currentState);
-			await deviceState.applyTarget({ intermediate: true, abortSignal });
+				// Restore user app after purge
+				currentState.local.apps[appId] = app;
+				deviceState.setIntermediateTarget(currentState);
+				await deviceState.applyTarget({ intermediate: true, abortSignal });
+				throwIfInterrupted(abortSignal, 'Purge');
+			} finally {
+				// See doRestart: must be cleared before the exclusive lock is released
+				deviceState.setIntermediateTarget(null);
+			}
 		});
 		logger.logSystemMessage('Purged data', { appId }, 'Purge data success');
 	} catch (err: any) {
@@ -189,7 +217,6 @@ export const doPurge = async (appId: number, force = false) => {
 		);
 		throw err;
 	} finally {
-		deviceState.setIntermediateTarget(null);
 		deviceState.triggerApplyTarget();
 	}
 };
