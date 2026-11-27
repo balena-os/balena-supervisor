@@ -28,6 +28,7 @@ export const initialized = _.once(async () => {
 		unmanaged,
 		loggingEnabled,
 		localMode,
+		provisioned,
 	} = await config.getMany([
 		'apiEndpoint',
 		'logsEndpoint',
@@ -36,12 +37,16 @@ export const initialized = _.once(async () => {
 		'unmanaged',
 		'loggingEnabled',
 		'localMode',
+		'provisioned',
 	]);
 
+	// The device API key is generated locally before provisioning, but it
+	// is only valid once the device has been registered with the API, so
+	// we only pass it to the backend for a provisioned device
 	balenaBackend = new BalenaLogBackend(
 		logsEndpoint ?? apiEndpoint,
 		uuid,
-		deviceApiKey,
+		provisioned ? deviceApiKey : null,
 	);
 	localBackend = new LocalLogBackend();
 	backend = localMode ? localBackend : balenaBackend;
@@ -58,19 +63,12 @@ export const initialized = _.once(async () => {
 				'logsEndpoint',
 				'deviceApiKey',
 			]);
+			const endpoint = conf.logsEndpoint ?? conf.apiEndpoint;
 
-			// We use Boolean here, as deviceApiKey when unset
-			// is '' for legacy reasons. Once we're totally
-			// typescript, we can make it have a default value
-			// of undefined.
-			if (Object.values(conf).every(Boolean)) {
-				// Everything is set, provide the values to the
-				// balenaBackend, and remove our listener
-				balenaBackend!.assignFields(
-					conf.logsEndpoint ?? conf.apiEndpoint,
-					conf.uuid ?? '',
-					conf.deviceApiKey,
-				);
+			// Check for truthyness, as deviceApiKey when unset
+			// is '' for legacy reasons
+			if (endpoint && conf.uuid && conf.deviceApiKey) {
+				balenaBackend!.assignFields(endpoint, conf.uuid, conf.deviceApiKey);
 			}
 		});
 	}

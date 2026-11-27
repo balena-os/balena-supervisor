@@ -6,7 +6,6 @@ import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getDefaultHeaders } from '../lib/request';
 import { setTimeout } from 'timers/promises';
 import { once } from 'lodash';
-import type { SchemaReturn } from '../config/schema-type';
 
 type TagsPatchV3Body = {
 	[uuid: string]: {
@@ -18,17 +17,16 @@ type TagsPatchRecord = TagsPatchV3Body[string];
 const reportedTags: TagsPatchRecord = {};
 const targetTags: TagsPatchRecord = {};
 
+// Tags are only reported to the API after the device is provisioned,
+// until then they are just stored in the database. The configuration
+// needed for reporting is set when reporting starts.
 let reportConfigs:
-	| Awaited<
-			ReturnType<
-				typeof config.getMany<
-					| 'apiEndpoint'
-					| 'apiRequestTimeout'
-					| 'deviceApiKey'
-					| 'appUpdatePollInterval'
-					| 'uuid'
-				>
-			>
+	| config.ConfigMap<
+			| 'apiEndpoint'
+			| 'apiRequestTimeout'
+			| 'deviceApiKey'
+			| 'appUpdatePollInterval'
+			| 'uuid'
 	  >
 	| undefined;
 
@@ -36,22 +34,10 @@ export const initialized = once(async () => {
 	await db.initialized();
 	await config.initialized();
 
-	let reported: SchemaReturn<'reportedTags'>;
-	let target: SchemaReturn<'targetTags'>;
-
-	({
-		reportedTags: reported,
-		targetTags: target,
-		...reportConfigs
-	} = await config.getMany([
-		'apiEndpoint',
-		'apiRequestTimeout',
-		'deviceApiKey',
-		'appUpdatePollInterval',
-		'uuid',
+	const { reportedTags: reported, targetTags: target } = await config.getMany([
 		'reportedTags',
 		'targetTags',
-	]));
+	]);
 
 	if (reported != null) {
 		for (const key of Object.keys(reported)) {
@@ -59,20 +45,32 @@ export const initialized = once(async () => {
 		}
 	}
 	if (target != null) {
-		let isDifferent = false;
 		for (const key of Object.keys(target)) {
 			targetTags[key] = target[key];
-			if (reportedTags[key] !== targetTags[key]) {
-				isDifferent = true;
-			}
-		}
-		if (isDifferent) {
-			triggerReport();
 		}
 	}
 });
 
+/**
+ * Start reporting tags to the API. This must only be called once the
+ * device has been provisioned.
+ */
+export async function startReporting() {
+	await initialized();
+	reportConfigs = await config.getMany([
+		'apiEndpoint',
+		'apiRequestTimeout',
+		'deviceApiKey',
+		'appUpdatePollInterval',
+		'uuid',
+	]);
+	if (Object.keys(targetTags).length > 0) {
+		triggerReport();
+	}
+}
+
 export const setTags = async (tags: TagsPatchRecord) => {
+	await initialized();
 	let hasChanged = false;
 	for (const [key, value] of Object.entries(tags)) {
 		if (targetTags[key] !== value) {
@@ -85,17 +83,24 @@ export const setTags = async (tags: TagsPatchRecord) => {
 		}
 	}
 	if (hasChanged) {
-		triggerReport();
+		if (reportConfigs != null) {
+			triggerReport();
+		}
 		await config.set({ targetTags });
 	}
 };
 
 async function report(tagsDiff: TagsPatchRecord) {
-	const { apiEndpoint, apiRequestTimeout, deviceApiKey } = reportConfigs!;
+	const { apiEndpoint, apiRequestTimeout, deviceApiKey, uuid } = reportConfigs!;
 
 	if (!apiEndpoint) {
 		throw new InternalInconsistencyError(
 			'No apiEndpoint available for patching device tags',
+		);
+	}
+	if (!uuid) {
+		throw new InternalInconsistencyError(
+			'No uuid available for patching device tags',
 		);
 	}
 
@@ -110,7 +115,7 @@ async function report(tagsDiff: TagsPatchRecord) {
 			'Content-Type': 'application/json',
 		},
 		body: JSON.stringify({
-			[reportConfigs!.uuid!]: tagsDiff,
+			[uuid]: tagsDiff,
 		} satisfies TagsPatchV3Body),
 		signal: AbortSignal.timeout(apiRequestTimeout),
 	});

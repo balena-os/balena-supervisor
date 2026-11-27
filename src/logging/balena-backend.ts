@@ -37,11 +37,11 @@ export class BalenaLogBackend extends LogBackend {
 	public constructor(
 		endpoint: string,
 		uuid: Nullable<string>,
-		deviceApiKey: string,
+		deviceApiKey: string | null,
 	) {
 		super();
 
-		if (uuid != null && deviceApiKey !== '') {
+		if (uuid != null && deviceApiKey != null) {
 			this.assignFields(endpoint, uuid, deviceApiKey);
 		}
 		// This stream serves serves as a message buffer during reconnections

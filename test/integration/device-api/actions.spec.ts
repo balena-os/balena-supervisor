@@ -13,6 +13,7 @@ import * as hostConfig from '~/src/host-config';
 import * as apiKeys from '~/lib/api-keys';
 import * as actions from '~/src/device-api/actions';
 import * as TargetState from '~/src/api-binder/poll';
+import * as apiBinder from '~/src/api-binder';
 import * as updateLock from '~/lib/update-lock';
 import { pathOnRoot } from '~/lib/host-utils';
 import { exec } from '~/lib/fs-utils';
@@ -1299,20 +1300,33 @@ describe('reboots or shuts down device', () => {
 
 describe('updates target state cache', () => {
 	let updateStub: SinonStub;
+	let readyForUpdatesStub: SinonStub;
 	// Stub external dependencies. TargetState.update and api-binder methods
 	// should be tested separately.
 	before(async () => {
 		updateStub = stub(TargetState, 'update').resolves();
+		readyForUpdatesStub = stub(apiBinder, 'isReadyForUpdates').returns(true);
 		// updateTarget reads instantUpdates from the db
 		await config.initialized();
 	});
 
 	after(() => {
 		updateStub.restore();
+		readyForUpdatesStub.restore();
 	});
 
 	afterEach(() => {
 		updateStub.resetHistory();
+		readyForUpdatesStub.returns(true);
+	});
+
+	it('throws if the device is not ready for updates', async () => {
+		readyForUpdatesStub.returns(false);
+		await config.set({ instantUpdates: true });
+		await expect(actions.updateTarget(true)).to.be.rejectedWith(
+			'Device is not provisioned yet',
+		);
+		expect(updateStub).to.not.have.been.called;
 	});
 
 	it('updates target state cache if instant updates are enabled', async () => {

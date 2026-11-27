@@ -18,6 +18,7 @@ import log from '../lib/supervisor-console';
 import * as deviceState from '../device-state';
 import * as globalEventBus from '../event-bus';
 import * as TargetState from './poll';
+import { startReporting as startTagsReporting } from './tags';
 import * as logger from '../logging';
 
 import * as apiHelper from '../lib/api-helper';
@@ -138,6 +139,9 @@ export async function start() {
 
 	log.debug('Starting current state report');
 	void startCurrentStateReport();
+
+	log.debug('Starting device tags report');
+	await startTagsReporting();
 
 	// When we've provisioned, try to load the backup. We
 	// must wait for the provisioning because we need a

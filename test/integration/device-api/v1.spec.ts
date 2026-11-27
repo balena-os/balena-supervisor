@@ -703,6 +703,14 @@ describe('device-api/v1', () => {
 				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
 				.expect(202);
 		});
+
+		it('responds with 503 if the device is not provisioned', async () => {
+			updateTargetStub.rejects(new Error('Device is not provisioned yet'));
+			await request(api)
+				.post('/v1/update')
+				.set('Authorization', `Bearer ${await apiKeys.getGlobalApiKey()}`)
+				.expect(503);
+		});
 	});
 
 	describe('GET /v1/apps/:appId', () => {

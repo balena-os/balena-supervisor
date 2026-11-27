@@ -9,3 +9,6 @@ export const targetServiceNotFound = 'Service does not exist in target release';
 
 export const v2ServiceEndpointError =
 	'serviceName or imageId parameters were not provided or the app is multi-container. Use the v2 service action endpoints.';
+
+export const deviceNotProvisioned =
+	'Device is not provisioned yet, cannot update target state';
