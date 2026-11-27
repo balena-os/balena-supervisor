@@ -18,6 +18,7 @@ import * as commitStore from '../compose/commit';
 import type { Service } from '../compose/service';
 import { getApp } from '../device-state/db-format';
 import * as TargetState from '../api-binder/poll';
+import * as apiBinder from '../api-binder';
 import log from '../lib/supervisor-console';
 import { getBlink } from '../lib/blink';
 import * as constants from '../lib/constants';
@@ -362,6 +363,11 @@ export const executeServiceAction = async ({
  */
 export const updateTarget = async (force = false, cancel = false) => {
 	eventTracker.track('Update notification');
+
+	// Fetching the target state requires a provisioned device
+	if (!apiBinder.isReadyForUpdates()) {
+		throw new Error(messages.deviceNotProvisioned);
+	}
 
 	if (force || (await config.get('instantUpdates'))) {
 		TargetState.update(force, true, cancel).catch(() => {
