@@ -163,10 +163,14 @@ export const update = async (
 		},
 	});
 
-	if (statusCode === 304 && cache?.etag != null) {
+	if (statusCode === 304) {
 		// There's no change so no need to update the cache
-		// only emit the target state if it hasn't been emitted yet
-		cache.emitted = emitTargetState(cache, force, isFromApi, cancel);
+		// only emit the target state if it hasn't been emitted yet.
+		// The API can also return a 304 for load management on target state requests,
+		// do not emit the target state (which will be empty) in that case.
+		if (cache?.etag != null) {
+			cache.emitted = emitTargetState(cache, force, isFromApi, cancel);
+		}
 		return;
 	}
 
@@ -230,6 +234,9 @@ const poll = async (skipFirstGet = false, fetchErrors = 0): Promise<void> => {
  */
 export const get = async (): Promise<TargetState> => {
 	await update();
+	if (cache == null) {
+		throw new ApiResponseError('No target state available from the API');
+	}
 	return structuredClone(cache.body);
 };
 
