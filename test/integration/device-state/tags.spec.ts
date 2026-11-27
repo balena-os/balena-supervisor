@@ -16,6 +16,8 @@ describe('device-tags', () => {
 	let uuid: string;
 	before(async () => {
 		await config.initialized();
+		// A tag pending report from a previous run
+		await config.set({ targetTags: { pending: '0' } });
 		await tags.initialized();
 		apiEndpoint = await config.get('apiEndpoint');
 		const $uuid = await config.get('uuid');
@@ -26,7 +28,45 @@ describe('device-tags', () => {
 		uuid = $uuid;
 	});
 
+	describe('Before reporting starts', () => {
+		it('stores tags without reporting them and reports them once reporting starts', async function () {
+			let tagsPatchBody: nock.Body | undefined;
+			nock(apiEndpoint)
+				.patch('/device/v3/tags')
+				.once()
+				.reply(200, (_uri, requestBody) => {
+					tagsPatchBody = requestBody;
+					return {};
+				});
+
+			await tags.setTags({ early: '1' });
+			await setTimeout(500);
+			expect(tagsPatchBody).to.be.undefined;
+			// Previously pending tags are kept
+			expect(await config.get('targetTags')).to.deep.equal({
+				pending: '0',
+				early: '1',
+			});
+
+			await tags.startReporting();
+			await waitFor({
+				checkFn: () => tagsPatchBody !== undefined,
+			});
+
+			expect(tagsPatchBody).to.deep.equal({
+				[uuid]: {
+					pending: '0',
+					early: '1',
+				},
+			});
+		});
+	});
+
 	describe('Setting tags internally', () => {
+		before(async () => {
+			await tags.startReporting();
+		});
+
 		it('accepts multiple tags and attempts to update balena-api', async function () {
 			let tagsPatchBody: nock.Body | undefined;
 			nock(apiEndpoint)
@@ -42,6 +82,8 @@ describe('device-tags', () => {
 			});
 			await waitFor({
 				checkFn: () => tagsPatchBody !== undefined,
+				// The previous test reported tags, so this needs to wait for a full delay
+				maxCount: 250,
 			});
 
 			expect(tagsPatchBody).to.deep.equal({
@@ -170,6 +212,10 @@ describe('device-tags', () => {
 
 	describe('Setting tags via API', () => {
 		let api: Application;
+
+		before(async () => {
+			await tags.startReporting();
+		});
 
 		const apiSetTags = async (body: Record<string, string>) =>
 			await request(api)
